@@ -24,6 +24,12 @@ def normalize_title(title: str) -> str:
     return re.sub(r"[^0-9a-zA-Z가-힣]", "", without_suffix).lower()
 
 
+def title_matches_query(title: str, query: str) -> bool:
+    # 검색어가 본문/관련기사 링크에만 우연히 걸린 기사를 걸러내기 위해, 제목에 검색어가 실제로 포함된 경우만 인정
+    normalized_query = re.sub(r"[^0-9a-zA-Z가-힣]", "", query).lower()
+    return normalized_query in normalize_title(title)
+
+
 def fetch_naver_news(query: str, client_id: str, client_secret: str, display: int = 20) -> list:
     headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret}
     params = {"query": query, "display": display, "sort": "date"}
@@ -89,6 +95,8 @@ def collect_all(naver_client_id: str, naver_client_secret: str) -> list:
     for query in SEARCH_QUERIES:
         results = fetch_naver_news(query, naver_client_id, naver_client_secret) + fetch_google_news(query)
         for article in results:
+            if not title_matches_query(article["title"], query):
+                continue
             norm_title = normalize_title(article["title"])
             if article["link"] in seen_links or norm_title in seen_titles:
                 continue
