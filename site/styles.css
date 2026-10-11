@@ -291,6 +291,11 @@ input[type="search"]:focus { outline: none; border-color: var(--accent); box-sha
 .pf-grid td, .pf-grid th { text-align: center; }
 .pf-ratio td:last-child, .pf-ratio td:nth-last-child(2) { text-align: center; }
 .pf-def td { text-align: left; white-space: normal; }
+.pf-kv td { text-align: left; white-space: normal; }
+.pf-filings td:nth-child(2) { white-space: normal; }
+.pf-table a { color: var(--accent); text-decoration: none; }
+.pf-table a:hover { text-decoration: underline; }
+.pf-part-sub { font-size: 13px; font-weight: 600; color: var(--text-3); margin-left: 6px; }
 .pf-ref { margin-top: 44px; padding-top: 24px; border-top: 1px solid var(--line); }
 .pf-ref h3 { font-size: 1rem; margin: 20px 0 6px; }
 .pf-ref p { margin: 0; color: var(--text-2); font-size: 15px; }
