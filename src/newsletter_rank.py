@@ -25,7 +25,9 @@ def score(article: dict, now: datetime) -> float:
     age = age_days(now, article)
     recency = 2 if age <= 1 else 1.5 if age <= 3 else 1 if age <= FRESH_DAYS else 0
     coverage = min(len(article["similar_articles"]), 3) * 0.7
-    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage
+    # 같은 소식에 공시가 함께 묶여 있으면(회사가 공식 확인한 사안) 가산점
+    filed = 1 if article["cat3"] != "공시자료" and any(m["cat3"] == "공시자료" for m in article["similar_articles"]) else 0
+    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed
 
 
 def select_company(articles: list, now: datetime) -> dict:

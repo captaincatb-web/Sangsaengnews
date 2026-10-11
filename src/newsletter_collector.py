@@ -31,7 +31,7 @@ PHOTO_CAPTION_RE = re.compile(r"[\(\[〈][^\)\]〉]*사진[^\)\]〉]*[\)\]〉]\s
 PHOTO_TAG_RE = re.compile(r"^\s*[\(\[〈]\s*포토\s*[\)\]〉]")
 
 STOCK_NOISE_RE = re.compile(
-    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목)"
+    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목|애프터마켓|프리마켓|상승폭|하락폭|장\s*마감|마감\s*시황)"
 )
 STOCK_BRACKET_RE = re.compile(r"\[.*(강세|약세|특징|종목|테마|토픽|시황|고래|주식|베스트).*\].*")
 BROKER_RE = re.compile(
@@ -49,7 +49,7 @@ FALSE_POSITIVE_PATTERNS = {
     "AP시스템": r"중국|거버넌스\s*강화|esg\s*보고서|우드맥킨지|woodmac|태양광|인버터|solar|inverter",
     "유진테크": r"유진테크놀로지",
     "에스티아이": r"여론조사|지지|응답|복당|대통령|정당|찬성|반대|국힘|민주당|후보",
-    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\W*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt|biff|영화|배우|감독|바르텔레미|드라마",
+    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\W*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt|biff|영화|배우|감독|바르텔레미|드라마|테스나",
     "후성": r"후성유전|유전체|유전학|유전 편집|에피크리스퍼|심포지엄",
     "제이티": r"jtbc|제이티비씨|jt방송|jt비씨|제이티시스템|제이티넷|제이티이엔지|제이티전자",
     "ASML": r"니콘|캐논|재도전장|도전장|장악한",
@@ -221,6 +221,44 @@ def similarity(a: str, b: str, company_name: str = "") -> float:
     if not bg_a or not bg_b:
         return 0
     return len(bg_a & bg_b) / min(len(bg_a), len(bg_b))
+
+
+# 같은 소식 판별용 핵심 단어에서 뺄 흔한 단어 (회사명은 따로 뺀다)
+STOP_TOKENS = set(
+    "반도체 삼성 삼성전자 sk sk하이닉스 하이닉스 엔비디아 tsmc ai hbm d램 낸드 메모리 파운드리 장비 소재 부품 기판 기술 "
+    "시장 투자 공급 공급계약 계약 체결 수주 확대 전망 규모 실적 매출 영업이익 국내 글로벌 세계 한국 미국 중국 일본 대만 "
+    "올해 내년 분기 상반기 하반기 업계 기업 회사 사업 산업 신규 최대 단독 속보 종합 인터뷰 상장사 리뷰 주주 지분 보고 공시 "
+    "보고서 주요사항보고서 결정 추진 강화 성공 개발 협력 the and for with of in on to a".split()
+)
+_PARTICLE_RE = re.compile(r"(으로|에서|에게|까지|부터|에도|이며|하고|과|와|은|는|이|가|을|를|의|에|도|로|만)$")
+
+
+def key_tokens(title: str, company: str) -> set:
+    """제목의 핵심 단어 (금액·고유명사 등). 조사·흔한 단어·회사명은 뺀다"""
+    t = title.lower()
+    # 금액 표기 통일: "72억9250만원" → "72.9억", "72.9억원" → "72.9억"
+    t = re.sub(r"(\d+)억\s*(\d{1,4})만", lambda m: f"{int(m.group(1)) + int(m.group(2)) / 10000:.1f}억", t)
+    t = re.sub(r"(\d)(조|억|만)\s*원", r"\1\2", t)
+    t = re.sub(r"(\d)\.(\d)", r"\1_\2", t)  # 28.84% 같은 소수를 한 단어로
+    t = re.sub(r"(\d)\s+(조|억|만|천|엔|원|%|달러|주|건|대|호기)", r"\1\2", t)  # "1조 원" → "1조원"
+    t = re.sub(r"(\d[조억만천])\s+(엔|원|달러)", r"\1\2", t)  # "1조 엔" → "1조엔"
+    names = {company.lower(), *(a.lower() for a in COMPANY_ALIAS_RAW.get(company, []))}
+    tokens = set()
+    for w in re.findall(r"[a-z0-9가-힣%_]+", t):
+        if len(w) > 2:
+            w = _PARTICLE_RE.sub("", w)
+        if len(w) >= 2 and w not in STOP_TOKENS and w not in names and not w.isdigit():
+            tokens.add(w)
+    return tokens
+
+
+def same_story(a: dict, b: dict, company: str) -> bool:
+    """글자 유사도가 높거나, 사흘 이내 기사끼리 핵심 단어가 2개 이상 겹치면 같은 소식"""
+    if similarity(a["title"], b["title"], company) >= SIMILARITY_THRESHOLD:
+        return True
+    if abs((a["pub_date"] - b["pub_date"]).total_seconds()) > 3 * 86400:
+        return False
+    return len(key_tokens(a["title"], company) & key_tokens(b["title"], company)) >= 2
 
 
 def format_date_string(dt: datetime) -> str:
@@ -415,6 +453,9 @@ def collect_articles() -> dict:
             }
 
             if fixed_company:
+                # 첨부서류만 추가·정정한 재제출 공시는 소식 가치가 없어 제외
+                if re.search(r"\[첨부(추가|정정)\]", clean_title):
+                    continue
                 # 회사별 DART 피드: 매칭/오탐필터 우회 → 해당 회사로 직접 귀속
                 valid_articles.append(
                     {**base, "company": fixed_company, "cat3": "공시자료" if is_dart_link(link) else "기업동향"}
@@ -459,7 +500,7 @@ def group_similar(by_company: dict) -> dict:
             article = {**article, "similar_articles": []}
             for rep in clusters:
                 members = [rep] + rep["similar_articles"]
-                if any(similarity(article["title"], m["title"], company) >= SIMILARITY_THRESHOLD for m in members):
+                if any(same_story(article, m, company) for m in members):
                     rep["similar_articles"].append(article)
                     break
             else:
