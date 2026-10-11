@@ -93,8 +93,8 @@
           <dd>상장 기업은 6자리 종목코드로 네이버 증권의 시세 페이지에 바로 연결됩니다.</dd>
         </div>
         <div>
-          <dt><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>기업 개황</dt>
-          <dd>대표자, 설립일, 주소, 홈페이지는 OpenDART 기업개황 API에서 받아옵니다. <span id="profiles-status"></span></dd>
+          <dt><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>기업 프로필</dt>
+          <dd>대표이사, 주주, 인력, 재무제표는 OpenDART API에서 매일 자동으로 받아와 기업별 프로필을 만듭니다. <span id="profiles-status"></span></dd>
         </div>
       </dl>
     </section>
@@ -106,27 +106,6 @@
       <span>자료: 금융감독원 DART, 네이버 증권</span>
     </div>
   </footer>
-
-  <dialog class="sheet" id="detail" aria-labelledby="detail-name">
-    <div class="sheet-inner">
-      <div class="sheet-head">
-        <div>
-          <p class="sheet-group" id="detail-group"></p>
-          <h3 id="detail-name"></h3>
-          <p class="sheet-note" id="detail-note"></p>
-        </div>
-        <button class="icon-btn" type="button" id="detail-close" aria-label="닫기">
-          <i class="ph ph-x" aria-hidden="true"></i>
-        </button>
-      </div>
-
-      <dl class="facts" id="detail-ids"></dl>
-      <div id="detail-profile"></div>
-      <div class="sheet-actions" id="detail-links"></div>
-    </div>
-  </dialog>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="data/companies.js"></script>
   <script src="data/profiles.js"></script>
