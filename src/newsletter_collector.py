@@ -31,25 +31,25 @@ PHOTO_CAPTION_RE = re.compile(r"[\(\[〈][^\)\]〉]*사진[^\)\]〉]*[\)\]〉]\s
 PHOTO_TAG_RE = re.compile(r"^\s*[\(\[〈]\s*포토\s*[\)\]〉]")
 
 STOCK_NOISE_RE = re.compile(
-    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가)"
+    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목)"
 )
 STOCK_BRACKET_RE = re.compile(r"\[.*(강세|약세|특징|종목|테마|토픽|시황|고래|주식|베스트).*\].*")
 BROKER_RE = re.compile(
     r"(한국투자|nh투자|kb증권|삼성증권|미래에셋|대신증권|키움증권|신한투자|하나증권|메리츠증권|유안타|리서치센터|목표주가|투자의견|상승 마감|하락 마감|주가\s*전망|주가\s*추이|주가)"
 )
 ENGLISH_STOCK_RE = re.compile(
-    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors)"
+    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors|initiated at|initiates|reiterat|outperform|underperform|overweight|underweight|rating)"
 )
 
 # 회사별 오탐 필터 (제목을 소문자로 바꾼 뒤 검사)
 FALSE_POSITIVE_PATTERNS = {
     "머크퍼포먼스머티리얼즈": r"제약|의약|신약|임상|바이오|치료제",
     "와이씨": r"예측|가상자산|블록체인|스타트업|달바|성과보수",
-    "프로텍": r"화장품|뷰티|쿠션|선크림|케이스|보호필름|아이폰|갤럭시|프로텍트|protect|사이버작전|프로텍션|프로텍터|아세아프로텍|시큐어|코나아이|카드",
+    "프로텍": r"화장품|뷰티|쿠션|선크림|케이스|보호필름|아이폰|갤럭시|프로텍트|protect|사이버작전|프로텍션|프로텍터|아세아프로텍|시큐어|코나아이|카드|버노바|아카데미|요하네스버그|남아공|수료",
     "AP시스템": r"중국|거버넌스\s*강화|esg\s*보고서|우드맥킨지|woodmac|태양광|인버터|solar|inverter",
     "유진테크": r"유진테크놀로지",
     "에스티아이": r"여론조사|지지|응답|복당|대통령|정당|찬성|반대|국힘|민주당|후보",
-    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\W*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt",
+    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\W*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt|biff|영화|배우|감독|바르텔레미|드라마",
     "후성": r"후성유전|유전체|유전학|유전 편집|에피크리스퍼|심포지엄",
     "제이티": r"jtbc|제이티비씨|jt방송|jt비씨|제이티시스템|제이티넷|제이티이엔지|제이티전자",
     "ASML": r"니콘|캐논|재도전장|도전장|장악한",
@@ -65,6 +65,8 @@ ASCII_ALIAS_RE = re.compile(r"^[a-z0-9.&\- ]+$")
 
 # 회사와 무관한 스팸·채용 공고
 GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입사원")
+# 투자의견·주가 분석 위주 매체 (언론사명 기준)
+BLOCKED_SOURCE_RE = re.compile(r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan", re.I)
 # 사진/이미지 페이지, 주가 분석 사이트
 BLOCKED_LINK_RE = re.compile(r"view_photo|image_popup|/photo/|simplywall\.st|tradersunion\.com|tradingkey\.com|calgaryroughnecks\.com")
 
@@ -88,6 +90,8 @@ def get_clean_title(title: str, link: str) -> str:
     first_bracket = clean.find(" < ")
     if first_bracket != -1:
         clean = clean[:first_bracket]
+    # 인베스팅닷컴 재배포 기사의 "… By 알파경제 alphabiz" 꼬리말 (영문 "Driven By AI" 같은 표현은 건드리지 않음)
+    clean = re.sub(r"\s+By\s+(?=[가-힣])[^…]{1,25}$", "", clean)
     return clean.strip()
 
 
@@ -419,7 +423,7 @@ def collect_articles() -> dict:
 
             if is_stock_or_analysis_news(clean_title) or is_english_stock_news(clean_title):
                 continue
-            if GENERAL_NOISE_RE.search(clean_title) or BLOCKED_LINK_RE.search(link):
+            if GENERAL_NOISE_RE.search(clean_title) or BLOCKED_LINK_RE.search(link) or BLOCKED_SOURCE_RE.search(src_name):
                 continue
             for company in find_companies(clean_title, alias_map):
                 if is_false_positive(clean_title, company):

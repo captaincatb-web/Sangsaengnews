@@ -88,7 +88,7 @@ def build_stats(grouped: dict, now: datetime, total_companies: int) -> dict:
         "fresh_dart": sum(
             1 for arts in fresh.values() for a in arts for m in [a] + a["similar_articles"] if m["cat3"] == "공시자료"
         ),
-        "fresh_companies": sum(1 for arts in fresh.values() if arts),
+        "fresh_companies": sum(1 for arts in fresh.values() if any(not is_routine(a) for a in arts)),
         "total_companies": total_companies,
     }
 

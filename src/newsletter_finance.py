@@ -242,7 +242,7 @@ def build_price_short(company: str) -> str:
     _, quote = _quote_for(company)
     if not quote or quote.get("week_change_pct") is None:
         return ""
-    return f'<span style="font-size:11px;color:#8b95a1">1주</span>{_pct_html(quote["week_change_pct"])}'
+    return f'<span style="font-size:11px;color:#8b95a1">1주 </span>{_pct_html(quote["week_change_pct"])}'
 
 
 def build_price_cell(company: str) -> str:
@@ -263,8 +263,8 @@ def build_price_cell(company: str) -> str:
     week = _pct_html(quote.get("week_change_pct"))
     return (
         f'<a href="{detail_url}" style="color:#191f28;text-decoration:none;font-size:11px">{price_text}</a>'
-        f'<br><span style="font-size:11px"><span style="color:#8b95a1">1일</span>{day} '
-        f'<span style="color:#8b95a1">1주</span>{week}</span>'
+        f'<br><span style="font-size:11px"><span style="color:#8b95a1">1일 </span>{day} '
+        f'<span style="color:#8b95a1">1주 </span>{week}</span>'
     )
 
 

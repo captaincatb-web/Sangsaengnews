@@ -59,6 +59,13 @@ def _routine_line(routine: list) -> str:
     )
 
 
+def _routine_mark(routine: list) -> str:
+    """새 소식 없음 목록에 붙는 지분·소유 공시 표시 (최신 공시로 연결)"""
+    if not routine:
+        return ""
+    return f' <a href="{escape(routine[0]["link"])}" style="color:#8b95a1;font-size:11px">📄지분 {len(routine)}</a>'
+
+
 def _name_html(company: str) -> str:
     disp = get_display_name(company)
     return f"<b>{company}</b>" if disp == company else f'<b title="{company}">{disp}</b>'
@@ -127,7 +134,7 @@ def build_newsletter_html(
     out.append(_movers(*movers))
     out.append(
         f'<div style="{META};margin-bottom:4px">제목 색: <b style="color:#f04452">빨강</b> 24시간 이내 · '
-        '<b style="color:#3182f6">파랑</b> 최근 7일 · <b style="color:#8b95a1">회색</b> 지난 소식(8~30일)</div>'
+        '<b style="color:#3182f6">파랑</b> 최근 7일 · <b style="color:#8b95a1">회색</b> 지난 소식(8~30일) · 📄지분 = 지분·소유 변동 공시 건수</div>'
     )
 
     for group in groups:
@@ -157,10 +164,10 @@ def build_newsletter_html(
             elif sel["older"]:
                 older_rows.append(
                     f'<tr><td valign="top" style="color:#6b7684">{_name_html(company)}<br>{price_cells[company]}</td>'
-                    f'{lead_fin}<td valign="top">{_article(sel["older"], now, show_sim=False)}</td></tr>'
+                    f'{lead_fin}<td valign="top">{_article(sel["older"], now, show_sim=False)}{_routine_line(sel["routine"])}</td></tr>'
                 )
             else:
-                quiet.append(f"{_name_html(company)} {price_short[company]}".strip())
+                quiet.append(f"{_name_html(company)} {price_short[company]}{_routine_mark(sel['routine'])}".strip())
 
         if older_rows:
             out.append(
@@ -171,7 +178,7 @@ def build_newsletter_html(
         if quiet:
             out.append(
                 f'<tr><td colspan="{cols}" style="color:#6b7684;line-height:1.8;font-size:12px">'
-                f'📭 <b>최근 30일 소식 없음 ({len(quiet)}곳)</b> · ' + " · ".join(quiet) + "</td></tr>"
+                f'📭 <b>새 소식 없음 ({len(quiet)}곳)</b> · ' + " · ".join(quiet) + "</td></tr>"
             )
         out.append("</table>")
     out.append("</div>")

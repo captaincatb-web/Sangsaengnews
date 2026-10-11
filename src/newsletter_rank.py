@@ -31,16 +31,14 @@ def score(article: dict, now: datetime) -> float:
 def select_company(articles: list, now: datetime) -> dict:
     """회사 1곳에서 메일에 보일 기사를 고른다.
 
-    - shown: 최근 7일 기사 중 중요도 순 최대 2건 (지분변동 같은 반복성 소식은 다른 소식이 없을 때만)
-    - routine: shown 에 못 든 최근 7일 지분변동 소식 (건수만 한 줄로 표시)
+    - shown: 최근 7일 기사 중 중요도 순 최대 2건 (지분변동 같은 반복성 소식은 제외)
+    - routine: 최근 7일 지분변동 소식 (본문 칸을 쓰지 않고 건수만 표시)
     - older: 최근 7일 소식이 없을 때 보여줄 8~30일 전 최신 기사 1건
     """
     fresh = [a for a in articles if age_days(now, a) <= FRESH_DAYS]
     main = sorted((a for a in fresh if not is_routine(a)), key=lambda a: score(a, now), reverse=True)
     routine = [a for a in fresh if is_routine(a)]
     shown = main[:FIXED_COMPANY_LIMIT]
-    if not shown and routine:
-        shown, routine = routine[:1], routine[1:]
 
     older = None
     if not shown:
