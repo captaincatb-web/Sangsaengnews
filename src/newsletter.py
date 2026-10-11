@@ -5,7 +5,7 @@ from datetime import datetime
 
 from src import email_sender, gnews_decoder
 from src.history import KST
-from src.newsletter_collector import collect_articles, group_similar
+from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar
 from src.newsletter_config import (
     FIXED_COMPANY_LIMIT,
     MAX_SIM,
@@ -81,6 +81,16 @@ def resolve_google_links(company_articles: dict) -> None:
     mapping = gnews_decoder.decode_all(a["link"] for a in shown)
     for a in shown:
         a["link"] = mapping.get(a["link"], a["link"])
+
+    # 원문 주소가 드러난 뒤에야 알 수 있는 사진 페이지·주가 사이트 기사를 제거
+    for company, articles in company_articles.items():
+        kept = []
+        for a in articles:
+            if BLOCKED_LINK_RE.search(a["link"]):
+                continue
+            a["similar_articles"] = [s for s in a["similar_articles"] if not BLOCKED_LINK_RE.search(s["link"])]
+            kept.append(a)
+        company_articles[company] = kept
 
 if __name__ == "__main__":
     main()
