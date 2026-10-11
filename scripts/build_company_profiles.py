@@ -239,12 +239,15 @@ def parse_audit_statements(doc: str) -> tuple[dict, dict]:
         context = clean_cell(doc[max(0, m.start() - 600):m.start()]) + clean_cell(table[:600])
         units = UNIT_RE.findall(context)
         factor = UNIT_FACTOR[units[-1]] if units else 1
+        rows = []
         for tr in re.findall(r"<TR\b.*?</TR>", table, re.S | re.I):
             cells = [clean_cell(c[1]) for c in CELL_RE.findall(tr)]
-            if len(cells) < 2:
-                continue
-            label = normalize_label(cells[0])
-            nums = [n for n in (parse_amount(c) for c in cells[1:]) if n is not None]
+            if len(cells) >= 2:
+                rows.append((normalize_label(cells[0]), cells[1:]))
+        # 차입금은 재무상태표에서만 센다 (현금흐름표의 '차입금의 상환', 주석의 차입금 명세는 제외)
+        is_bs = any(label in ("자산총계", "부채총계") for label, _ in rows)
+        for label, rest in rows:
+            nums = [n for n in (parse_amount(c) for c in rest) if n is not None]
             if not nums:
                 continue
             key = AUDIT_NAMES.get(label)
@@ -252,7 +255,7 @@ def parse_audit_statements(doc: str) -> tuple[dict, dict]:
                 cur[key] = nums[0] * factor
                 if len(nums) > 1:
                     prev[key] = nums[1] * factor
-            elif is_borrowing(label) and len(label) <= 12:
+            elif is_bs and is_borrowing(label) and len(label) <= 12:
                 borrow_cur.append(nums[0] * factor)
                 if len(nums) > 1:
                     borrow_prev.append(nums[1] * factor)
@@ -517,9 +520,9 @@ def fetch_audit_opinions(api_key, corp_code, year) -> list:
     data = call(api_key, "accnutAdtorNmNdAdtOpinion", corp_code=corp_code, bsns_year=str(year), reprt_code=ANNUAL)
     out = []
     for r in (data or {}).get("list", []):
-        if r.get("adtor"):
-            out.append({"period": r.get("bsns_year", ""), "auditor": r.get("adtor", ""),
-                        "opinion": r.get("adt_opinion", "")})
+        row = {"period": r.get("bsns_year", ""), "auditor": r.get("adtor", ""), "opinion": r.get("adt_opinion", "")}
+        if row["auditor"] and row not in out:
+            out.append(row)
     return out[:3]
 
 
