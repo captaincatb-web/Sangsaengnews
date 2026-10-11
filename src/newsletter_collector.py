@@ -14,6 +14,7 @@ from src.history import KST
 from src.newsletter_config import (
     COMPANY_ALIAS_RAW,
     DART_CORP_CODES,
+    get_display_name,
     CATEGORY_WEIGHT,
     HARD_BLACK_TITLES,
     MAX_AGE_DAYS,
@@ -64,7 +65,7 @@ FALSE_POSITIVE_RE = {k: re.compile(v) for k, v in FALSE_POSITIVE_PATTERNS.items(
 ASCII_ALIAS_RE = re.compile(r"^[a-z0-9.&\- ]+$")
 
 # 회사와 무관한 스팸·채용 공고
-GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입사원")
+GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입|공채|경력직")
 # 투자의견·주가 분석 위주 매체 (언론사명 기준)
 BLOCKED_SOURCE_RE = re.compile(r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan", re.I)
 # 사진/이미지 페이지, 주가 분석 사이트
@@ -137,8 +138,13 @@ def is_stale(clean_title: str, link: str, now: datetime) -> bool:
 
 
 def is_false_positive(clean_title: str, company: str) -> bool:
+    t = clean_title.lower()
+    # "‘제2 ASML’ 니어필드" 처럼 다른 회사를 빗댄 표현
+    for alias in [company, *COMPANY_ALIAS_RAW.get(company, [])]:
+        if re.search(r"제\s*2의?\s*[‘'\"]?\s*" + re.escape(alias.lower()), t):
+            return True
     pattern = FALSE_POSITIVE_RE.get(company)
-    return bool(pattern and pattern.search(clean_title.lower()))
+    return bool(pattern and pattern.search(t))
 
 
 # "이완호 한국알박 팀장." 처럼 인물 사진 캡션이 제목으로 들어오는 경우
@@ -242,12 +248,14 @@ def key_tokens(title: str, company: str) -> set:
     t = re.sub(r"(\d)\.(\d)", r"\1_\2", t)  # 28.84% 같은 소수를 한 단어로
     t = re.sub(r"(\d)\s+(조|억|만|천|엔|원|%|달러|주|건|대|호기)", r"\1\2", t)  # "1조 원" → "1조원"
     t = re.sub(r"(\d[조억만천])\s+(엔|원|달러)", r"\1\2", t)  # "1조 엔" → "1조엔"
-    names = {company.lower(), *(a.lower() for a in COMPANY_ALIAS_RAW.get(company, []))}
+    names = set()
+    for alias in [company, get_display_name(company), *COMPANY_ALIAS_RAW.get(company, [])]:
+        names.update(w for w in re.findall(r"[a-z0-9가-힣]+", alias.lower()) if len(w) >= 2)
     tokens = set()
     for w in re.findall(r"[a-z0-9가-힣%_]+", t):
         if len(w) > 2:
             w = _PARTICLE_RE.sub("", w)
-        if len(w) >= 2 and w not in STOP_TOKENS and w not in names and not w.isdigit():
+        if len(w) >= 2 and w not in STOP_TOKENS and not w.isdigit() and not any(n in w for n in names):
             tokens.add(w)
     return tokens
 
