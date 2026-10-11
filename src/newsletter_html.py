@@ -24,7 +24,9 @@ def _lead_cell(content: str, alt: bool, rowspan: int = 1) -> str:
     return f'<td{span} align="center" bgcolor="{bg}" style="font-size:11px">{content}</td>'
 
 
-def build_newsletter_html(company_articles: dict, now: datetime, groups: list, title_text: str, fin_cells: dict, price_cells: dict) -> str:
+def build_newsletter_html(
+    company_articles: dict, now: datetime, groups: list, title_text: str, fin_cells: dict, price_cells: dict, price_short: dict
+) -> str:
     out = ['<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:1000px;color:#191f28">']
     out.append(f"<h2>📬 [뉴스레터] {title_text}</h2>")
     out.append(
@@ -42,6 +44,7 @@ def build_newsletter_html(company_articles: dict, now: datetime, groups: list, t
             + "</tr>"
         )
 
+        quiet = []
         for idx, company in enumerate(group["companies"]):
             articles = company_articles.get(company, [])
             disp = get_display_name(company)
@@ -50,10 +53,8 @@ def build_newsletter_html(company_articles: dict, now: datetime, groups: list, t
             lead = (name_html, price_cells[company], fin_cells[company])
 
             if not articles:
-                out.append(
-                    "<tr>" + "".join(_lead_cell(c, alt) for c in lead)
-                    + '<td colspan="5" align="center" style="color:#b0b8c1;font-style:italic;font-size:12px">최근 수집된 동향 뉴스가 없습니다.</td></tr>'
-                )
+                # 뉴스 없는 회사는 그룹 끝에 한 줄로 모아 메일 용량을 줄인다
+                quiet.append(f"{name_html} {price_short[company]}".strip())
                 continue
 
             selected = articles[:FIXED_COMPANY_LIMIT]
@@ -94,6 +95,11 @@ def build_newsletter_html(company_articles: dict, now: datetime, groups: list, t
                         f'<td align="center">{escape(sim["source"])}</td><td align="center">{sim["date_str"]}</td>'
                         f'<td align="center">{sim["cat2"]}</td><td></td></tr>'
                     )
+        if quiet:
+            out.append(
+                '<tr><td colspan="8" style="font-size:12px;color:#6b7684;line-height:1.8">'
+                f'📭 <b>최근 뉴스 없음 ({len(quiet)}곳)</b> · ' + " · ".join(quiet) + "</td></tr>"
+            )
         out.append("</table>")
     out.append("</div>")
     return "".join(out)

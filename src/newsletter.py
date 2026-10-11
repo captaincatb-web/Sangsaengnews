@@ -3,18 +3,21 @@ import os
 import sys
 from datetime import datetime
 
-from src import email_sender
+from src import email_sender, gnews_decoder
 from src.history import KST
 from src.newsletter_collector import collect_articles, group_similar
-from src.newsletter_config import OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
-from src.newsletter_finance import Cache, build_fin_summary, build_price_cell
+from src.newsletter_config import (
+    FIXED_COMPANY_LIMIT,
+    MAX_SIM,
+    OUTPUT_DIR,
+    RECIPIENT_EMAIL_DEFAULT,
+    TARGET_GROUPS,
+    all_company_names,
+)
+from src.newsletter_finance import Cache, build_fin_summary, build_price_cell, build_price_short
 from src.newsletter_html import build_newsletter_html
 
-# 본문 크기 한도 회피를 위해 1~3그룹 / 4그룹을 별도 메일로 발송
-MAILS = [
-    ("domestic", [1, 2, 3], "국내 핵심 소부장 파트너사 동향 (1~3그룹)"),
-    ("global", [4], "해외 핵심 소부장 파트너사 동향 (4그룹)"),
-]
+MAIL_TITLE = "핵심 소부장 파트너사 동향 (1~4그룹)"
 
 
 def main() -> None:
@@ -35,39 +38,47 @@ def main() -> None:
 
     now = datetime.now(KST)
     company_articles = group_similar(collect_articles())
+    resolve_google_links(company_articles)
 
     cache = Cache()
-    fin_cells, price_cells = {}, {}
+    fin_cells, price_cells, price_short = {}, {}, {}
     for company in all_company_names():
         fin_cells[company] = build_fin_summary(company, dart_key, now, cache, gemini_key, gemini_model)
         price_cells[company] = build_price_cell(company)
+        price_short[company] = build_price_short(company)
     cache.save()
 
+    # 1~4그룹을 한 통으로 (뉴스 없는 회사는 그룹별 한 줄 요약으로 접어 본문 크기를 줄임)
+    html_body = build_newsletter_html(company_articles, now, TARGET_GROUPS, MAIL_TITLE, fin_cells, price_cells, price_short)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for name, group_ids, title in MAILS:
-        groups = [g for g in TARGET_GROUPS if g["group_id"] in group_ids]
-        html_body = build_newsletter_html(company_articles, now, groups, title, fin_cells, price_cells)
-        out_path = OUTPUT_DIR / f"newsletter_{name}.html"
-        out_path.write_text(html_body, encoding="utf-8")
-        print(f"HTML 저장: {out_path} ({len(html_body) // 1024}KB)")
+    out_path = OUTPUT_DIR / "newsletter.html"
+    out_path.write_text(html_body, encoding="utf-8")
+    print(f"HTML 저장: {out_path} ({len(html_body.encode()) // 1024}KB)")
 
-        if args.dry_run:
-            # Gmail 도구로 나눠 보낼 수 있도록 그룹별 HTML도 저장
-            for g in groups:
-                part = build_newsletter_html(company_articles, now, [g], g["group_name"], fin_cells, price_cells)
-                (OUTPUT_DIR / f"newsletter_group{g['group_id']}.html").write_text(part, encoding="utf-8")
-            continue
-        email_sender.send_html(
-            os.environ.get("SMTP_HOST") or "smtp.gmail.com",
-            int(os.environ.get("SMTP_PORT") or 465),
-            smtp_user,
-            smtp_password,
-            recipient,
-            f"📬 [뉴스레터] {title}",
-            html_body,
-        )
-        print(f"메일 발송 완료: {title} → {recipient}")
+    if args.dry_run:
+        return
+    email_sender.send_html(
+        os.environ.get("SMTP_HOST") or "smtp.gmail.com",
+        int(os.environ.get("SMTP_PORT") or 465),
+        smtp_user,
+        smtp_password,
+        recipient,
+        f"📬 [뉴스레터] {MAIL_TITLE}",
+        html_body,
+    )
+    print(f"메일 발송 완료 → {recipient}")
 
+
+def resolve_google_links(company_articles: dict) -> None:
+    """메일에 실제로 표시되는 기사만 구글뉴스 링크를 원문 링크로 바꾼다"""
+    shown = []
+    for articles in company_articles.values():
+        for a in articles[:FIXED_COMPANY_LIMIT]:
+            shown.append(a)
+            shown.extend(a["similar_articles"][:MAX_SIM])
+    mapping = gnews_decoder.decode_all(a["link"] for a in shown)
+    for a in shown:
+        a["link"] = mapping.get(a["link"], a["link"])
 
 if __name__ == "__main__":
     main()

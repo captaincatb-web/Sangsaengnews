@@ -1,7 +1,11 @@
+import html
+import os
 import re
 from calendar import timegm
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
+from urllib.parse import quote
 
 import feedparser
 import requests
@@ -11,6 +15,7 @@ from src.newsletter_config import (
     COMPANY_ALIAS_RAW,
     DART_CORP_CODES,
     HARD_BLACK_TITLES,
+    MAX_AGE_DAYS,
     MAX_STORED_PER_COMPANY,
     NEWS_CATEGORIES,
     RSS_LIST,
@@ -138,6 +143,10 @@ def get_news_tag(clean_title: str, link: str) -> str:
 _NON_WORD_RE = re.compile(r"[^A-Za-z0-9_가-힣]")
 
 
+def normalize_title(title: str) -> str:
+    return _NON_WORD_RE.sub("", title).lower()
+
+
 def similarity(a: str, b: str, company_name: str = "") -> float:
     # company_name: 회사명 자체가 만드는 bigram이 유사도를 과대평가하는 문제 방지
     def clean(s: str) -> str:
@@ -173,25 +182,108 @@ def format_date_string(dt: datetime) -> str:
     return dt.astimezone(KST).strftime("%m-%d %H:%M")
 
 
-def build_rss_sources() -> list:
-    """뉴스 RSS + 회사별 DART RSS를 하나의 소스 목록으로 합침 (company="" 이면 일반 뉴스)"""
-    sources = [{"url": url, "company": ""} for url in RSS_LIST]
+NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
+GOOGLE_SEARCH_URL = "https://news.google.com/rss/search?q={q}+when:{days}d&hl=ko&gl=KR&ceid=KR:ko"
+
+# 소스 우선순위: 같은 기사가 여러 곳에서 오면 먼저 처리된 소스의 링크(원문 링크)를 남긴다
+SOURCE_PRIORITY = {"dart": 0, "naver": 1, "rss": 2, "google": 3}
+
+# 네이버 API는 언론사명을 주지 않으므로 원문 도메인으로 표기
+PRESS_BY_DOMAIN = {
+    "etnews.com": "전자신문", "thelec.kr": "디일렉", "zdnet.co.kr": "지디넷코리아", "hankyung.com": "한국경제",
+    "mk.co.kr": "매일경제", "yna.co.kr": "연합뉴스", "newsis.com": "뉴시스", "news1.kr": "뉴스1",
+    "edaily.co.kr": "이데일리", "mt.co.kr": "머니투데이", "sedaily.com": "서울경제", "fnnews.com": "파이낸셜뉴스",
+    "asiae.co.kr": "아시아경제", "heraldcorp.com": "헤럴드경제", "chosun.com": "조선일보", "biz.chosun.com": "조선비즈",
+    "joongang.co.kr": "중앙일보", "donga.com": "동아일보", "hani.co.kr": "한겨레", "khan.co.kr": "경향신문",
+    "ddaily.co.kr": "디지털데일리", "dt.co.kr": "디지털타임스", "inews24.com": "아이뉴스24", "bloter.net": "블로터",
+    "thebell.co.kr": "더벨", "dealsite.co.kr": "딜사이트", "newspim.com": "뉴스핌", "nocutnews.co.kr": "노컷뉴스",
+    "ajunews.com": "아주경제", "etoday.co.kr": "이투데이", "businesspost.co.kr": "비즈니스포스트", "ebn.co.kr": "EBN",
+    "kmib.co.kr": "국민일보", "seoul.co.kr": "서울신문", "munhwa.com": "문화일보", "dynews.co.kr": "동양일보",
+    "datanews.co.kr": "데이터뉴스", "digitaltoday.co.kr": "디지털투데이", "kipost.net": "KIPOST", "g-enews.com": "글로벌이코노믹",
+}
+
+
+def _press_from_link(link: str) -> str:
+    host = re.sub(r"^https?://", "", link).split("/")[0].lower()
+    host = re.sub(r"^(www|m|news|biz)\.", "", host) if host.count(".") > 1 else host
+    for domain, name in PRESS_BY_DOMAIN.items():
+        if host == domain or host.endswith("." + domain):
+            return name
+    return host or "뉴스 출처"
+
+
+def _search_terms(company: str) -> list:
+    """회사별 검색어: 대표명 + 한글 별칭(영문 약어는 오탐이 많아 제외)"""
+    terms = [company]
+    for alias in COMPANY_ALIAS_RAW.get(company, []):
+        if alias != company and re.search(r"[가-힣]", alias) and len(alias) >= 4 and alias not in company:
+            terms.append(alias)
+    return terms[:2]
+
+
+def build_sources() -> list:
+    """수집 소스 목록 (company 가 있으면 해당 회사로 직접 귀속되는 DART 피드)"""
+    sources = []
     for company, code in DART_CORP_CODES.items():
         if code:
-            sources.append({"url": f"https://dart.fss.or.kr/api/companyRSS.xml?crpCd={code}", "company": company})
+            sources.append({"kind": "dart", "url": f"https://dart.fss.or.kr/api/companyRSS.xml?crpCd={code}", "company": company})
+    for url in RSS_LIST:
+        sources.append({"kind": "google" if "news.google.com" in url else "rss", "url": url, "company": ""})
+    # 회사별 개별 검색: OR로 묶은 검색은 결과 100건 한도에 큰 회사 기사가 몰려 작은 회사가 누락됨
+    for company in all_company_names():
+        q = " OR ".join(f'"{t}"' for t in _search_terms(company))
+        sources.append({"kind": "google", "url": GOOGLE_SEARCH_URL.format(q=quote(q), days=MAX_AGE_DAYS), "company": ""})
+        if os.environ.get("NAVER_CLIENT_ID"):
+            sources.append({"kind": "naver", "query": f'"{company}"', "company": ""})
+    sources.sort(key=lambda s: SOURCE_PRIORITY[s["kind"]])
     return sources
 
 
-def _fetch_feed(url: str):
+def _fetch_feed(source: dict) -> list:
+    """소스 1개 조회 → [{title, link, pub_date, source}]"""
+    if source["kind"] == "naver":
+        return _fetch_naver(source["query"])
+    url = source["url"]
     try:
         resp = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
         if resp.status_code != 200:
             print(f"[rss] {resp.status_code} {url}")
             return []
-        return feedparser.parse(resp.content).entries
+        entries = feedparser.parse(resp.content).entries
     except requests.RequestException as e:
         print(f"[rss] 조회 실패 {url}: {e}")
         return []
+    items = []
+    for entry in entries:
+        link = entry.get("link")
+        items.append(
+            {"title": entry.get("title"), "link": link, "pub_date": _entry_pub_date(entry), "source": _entry_source(entry, link or "")}
+        )
+    return items
+
+
+def _fetch_naver(query: str) -> list:
+    headers = {
+        "X-Naver-Client-Id": os.environ.get("NAVER_CLIENT_ID", ""),
+        "X-Naver-Client-Secret": os.environ.get("NAVER_CLIENT_SECRET", ""),
+    }
+    try:
+        resp = requests.get(NAVER_NEWS_URL, headers=headers, params={"query": query, "display": 30, "sort": "date"}, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        raw_items = resp.json().get("items", [])
+    except (requests.RequestException, ValueError) as e:
+        print(f"[naver] '{query}' 조회 실패: {e}")
+        return []
+    items = []
+    for item in raw_items:
+        link = item.get("originallink") or item.get("link")
+        try:
+            pub_date = parsedate_to_datetime(item["pubDate"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        title = html.unescape(re.sub(r"</?b>", "", item.get("title", "")))
+        items.append({"title": title, "link": link, "pub_date": pub_date, "source": _press_from_link(link or "")})
+    return items
 
 
 def _entry_pub_date(entry):
@@ -207,32 +299,38 @@ def _entry_source(entry, link: str) -> str:
     source = entry.get("source")
     if isinstance(source, dict) and source.get("title"):
         return source["title"]
-    return "뉴스 출처"
+    return _press_from_link(link) if "news.google.com" not in link else "뉴스 출처"
 
 
 def collect_articles() -> dict:
-    """RSS+DART 수집 → {회사명: [article, ...]} (회사별 link 중복 제거, 최신순 상위 N건)"""
+    """DART + 네이버 + RSS + 구글뉴스 수집 → {회사명: [article, ...]} (회사별 최신순 상위 N건)"""
     alias_map = build_alias_map()
-    sources = build_rss_sources()
+    sources = build_sources()
 
     with ThreadPoolExecutor(max_workers=16) as pool:
-        feeds = list(pool.map(lambda s: _fetch_feed(s["url"]), sources))
+        feeds = list(pool.map(_fetch_feed, sources))
 
+    stats = {}
+    for source, items in zip(sources, feeds):
+        stats[source["kind"]] = stats.get(source["kind"], 0) + len(items)
+    print("소스별 원본 건수:", stats)
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS)
     valid_articles = []
     seen_titles = set()
-    for source, entries in zip(sources, feeds):
+    for source, items in zip(sources, feeds):
         fixed_company = source["company"]
-        for entry in entries:
-            title = entry.get("title")
-            link = entry.get("link")
-            pub_date = _entry_pub_date(entry)
-            if not title or not link or not pub_date:
+        for item in items:
+            title, link, pub_date = item["title"], item["link"], item["pub_date"]
+            if not title or not link or not pub_date or pub_date < cutoff:
                 continue
 
             clean_title = get_clean_title(title, link)
-            if clean_title in seen_titles:
+            # 같은 기사가 다른 소스/언론사로 들어와도 한 번만 (공백·기호 차이 무시)
+            norm = normalize_title(clean_title)
+            if not norm or norm in seen_titles:
                 continue
-            seen_titles.add(clean_title)
+            seen_titles.add(norm)
 
             if any(b in clean_title for b in HARD_BLACK_TITLES):
                 continue
@@ -240,8 +338,8 @@ def collect_articles() -> dict:
             if is_photo_caption(clean_title):
                 continue
 
-            src_name = _entry_source(entry, link)
-            # 네이버 프리미엄콘텐츠(유료 구독형) 차단
+            src_name = item["source"]
+            # 네이버 프리미엄콘텐츠(유료 구독형)·블로그 차단
             if "contents.premium.naver.com" in link or "blog.naver.com" in link or "네이버 블로그" in clean_title:
                 continue
             if re.search(r"네이버\s*프리미엄|프리미엄콘텐츠|premium\s*contents", src_name, re.IGNORECASE):
@@ -284,7 +382,8 @@ def collect_articles() -> dict:
             deduped.append(a)
         by_company[company] = deduped[:MAX_STORED_PER_COMPANY]
 
-    print(f"수집 완료: {len(valid_articles)}건")
+    covered = sum(1 for a in by_company.values() if a)
+    print(f"수집 완료: {len(valid_articles)}건 / 기사 있는 회사 {covered}/{len(by_company)}")
     return by_company
 
 

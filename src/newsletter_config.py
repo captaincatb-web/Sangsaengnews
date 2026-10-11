@@ -11,6 +11,7 @@ FIXED_COMPANY_LIMIT = 2
 SIMILARITY_THRESHOLD = 0.30
 MAX_STORED_PER_COMPANY = 15
 MAX_SIM = 1  # 기사당 표시할 유사기사 최대 건수
+MAX_AGE_DAYS = 30  # 이보다 오래된 기사는 제외
 FALLBACK_DEPTH = 4  # 최신 분기 조회 실패 시 과거로 최대 몇 단계까지 더 시도할지
 
 CACHE_PATH = ROOT_DIR / "data" / "newsletter_cache.json"

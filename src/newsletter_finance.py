@@ -217,10 +217,32 @@ def _currency(ticker: str) -> str:
     return "USD"
 
 
+def _quote_for(company: str):
+    ticker = STOCK_TICKERS.get(company) or FOREIGN_TICKERS.get(company)
+    if not ticker:
+        return None, None
+    if ticker not in _QUOTE_CACHE:
+        _QUOTE_CACHE[ticker] = stock_data.get_quote(ticker)
+    return ticker, _QUOTE_CACHE[ticker]
+
+
+_QUOTE_CACHE = {}
+
+
+def build_price_short(company: str) -> str:
+    """뉴스 없는 회사 요약줄용 짧은 등락 표시 (예: ▲3.58%)"""
+    _, quote = _quote_for(company)
+    if not quote or not quote["prev_close"]:
+        return ""
+    pct = (quote["price"] - quote["prev_close"]) / quote["prev_close"] * 100
+    color = "#f04452" if pct > 0 else ("#3182f6" if pct < 0 else "#8b95a1")
+    arrow = "▲" if pct > 0 else ("▼" if pct < 0 else "")
+    return f'<span style="color:{color}">{arrow}{abs(pct):.2f}%</span>'
+
+
 def build_price_cell(company: str) -> str:
     domestic = STOCK_TICKERS.get(company)
-    ticker = domestic or FOREIGN_TICKERS.get(company)
-    quote = stock_data.get_quote(ticker) if ticker else None
+    ticker, quote = _quote_for(company)
     if not quote:
         return '<span style="color:#b0b8c1;">-</span>'
 
@@ -304,7 +326,7 @@ def build_fin_summary(company, api_key, now, cache, gemini_key="", gemini_model=
             )
         return f"데이터없음<br>{SMALL_GRAY}(비상장)</span>"
     if not api_key:
-        return f"데이터없음<br>{SMALL_GRAY}(API키 미설정)</span>"
+        return '<span style="color:#b0b8c1">-</span>'
 
     latest = fetch_account_with_fallback(code, get_latest_quarter(now), api_key, cache)
     if not latest:
