@@ -21,7 +21,7 @@ def _age_days(now: datetime, article: dict) -> float:
 def _lead_cell(content: str, alt: bool, rowspan: int = 1) -> str:
     span = f' rowspan="{rowspan}"' if rowspan > 1 else ""
     bg = "#eef1f4" if alt else "#f8f9fa"
-    return f'<td{span} align="center" bgcolor="{bg}" style="font-size:11px">{content}</td>'
+    return f'<td{span} align="center" bgcolor="{bg}" style="font-size:11px;color:#333d4b">{content}</td>'
 
 
 def build_newsletter_html(
@@ -71,16 +71,17 @@ def build_newsletter_html(
                     f'<span style="{DART_BADGE}">{article["cat3"]}</span>' if article["cat3"] == "공시자료" else article["cat2"]
                 )
 
-                row = ["<tr>"]
+                # 글자색은 <tr>에 한 번만 지정해 셀마다 반복하지 않는다
+                row = [f'<tr style="color:{text_color}">']
                 if a_idx == 0:
                     row += [_lead_cell(c, alt, total_rows) for c in lead]
                 row.append(
                     f'<td><a href="{escape(article["link"])}" style="color:{title_color};text-decoration:none;font-weight:600">'
                     f'{escape(article["title"])}</a></td>'
                 )
-                row.append(f'<td align="center" style="color:{text_color}">{escape(article["source"])}</td>')
-                row.append(f'<td align="center" style="color:{text_color};font-size:12px">{article["date_str"]}</td>')
-                row.append(f'<td align="center" style="color:{text_color}">{category}</td>')
+                row.append(f'<td align="center">{escape(article["source"])}</td>')
+                row.append(f'<td align="center" style="font-size:12px">{article["date_str"]}</td>')
+                row.append(f'<td align="center">{category}</td>')
                 row.append(f'<td align="center" style="color:{sim_color};font-weight:bold">{sim_text}</td></tr>')
                 out.append("".join(row))
 
