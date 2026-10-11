@@ -229,19 +229,24 @@ def _quote_for(company: str):
 _QUOTE_CACHE = {}
 
 
-def build_price_short(company: str) -> str:
-    """뉴스 없는 회사 요약줄용 짧은 등락 표시 (예: ▲3.58%)"""
-    _, quote = _quote_for(company)
-    if not quote or not quote["prev_close"]:
-        return ""
-    pct = (quote["price"] - quote["prev_close"]) / quote["prev_close"] * 100
+def _pct_html(pct) -> str:
+    if pct is None:
+        return '<span style="color:#b0b8c1">-</span>'
     color = "#f04452" if pct > 0 else ("#3182f6" if pct < 0 else "#8b95a1")
     arrow = "▲" if pct > 0 else ("▼" if pct < 0 else "")
-    return f'<span style="color:{color}">{arrow}{abs(pct):.2f}%</span>'
+    return f'<span style="color:{color}">{arrow}{abs(pct):.1f}%</span>'
+
+
+def build_price_short(company: str) -> str:
+    """뉴스 없는 회사 요약줄용 1주 등락 (예: 1주 ▲3.6%)"""
+    _, quote = _quote_for(company)
+    if not quote or quote.get("week_change_pct") is None:
+        return ""
+    return f'<span style="font-size:11px;color:#8b95a1">1주</span>{_pct_html(quote["week_change_pct"])}'
 
 
 def build_price_cell(company: str) -> str:
-    """회사 칸에 붙는 종가 + 등락률 (클릭 시 시세 페이지)"""
+    """회사 칸에 붙는 종가 + 전일·1주 등락률 (클릭 시 시세 페이지)"""
     domestic = STOCK_TICKERS.get(company)
     ticker, quote = _quote_for(company)
     if not quote:
@@ -254,10 +259,26 @@ def build_price_cell(company: str) -> str:
         detail_url = "https://finance.naver.com/item/main.naver?code=" + domestic.split(".")[0]
     else:
         detail_url = "https://finance.yahoo.com/quote/" + ticker
+    day = _pct_html(quote["change_pct"]) if quote.get("prev_close") else _pct_html(None)
+    week = _pct_html(quote.get("week_change_pct"))
     return (
-        f'<a href="{detail_url}" style="color:#191f28;text-decoration:none;font-size:11px">{price_text}</a> '
-        f'<span style="font-size:11px">{build_price_short(company)}</span>'
+        f'<a href="{detail_url}" style="color:#191f28;text-decoration:none;font-size:11px">{price_text}</a>'
+        f'<br><span style="font-size:11px"><span style="color:#8b95a1">1일</span>{day} '
+        f'<span style="color:#8b95a1">1주</span>{week}</span>'
     )
+
+
+def weekly_movers(companies, top: int = 3) -> tuple:
+    """1주 등락률 상위·하위 회사 → ([(회사, %)], [(회사, %)])"""
+    changes = []
+    for company in companies:
+        _, quote = _quote_for(company)
+        if quote and quote.get("week_change_pct") is not None:
+            changes.append((company, quote["week_change_pct"]))
+    changes.sort(key=lambda x: x[1], reverse=True)
+    gainers = [c for c in changes if c[1] > 0][:top]
+    losers = [c for c in reversed(changes) if c[1] < 0][:top]
+    return gainers, losers
 
 
 # ------------------------------------------------------------

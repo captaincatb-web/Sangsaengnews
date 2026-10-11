@@ -34,7 +34,7 @@ jobs:
       - name: Commit HTML
         run: |
           rm -rf newsletter-out && mkdir -p newsletter-out
-          cp output/newsletter.html newsletter-out/
+          cp output/newsletter.html output/subject.txt newsletter-out/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A newsletter-out data/newsletter_cache.json

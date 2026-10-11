@@ -14,6 +14,7 @@ from src.history import KST
 from src.newsletter_config import (
     COMPANY_ALIAS_RAW,
     DART_CORP_CODES,
+    CATEGORY_WEIGHT,
     HARD_BLACK_TITLES,
     MAX_AGE_DAYS,
     MAX_STORED_PER_COMPANY,
@@ -30,14 +31,14 @@ PHOTO_CAPTION_RE = re.compile(r"[\(\[〈][^\)\]〉]*사진[^\)\]〉]*[\)\]〉]\s
 PHOTO_TAG_RE = re.compile(r"^\s*[\(\[〈]\s*포토\s*[\)\]〉]")
 
 STOCK_NOISE_RE = re.compile(
-    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세)"
+    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가)"
 )
 STOCK_BRACKET_RE = re.compile(r"\[.*(강세|약세|특징|종목|테마|토픽|시황|고래|주식|베스트).*\].*")
 BROKER_RE = re.compile(
     r"(한국투자|nh투자|kb증권|삼성증권|미래에셋|대신증권|키움증권|신한투자|하나증권|메리츠증권|유안타|리서치센터|목표주가|투자의견|상승 마감|하락 마감|주가\s*전망|주가\s*추이|주가)"
 )
 ENGLISH_STOCK_RE = re.compile(
-    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy)"
+    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors)"
 )
 
 # 회사별 오탐 필터 (제목을 소문자로 바꾼 뒤 검사)
@@ -102,7 +103,33 @@ def is_stock_or_analysis_news(clean_title: str) -> bool:
 def is_english_stock_news(clean_title: str) -> bool:
     if len(re.findall(r"[가-힣]", clean_title)) > 3:
         return False  # 한글 위주 제목은 한글 필터가 처리
+    # "Entegris (ENTG)" 처럼 티커를 괄호로 단 영문 제목은 대부분 주가·밸류에이션 기사
+    if re.search(r"\((?:NASDAQ|NYSE)?:?\s?[A-Z]{2,5}\)", clean_title):
+        return True
     return bool(ENGLISH_STOCK_RE.search(clean_title.lower()))
+
+
+# 제목에 옛 연도가 박힌 재게시 기사 (예: "[미리보는 EXPO 2012]"). "2020년 이후/대비" 같은 비교 표현은 제외
+OLD_YEAR_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)(?!\s*년\s*(?:이후|이래|대비|보다|만|부터|래))")
+# 기사 주소에 박힌 작성일 (예: /2026/10/06/, 20261007155723)
+URL_DATE_RE = re.compile(r"(?<!\d)(20\d{2})([/_-]?)(0[1-9]|1[0-2])\2(0[1-9]|[12]\d|3[01])")
+
+
+def is_stale(clean_title: str, link: str, now: datetime) -> bool:
+    """제목의 옛 연도나 주소의 작성일로 보아 수집 기간보다 한참 오래된 재게시 기사인지"""
+    for year in OLD_YEAR_RE.findall(clean_title):
+        if int(year) <= now.year - 5:
+            return True
+    if is_dart_link(link):
+        return False
+    m = URL_DATE_RE.search(link or "")
+    if m:
+        try:
+            url_date = datetime(int(m.group(1)), int(m.group(3)), int(m.group(4)), tzinfo=timezone.utc)
+        except ValueError:
+            return False
+        return url_date < now - timedelta(days=MAX_AGE_DAYS + 7)
+    return False
 
 
 def is_false_positive(clean_title: str, company: str) -> bool:
@@ -147,12 +174,11 @@ def find_companies(clean_title: str, alias_map: dict) -> list:
 
 
 def get_news_tag(clean_title: str, link: str) -> str:
-    if is_dart_link(link):
-        return "전자공시"
+    """기사·공시 분류. 공시는 보고서명으로 분류하고, 맞는 분류가 없으면 '공시'."""
     for tag, pattern in NEWS_CATEGORIES:
         if pattern.search(clean_title):
             return tag
-    return "기타동향"
+    return "공시" if is_dart_link(link) else "기타동향"
 
 
 _NON_WORD_RE = re.compile(r"[^A-Za-z0-9_가-힣]")
@@ -215,7 +241,19 @@ PRESS_BY_DOMAIN = {
     "ajunews.com": "아주경제", "etoday.co.kr": "이투데이", "businesspost.co.kr": "비즈니스포스트", "ebn.co.kr": "EBN",
     "kmib.co.kr": "국민일보", "seoul.co.kr": "서울신문", "munhwa.com": "문화일보", "dynews.co.kr": "동양일보",
     "datanews.co.kr": "데이터뉴스", "digitaltoday.co.kr": "디지털투데이", "kipost.net": "KIPOST", "g-enews.com": "글로벌이코노믹",
+    "pinpointnews.co.kr": "핀포인트뉴스", "ceoeconomy.com": "CEO경제신문", "datatooza.com": "데이터투자", "job-post.co.kr": "잡포스트",
+    "cbci.co.kr": "CBC뉴스", "alphabiz.co.kr": "알파경제", "viva100.com": "브릿지경제", "econovill.com": "이코노믹리뷰",
+    "segye.com": "세계일보", "joseilbo.com": "조세일보", "wowtv.co.kr": "한국경제TV", "mbn.co.kr": "MBN", "ytn.co.kr": "YTN",
+    "kukinews.com": "쿠키뉴스", "newsway.co.kr": "뉴스웨이", "sisajournal-e.com": "시사저널e", "the-pr.co.kr": "더피알",
 }
+DOMAIN_LIKE_RE = re.compile(r"^(?:www\.)?[\w-]+(?:\.[\w-]+)+$")
+
+
+def normalize_press(name: str) -> str:
+    """'www.edaily.co.kr' 처럼 도메인으로 들어온 언론사명을 '이데일리'로"""
+    if name and DOMAIN_LIKE_RE.match(name):
+        return _press_from_link("https://" + name)
+    return name
 
 
 def _press_from_link(link: str) -> str:
@@ -313,7 +351,7 @@ def _entry_source(entry, link: str) -> str:
         return "DART 전자공시"
     source = entry.get("source")
     if isinstance(source, dict) and source.get("title"):
-        return source["title"]
+        return normalize_press(source["title"])
     return _press_from_link(link) if "news.google.com" not in link else "뉴스 출처"
 
 
@@ -330,7 +368,8 @@ def collect_articles() -> dict:
         stats[source["kind"]] = stats.get(source["kind"], 0) + len(items)
     print("소스별 원본 건수:", stats)
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=MAX_AGE_DAYS)
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=MAX_AGE_DAYS)
     valid_articles = []
     seen_titles = set()
     for source, items in zip(sources, feeds):
@@ -341,6 +380,8 @@ def collect_articles() -> dict:
                 continue
 
             clean_title = get_clean_title(title, link)
+            if is_stale(clean_title, link, now):
+                continue
             # 같은 기사가 다른 소스/언론사로 들어와도 한 번만 (공백·기호 차이 무시)
             norm = normalize_title(clean_title)
             if not norm or norm in seen_titles:
@@ -405,17 +446,34 @@ def collect_articles() -> dict:
 
 
 def group_similar(by_company: dict) -> dict:
-    """회사별로 유사 기사를 대표 기사 아래 similar_articles 로 묶음"""
+    """회사별로 같은 사건을 다룬 기사·공시를 묶는다 (대표 기사 + similar_articles).
+    대표뿐 아니라 이미 묶인 기사와도 비교해, 표현이 조금씩 다른 같은 소식이 따로 나오지 않게 한다."""
     grouped = {}
     for company, articles in by_company.items():
-        target = []
+        clusters = []
         for article in articles:
             article = {**article, "similar_articles": []}
-            for rep in target:
-                if similarity(article["title"], rep["title"], company) >= SIMILARITY_THRESHOLD:
+            for rep in clusters:
+                members = [rep] + rep["similar_articles"]
+                if any(similarity(article["title"], m["title"], company) >= SIMILARITY_THRESHOLD for m in members):
                     rep["similar_articles"].append(article)
                     break
             else:
-                target.append(article)
-        grouped[company] = target
+                clusters.append(article)
+        grouped[company] = [_prefer_news_headline(c) for c in clusters]
     return grouped
+
+
+def _prefer_news_headline(rep: dict) -> dict:
+    """공시와 그 공시를 다룬 기사가 묶이면, 상대방·금액이 드러나는 기사 제목을 대표로 하고 공시는 바로 아래에 둔다"""
+    if rep["cat3"] != "공시자료":
+        return rep
+    news = [s for s in rep["similar_articles"] if s["cat3"] != "공시자료"]
+    if not news:
+        return rep
+    head = news[0]
+    filing = {**rep, "similar_articles": []}
+    others = [s for s in rep["similar_articles"] if s is not head]
+    # 공시 보고서명으로 정한 분류가 더 정확하면(예: 기사 쪽이 '기타동향') 공시 분류를 따른다
+    cat2 = rep["cat2"] if CATEGORY_WEIGHT.get(rep["cat2"], 1) > CATEGORY_WEIGHT.get(head["cat2"], 1) else head["cat2"]
+    return {**head, "cat2": cat2, "similar_articles": [filing] + others}

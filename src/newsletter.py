@@ -5,19 +5,15 @@ from datetime import datetime
 
 from src import email_sender, gnews_decoder
 from src.history import KST
-from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar
-from src.newsletter_config import (
-    FIXED_COMPANY_LIMIT,
-    MAX_SIM,
-    OUTPUT_DIR,
-    RECIPIENT_EMAIL_DEFAULT,
-    TARGET_GROUPS,
-    all_company_names,
-)
-from src.newsletter_finance import Cache, build_fin_summary, build_price_cell, build_price_short
+from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar, is_stale
+from src.newsletter_config import OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
+from src.newsletter_finance import Cache, build_fin_summary, build_price_cell, build_price_short, weekly_movers
 from src.newsletter_html import build_newsletter_html
+from src.newsletter_rank import FRESH_DAYS, age_days, candidate_articles, is_routine, pick_highlights, select_company
 
-MAIL_TITLE = "핵심 소부장 파트너사 동향 (1~4그룹)"
+
+def build_subject(now: datetime) -> str:
+    return f"📬 [뉴스레터] 핵심 소부장 파트너사 주간 동향 ({now.month}/{now.day})"
 
 
 def main() -> None:
@@ -37,25 +33,38 @@ def main() -> None:
     recipient = os.environ.get("RECIPIENT_EMAIL") or RECIPIENT_EMAIL_DEFAULT
 
     now = datetime.now(KST)
-    company_articles = group_similar(collect_articles())
-    resolve_google_links(company_articles)
+    grouped = group_similar(collect_articles())
+    resolve_links(grouped, now)
+    selections = {company: select_company(articles, now) for company, articles in grouped.items()}
+    highlights = pick_highlights(selections, now)
 
     cache = Cache()
+    companies = all_company_names()
     fin_cells, price_cells, price_short = {}, {}, {}
-    for company in all_company_names():
+    for company in companies:
         fin_cells[company] = build_fin_summary(company, dart_key, now, cache, gemini_key, gemini_model)
         price_cells[company] = build_price_cell(company)
         price_short[company] = build_price_short(company)
     cache.save()
 
-    # 1~4그룹을 한 통으로 (뉴스 없는 회사는 그룹별 한 줄 요약으로 접어 본문 크기를 줄임)
     html_body = build_newsletter_html(
-        company_articles, now, TARGET_GROUPS, MAIL_TITLE, fin_cells, price_cells, price_short, show_fin=bool(dart_key)
+        now=now,
+        groups=TARGET_GROUPS,
+        selections=selections,
+        highlights=highlights,
+        movers=weekly_movers(companies),
+        stats=build_stats(grouped, now, len(companies)),
+        fin_cells=fin_cells,
+        price_cells=price_cells,
+        price_short=price_short,
+        show_fin=bool(dart_key),
     )
+    subject = build_subject(now)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUTPUT_DIR / "newsletter.html"
     out_path.write_text(html_body, encoding="utf-8")
-    print(f"HTML 저장: {out_path} ({len(html_body.encode()) // 1024}KB)")
+    (OUTPUT_DIR / "subject.txt").write_text(subject, encoding="utf-8")
+    print(f"HTML 저장: {out_path} ({len(html_body.encode()) // 1024}KB) / 제목: {subject}")
 
     if args.dry_run:
         return
@@ -65,32 +74,45 @@ def main() -> None:
         smtp_user,
         smtp_password,
         recipient,
-        f"📬 [뉴스레터] {MAIL_TITLE}",
+        subject,
         html_body,
     )
     print(f"메일 발송 완료 → {recipient}")
 
 
-def resolve_google_links(company_articles: dict) -> None:
-    """메일에 실제로 표시되는 기사만 구글뉴스 링크를 원문 링크로 바꾼다"""
-    shown = []
-    for articles in company_articles.values():
-        for a in articles[:FIXED_COMPANY_LIMIT]:
-            shown.append(a)
-            shown.extend(a["similar_articles"][:MAX_SIM])
-    mapping = gnews_decoder.decode_all(a["link"] for a in shown)
-    for a in shown:
+def build_stats(grouped: dict, now: datetime, total_companies: int) -> dict:
+    fresh = {c: [a for a in arts if age_days(now, a) <= FRESH_DAYS] for c, arts in grouped.items()}
+    return {
+        "fresh_news": sum(1 for arts in fresh.values() for a in arts if a["cat3"] != "공시자료" and not is_routine(a)),
+        # 공시는 관련 기사와 한 묶음이 된 경우(유사기사 쪽)도 센다
+        "fresh_dart": sum(
+            1 for arts in fresh.values() for a in arts for m in [a] + a["similar_articles"] if m["cat3"] == "공시자료"
+        ),
+        "fresh_companies": sum(1 for arts in fresh.values() if arts),
+        "total_companies": total_companies,
+    }
+
+
+def resolve_links(grouped: dict, now: datetime) -> None:
+    """메일에 오를 수 있는 기사만 구글뉴스 링크를 원문 링크로 바꾸고,
+    원문 주소가 드러난 뒤에야 알 수 있는 사진 페이지·주가 사이트·재게시 옛 기사를 제거한다"""
+    targets = [a for articles in grouped.values() for a in candidate_articles(articles, now)]
+    mapping = gnews_decoder.decode_all(a["link"] for a in targets)
+    for a in targets:
         a["link"] = mapping.get(a["link"], a["link"])
 
-    # 원문 주소가 드러난 뒤에야 알 수 있는 사진 페이지·주가 사이트 기사를 제거
-    for company, articles in company_articles.items():
+    def is_bad(a: dict) -> bool:
+        return bool(BLOCKED_LINK_RE.search(a["link"])) or is_stale(a["title"], a["link"], now)
+
+    for company, articles in grouped.items():
         kept = []
         for a in articles:
-            if BLOCKED_LINK_RE.search(a["link"]):
+            if is_bad(a):
                 continue
-            a["similar_articles"] = [s for s in a["similar_articles"] if not BLOCKED_LINK_RE.search(s["link"])]
+            a["similar_articles"] = [s for s in a["similar_articles"] if not is_bad(s)]
             kept.append(a)
-        company_articles[company] = kept
+        grouped[company] = kept
+
 
 if __name__ == "__main__":
     main()

@@ -1,109 +1,177 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import escape
 
-from src.newsletter_config import FIXED_COMPANY_LIMIT, MAX_SIM, get_display_name
+from src.newsletter_config import FRESH_DAYS, get_display_name
+from src.newsletter_rank import age_days
 
-# 메일 클라이언트가 <style> 블록을 무시하는 경우가 있어 인라인으로 작성하되, 본문을 한 통에 담을 수 있도록
-# 테두리·여백·정렬은 table/tr 속성으로 한 번만 지정하고 셀마다 반복하지 않는다.
+# 메일 클라이언트가 <style> 블록을 무시하는 경우가 있어 인라인으로 작성하되, 한 통에 담을 수 있도록
+# 표는 '회사 · 주가 | 소식' 2칸으로 단순화했다 (모바일에서도 제목이 한 줄에 더 많이 보인다).
+WEEKDAYS = "월화수목금토일"
 TABLE = (
-    '<table border="1" cellspacing="0" cellpadding="6" width="100%" '
-    'style="border-collapse:collapse;border-color:#d1d6db;font-size:12px;margin-bottom:15px">'
+    '<table border="1" cellspacing="0" cellpadding="7" width="100%" '
+    'style="border-collapse:collapse;border-color:#e5e8eb;font-size:13px;margin-bottom:16px">'
 )
-DART_BADGE = "background:#e8f3ff;border:1px solid #3182f6;border-radius:4px;padding:1px 5px;color:#3182f6;font-size:11px"
+BADGE = "font-size:10px;border-radius:3px;padding:1px 4px;white-space:nowrap"
+META = "font-size:11px;color:#8b95a1"
 
 
-def _age_days(now: datetime, article: dict) -> float:
-    return (now - article["pub_date"]).total_seconds() / 86400
+def _title_color(age: float) -> str:
+    return "#f04452" if age <= 1 else ("#3182f6" if age <= FRESH_DAYS else "#8b95a1")
 
 
-def _link(article: dict, color: str, bold: bool) -> str:
-    title = escape(article["title"])
-    if bold:
-        title = f"<b>{title}</b>"
-    return f'<a href="{escape(article["link"])}" style="color:{color};text-decoration:none">{title}</a>'
+def _badge(article: dict) -> str:
+    if article["cat3"] == "공시자료":
+        label = "공시" if article["cat2"] == "공시" else f"공시·{article['cat2']}"
+        return f'<span style="{BADGE};background:#e8f3ff;color:#3182f6;border:1px solid #3182f6">{label}</span>'
+    return f'<span style="{BADGE};background:#f2f4f6;color:#4e5968">{article["cat2"]}</span>'
+
+
+def _meta(article: dict) -> str:
+    sims = article["similar_articles"]
+    more = f" 외 {len(sims)}건" if sims else ""
+    return f'{escape(article["source"])}{more} · {article["date_str"]}'
+
+
+def _article(article: dict, now: datetime, show_sim: bool = True) -> str:
+    age = age_days(now, article)
+    out = (
+        f'<div style="margin:2px 0 7px">{_badge(article)} '
+        f'<a href="{escape(article["link"])}" style="color:{_title_color(age)};text-decoration:none">'
+        f'<b>{escape(article["title"])}</b></a><br><span style="{META}">{_meta(article)}</span>'
+    )
+    if show_sim and article["similar_articles"]:
+        sim = article["similar_articles"][0]
+        out += (
+            f'<br><span style="{META}">↳ <a href="{escape(sim["link"])}" style="color:#6b7684;text-decoration:none">'
+            f'{escape(sim["title"])}</a> · {escape(sim["source"])}</span>'
+        )
+    return out + "</div>"
+
+
+def _routine_line(routine: list) -> str:
+    """메일 칸을 차지하지 않도록 지분·소유 공시는 건수만 한 줄로"""
+    if not routine:
+        return ""
+    newest = routine[0]
+    return (
+        f'<div style="{META}">📄 지분·소유 변동 {len(routine)}건 · '
+        f'<a href="{escape(newest["link"])}" style="color:#8b95a1">{escape(newest["title"][:30])}</a></div>'
+    )
+
+
+def _name_html(company: str) -> str:
+    disp = get_display_name(company)
+    return f"<b>{company}</b>" if disp == company else f'<b title="{company}">{disp}</b>'
+
+
+def _header(now: datetime, stats: dict) -> str:
+    start = now - timedelta(days=FRESH_DAYS)
+    return (
+        f'<h2 style="margin:0 0 4px">📬 소부장 파트너사 주간 동향</h2>'
+        f'<div style="font-size:12px;color:#6b7684;margin-bottom:12px">'
+        f'{now.year}.{now.month:02d}.{now.day:02d}({WEEKDAYS[now.weekday()]}) 발행 · '
+        f"수집 기간 {start.month}/{start.day} ~ {now.month}/{now.day} · "
+        f'이번 주 새 소식 <b>{stats["fresh_news"]}건</b> (공시 {stats["fresh_dart"]}건) · '
+        f'소식 있는 회사 {stats["fresh_companies"]}/{stats["total_companies"]}곳</div>'
+    )
+
+
+def _highlights(highlights: list) -> str:
+    if not highlights:
+        return ""
+    rows = []
+    for company, a in highlights:
+        rows.append(
+            f'<div style="margin:0 0 7px">{_badge(a)} <b>{get_display_name(company)}</b> · '
+            f'<a href="{escape(a["link"])}" style="color:#191f28;text-decoration:none">{escape(a["title"])}</a> '
+            f'<span style="{META}">{_meta(a)}</span></div>'
+        )
+    return (
+        '<div style="border:1px solid #d1d6db;border-radius:8px;padding:12px 14px;margin:0 0 12px;background:#fbfcfd">'
+        '<div style="font-weight:bold;font-size:14px;margin-bottom:8px">⭐ 이번 주 주요 소식</div>' + "".join(rows) + "</div>"
+    )
+
+
+def _movers(gainers: list, losers: list) -> str:
+    if not gainers and not losers:
+        return ""
+
+    def fmt(items, color, arrow):
+        return " · ".join(
+            f'{get_display_name(c)} <span style="color:{color}">{arrow}{abs(p):.1f}%</span>' for c, p in items
+        ) or "-"
+
+    return (
+        '<div style="font-size:12px;margin:0 0 6px">'
+        f'📈 <b>1주 상승</b> {fmt(gainers, "#f04452", "▲")} &nbsp;&nbsp; 📉 <b>1주 하락</b> {fmt(losers, "#3182f6", "▼")}</div>'
+    )
 
 
 def build_newsletter_html(
-    company_articles: dict,
+    *,
     now: datetime,
     groups: list,
-    title_text: str,
+    selections: dict,
+    highlights: list,
+    movers: tuple,
+    stats: dict,
     fin_cells: dict,
     price_cells: dict,
     price_short: dict,
-    show_fin: bool = True,
+    show_fin: bool,
 ) -> str:
-    columns = [("13%", "회사 · 종가")] + ([("14%", "최근분기 재무")] if show_fin else []) + [
-        ("", "제목"), ("11%", "출처"), ("9%", "보도일"), ("8%", "구분"), ("5%", "유사"),
-    ]
+    cols = 3 if show_fin else 2
     out = ['<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:1000px;color:#191f28">']
-    out.append(f"<h2>📬 [뉴스레터] {title_text}</h2>")
+    out.append(_header(now, stats))
+    out.append(_highlights(highlights))
+    out.append(_movers(*movers))
     out.append(
-        '<p style="font-size:12px;color:#8b95a1">💡 <b>기사 색상:</b> '
-        '<b style="color:#f04452">빨강(오늘)</b> / <b style="color:#3182f6">파랑(최근 7일)</b> / '
-        '<b style="color:#b0b8c1">회색(7일 경과)</b></p>'
+        f'<div style="{META};margin-bottom:4px">제목 색: <b style="color:#f04452">빨강</b> 24시간 이내 · '
+        '<b style="color:#3182f6">파랑</b> 최근 7일 · <b style="color:#8b95a1">회색</b> 지난 소식(8~30일)</div>'
     )
 
     for group in groups:
-        out.append(f'<h3 style="margin:24px 0 10px;font-size:15px;border-left:4px solid #3182f6;padding-left:8px">{group["group_name"]}</h3>')
+        out.append(
+            f'<h3 style="margin:22px 0 8px;font-size:15px;border-left:4px solid #3182f6;padding-left:8px">{group["group_name"]}</h3>'
+        )
         out.append(TABLE)
         out.append(
-            '<tr bgcolor="#f2f4f6" style="color:#4e5968">'
-            + "".join(f'<th width="{w}">{n}</th>' if w else f"<th>{n}</th>" for w, n in columns)
-            + "</tr>"
+            '<tr bgcolor="#f2f4f6" style="color:#4e5968"><th width="19%">회사 · 주가</th>'
+            + ('<th width="16%">최근분기 재무</th>' if show_fin else "")
+            + "<th>이번 주 소식</th></tr>"
         )
 
-        quiet = []
+        older_rows, quiet = [], []
         alt = False
         for company in group["companies"]:
-            articles = company_articles.get(company, [])
-            disp = get_display_name(company)
-            name_html = f"<b>{company}</b>" if disp == company else f'<b title="{company}">{disp}</b>'
-
-            if not articles:
-                # 뉴스 없는 회사는 그룹 끝에 한 줄로 모은다
-                quiet.append(f"{name_html} {price_short[company]}".strip())
-                continue
-
-            alt = not alt
-            bg = "#f8f9fa" if alt else "#eef1f4"
-            selected = articles[:FIXED_COMPANY_LIMIT]
-            rows = sum(1 + min(len(a["similar_articles"]), MAX_SIM) for a in selected)
-            span = f' rowspan="{rows}"' if rows > 1 else ""
-            lead = f'<td{span} bgcolor="{bg}" style="color:#333d4b">{name_html}<br>{price_cells[company]}</td>'
-            if show_fin:
-                lead += f'<td{span} bgcolor="{bg}" style="font-size:11px">{fin_cells[company]}</td>'
-
-            for a_idx, article in enumerate(selected):
-                age = _age_days(now, article)
-                title_color = "#f04452" if age <= 1 else ("#3182f6" if age <= 7 else "#b0b8c1")
-                text_color = "#333d4b" if age <= 1 else ("#4e5968" if age <= 7 else "#b0b8c1")
-                sim_color = "#f04452" if age <= 7 else "#f9a8b0"
-                sim_count = len(article["similar_articles"])
-                sim_text = "" if sim_count == 0 else (str(sim_count) if sim_count <= MAX_SIM else f"+{sim_count - MAX_SIM}")
-                category = f'<span style="{DART_BADGE}">공시</span>' if article["cat3"] == "공시자료" else article["cat2"]
-
+            sel = selections.get(company) or {"shown": [], "routine": [], "older": None}
+            lead_fin = f'<td valign="top" style="font-size:11px">{fin_cells[company]}</td>' if show_fin else ""
+            if sel["shown"]:
+                alt = not alt
+                bg = "#f8f9fa" if alt else "#ffffff"
+                news = "".join(_article(a, now) for a in sel["shown"]) + _routine_line(sel["routine"])
                 out.append(
-                    f'<tr align="center" style="color:{text_color}">'
-                    + (lead if a_idx == 0 else "")
-                    + f'<td align="left">{_link(article, title_color, True)}</td>'
-                    f'<td>{escape(article["source"])}</td><td>{article["date_str"]}</td><td>{category}</td>'
-                    f'<td style="color:{sim_color}"><b>{sim_text}</b></td></tr>'
+                    f'<tr bgcolor="{bg}"><td valign="top" style="color:#333d4b">{_name_html(company)}<br>{price_cells[company]}</td>'
+                    f'{lead_fin}<td valign="top">{news}</td></tr>'
                 )
+            elif sel["older"]:
+                older_rows.append(
+                    f'<tr><td valign="top" style="color:#6b7684">{_name_html(company)}<br>{price_cells[company]}</td>'
+                    f'{lead_fin}<td valign="top">{_article(sel["older"], now, show_sim=False)}</td></tr>'
+                )
+            else:
+                quiet.append(f"{_name_html(company)} {price_short[company]}".strip())
 
-                for sim in article["similar_articles"][:MAX_SIM]:
-                    s_age = _age_days(now, sim)
-                    s_title_color = "#333d4b" if s_age <= 1 else ("#6b7684" if s_age <= 7 else "#c6cacc")
-                    s_text_color = "#4e5968" if s_age <= 1 else ("#8b95a1" if s_age <= 7 else "#d1d6db")
-                    out.append(
-                        f'<tr align="center" bgcolor="#fafafa" style="font-size:11px;color:{s_text_color}">'
-                        f'<td align="left">· {_link(sim, s_title_color, False)}</td>'
-                        f'<td>{escape(sim["source"])}</td><td>{sim["date_str"]}</td><td>{sim["cat2"]}</td><td></td></tr>'
-                    )
+        if older_rows:
+            out.append(
+                f'<tr><td colspan="{cols}" bgcolor="#fafafa" style="{META}"><b>지난 소식</b> · '
+                "이번 주 새 소식이 없는 회사의 최근 기사 (8~30일 전)</td></tr>"
+            )
+            out.extend(older_rows)
         if quiet:
             out.append(
-                f'<tr><td colspan="{len(columns)}" style="color:#6b7684;line-height:1.8">'
-                f'📭 <b>최근 뉴스 없음 ({len(quiet)}곳)</b> · ' + " · ".join(quiet) + "</td></tr>"
+                f'<tr><td colspan="{cols}" style="color:#6b7684;line-height:1.8;font-size:12px">'
+                f'📭 <b>최근 30일 소식 없음 ({len(quiet)}곳)</b> · ' + " · ".join(quiet) + "</td></tr>"
             )
         out.append("</table>")
     out.append("</div>")
