@@ -20,7 +20,7 @@ DART_ACCOUNT_URL = "https://opendart.fss.or.kr/api/fnlttSinglAcnt.json"
 DART_LIST_URL = "https://opendart.fss.or.kr/api/list.json"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-SMALL_GRAY = '<span style="color:#b0b8c1; font-size:11px;">'
+SMALL_GRAY = '<span style="color:#b0b8c1">'
 
 
 # ------------------------------------------------------------
@@ -235,8 +235,7 @@ def build_price_cell(company: str) -> str:
         detail_url = "https://finance.yahoo.com/quote/" + ticker
 
     html = (
-        f'<a href="{detail_url}" style="text-decoration:none;color:inherit;">'
-        f'<div style="font-weight:bold;color:#191f28;font-size:12px;margin-bottom:2px;">{price_text}</div></a>'
+        f'<a href="{detail_url}" style="text-decoration:none;color:#191f28;font-size:12px"><b>{price_text}</b></a>'
     )
 
     prev = quote["prev_close"]
@@ -252,7 +251,7 @@ def build_price_cell(company: str) -> str:
             change = f'<span style="color:#3182f6;">▼{diff_abs} {pct_str}</span>'
         else:
             change = f'<span style="color:#8b95a1;">0 ({pct_str})</span>'
-    return html + f'<div style="font-size:11px;">{change}</div>'
+    return html + f"<br>{change}"
 
 
 # ------------------------------------------------------------

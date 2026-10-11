@@ -21,7 +21,7 @@ def _age_days(now: datetime, article: dict) -> float:
 def _lead_cell(content: str, alt: bool, rowspan: int = 1) -> str:
     span = f' rowspan="{rowspan}"' if rowspan > 1 else ""
     bg = "#eef1f4" if alt else "#f8f9fa"
-    return f'<td{span} align="center" bgcolor="{bg}" style="font-size:11px;font-weight:bold;color:#333d4b;word-break:keep-all">{content}</td>'
+    return f'<td{span} align="center" bgcolor="{bg}" style="font-size:11px">{content}</td>'
 
 
 def build_newsletter_html(company_articles: dict, now: datetime, groups: list, title_text: str, fin_cells: dict, price_cells: dict) -> str:
@@ -45,7 +45,7 @@ def build_newsletter_html(company_articles: dict, now: datetime, groups: list, t
         for idx, company in enumerate(group["companies"]):
             articles = company_articles.get(company, [])
             disp = get_display_name(company)
-            name_html = company if disp == company else f'<span title="{company}">{disp}</span>'
+            name_html = f"<b>{company}</b>" if disp == company else f'<b title="{company}">{disp}</b>'
             alt = idx % 2 == 1
             lead = (name_html, price_cells[company], fin_cells[company])
 

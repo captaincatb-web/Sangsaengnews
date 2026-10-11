@@ -52,6 +52,10 @@ def main() -> None:
         print(f"HTML 저장: {out_path} ({len(html_body) // 1024}KB)")
 
         if args.dry_run:
+            # Gmail 도구로 나눠 보낼 수 있도록 그룹별 HTML도 저장
+            for g in groups:
+                part = build_newsletter_html(company_articles, now, [g], g["group_name"], fin_cells, price_cells)
+                (OUTPUT_DIR / f"newsletter_group{g['group_id']}.html").write_text(part, encoding="utf-8")
             continue
         email_sender.send_html(
             os.environ.get("SMTP_HOST") or "smtp.gmail.com",
