@@ -79,7 +79,8 @@
     `DART ${esc(code)}`,
     updated ? `${esc(updated)} 갱신` : "",
   ].filter(Boolean).map((m) => `<li>${m}</li>`).join("")
-    + (company.stockCode ? `<li data-nocopy><a href="https://finance.naver.com/item/main.naver?code=${esc(company.stockCode)}" target="_blank" rel="noopener">네이버 증권<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li>` : "");
+    + (company.stockCode ? `<li data-nocopy><a href="https://finance.naver.com/item/main.naver?code=${esc(company.stockCode)}" target="_blank" rel="noopener">네이버 증권<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li>` : "")
+    + `<li data-nocopy><a href="https://dart.fss.or.kr/dsab001/main.do?autoSearch=Y&textCrpCik=${esc(code)}&textCrpNm=${encodeURIComponent(p.stock_name || company.name)}" target="_blank" rel="noopener">DART 공시<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li>`;
 
   // ---------- 1면: 개요 ----------
   const holders = p.shareholders && p.shareholders.top ? p.shareholders.top : [];
@@ -124,7 +125,7 @@
       [as.debt_ratio != null ? `* 부채비율 ${Math.round(as.debt_ratio)}%` : ""]),
     line("주주", shareholders),
     block("경영 현황", SOURCE[p.fin_source], perfTable),
-    line("본사", p.adres ? esc(p.adres) : ""),
+    line("본사", p.adres ? esc(p.adres.replace(/\s*-\s*$/, "")) : ""),
   ].join("");
 
   // ---------- 2면: 재무현황 분석 ----------
