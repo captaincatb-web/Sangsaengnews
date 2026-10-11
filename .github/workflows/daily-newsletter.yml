@@ -1,9 +1,9 @@
-name: Daily SME Partner Newsletter (Email)
+name: Weekly SME Partner Newsletter (Email)
 
 on:
   schedule:
-    # 매일 07:30 KST = 전날 22:30 UTC
-    - cron: "30 22 * * *"
+    # 매주 목요일 06:00 KST = 수요일 21:00 UTC
+    - cron: "0 21 * * 3"
   workflow_dispatch: {}
 
 permissions:
