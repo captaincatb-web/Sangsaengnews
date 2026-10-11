@@ -105,12 +105,15 @@ def _movers(gainers: list, losers: list) -> str:
 
     def fmt(items, color, arrow):
         return " · ".join(
-            f'{get_display_name(c)} <span style="color:{color}">{arrow}{abs(p):.1f}%</span>' for c, p in items
+            f'<span style="white-space:nowrap">{get_display_name(c)} <span style="color:{color}">{arrow}{abs(p):.1f}%</span></span>'
+            for c, p in items
         ) or "-"
 
+    nowrap = 'style="white-space:nowrap"'
     return (
         '<div style="font-size:12px;margin:0 0 6px">'
-        f'📈 <b>1주 상승</b> {fmt(gainers, "#f04452", "▲")} &nbsp;&nbsp; 📉 <b>1주 하락</b> {fmt(losers, "#3182f6", "▼")}</div>'
+        f'<b {nowrap}>📈 1주 상승</b> {fmt(gainers, "#f04452", "▲")} &nbsp;&nbsp; '
+        f'<b {nowrap}>📉 1주 하락</b> {fmt(losers, "#3182f6", "▼")}</div>'
     )
 
 
@@ -134,7 +137,7 @@ def build_newsletter_html(
     out.append(_movers(*movers))
     out.append(
         f'<div style="{META};margin-bottom:4px">제목 색: <b style="color:#f04452">빨강</b> 24시간 이내 · '
-        '<b style="color:#3182f6">파랑</b> 최근 7일 · <b style="color:#8b95a1">회색</b> 지난 소식(8~30일) · 📄지분 = 지분·소유 변동 공시 건수</div>'
+        '<b style="color:#3182f6">파랑</b> 최근 7일 · <b style="color:#8b95a1">회색</b> 지난 소식(8~30일) · <span style="white-space:nowrap">📄지분 = 지분·소유 변동 공시 건수</span></div>'
     )
 
     for group in groups:
@@ -143,7 +146,7 @@ def build_newsletter_html(
         )
         out.append(TABLE)
         out.append(
-            '<tr bgcolor="#f2f4f6" style="color:#4e5968"><th width="19%">회사 · 주가</th>'
+            '<tr bgcolor="#f2f4f6" style="color:#4e5968"><th width="19%" style="white-space:nowrap">회사·주가</th>'
             + ('<th width="16%">최근분기 재무</th>' if show_fin else "")
             + "<th>이번 주 소식</th></tr>"
         )
@@ -158,16 +161,17 @@ def build_newsletter_html(
                 bg = "#f8f9fa" if alt else "#ffffff"
                 news = "".join(_article(a, now) for a in sel["shown"]) + _routine_line(sel["routine"])
                 out.append(
-                    f'<tr bgcolor="{bg}"><td valign="top" style="color:#333d4b">{_name_html(company)}<br>{price_cells[company]}</td>'
+                    f'<tr bgcolor="{bg}"><td valign="top" style="color:#333d4b;word-break:keep-all">{_name_html(company)}<br>{price_cells[company]}</td>'
                     f'{lead_fin}<td valign="top">{news}</td></tr>'
                 )
             elif sel["older"]:
                 older_rows.append(
-                    f'<tr><td valign="top" style="color:#6b7684">{_name_html(company)}<br>{price_cells[company]}</td>'
+                    f'<tr><td valign="top" style="color:#6b7684;word-break:keep-all">{_name_html(company)}<br>{price_cells[company]}</td>'
                     f'{lead_fin}<td valign="top">{_article(sel["older"], now, show_sim=False)}{_routine_line(sel["routine"])}</td></tr>'
                 )
             else:
-                quiet.append(f"{_name_html(company)} {price_short[company]}{_routine_mark(sel['routine'])}".strip())
+                item = f"{_name_html(company)} {price_short[company]}{_routine_mark(sel['routine'])}".strip()
+                quiet.append(f'<span style="white-space:nowrap">{item}</span>')
 
         if older_rows:
             out.append(

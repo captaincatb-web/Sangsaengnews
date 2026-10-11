@@ -261,10 +261,12 @@ def build_price_cell(company: str) -> str:
         detail_url = "https://finance.yahoo.com/quote/" + ticker
     day = _pct_html(quote["change_pct"]) if quote.get("prev_close") else _pct_html(None)
     week = _pct_html(quote.get("week_change_pct"))
+    # 좁은 화면에서도 "1주 ▼6.8%"가 중간에 끊기지 않도록 줄마다 nowrap
+    nowrap = 'style="white-space:nowrap;font-size:11px"'
     return (
         f'<a href="{detail_url}" style="color:#191f28;text-decoration:none;font-size:11px">{price_text}</a>'
-        f'<br><span style="font-size:11px"><span style="color:#8b95a1">1일 </span>{day} '
-        f'<span style="color:#8b95a1">1주 </span>{week}</span>'
+        f'<br><span {nowrap}><span style="color:#8b95a1">1일 </span>{day}</span>'
+        f'<br><span {nowrap}><span style="color:#8b95a1">1주 </span>{week}</span>'
     )
 
 

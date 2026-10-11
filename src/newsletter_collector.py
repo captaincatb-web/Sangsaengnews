@@ -65,7 +65,7 @@ FALSE_POSITIVE_RE = {k: re.compile(v) for k, v in FALSE_POSITIVE_PATTERNS.items(
 ASCII_ALIAS_RE = re.compile(r"^[a-z0-9.&\- ]+$")
 
 # 회사와 무관한 스팸·채용 공고
-GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입|공채|경력직")
+GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입|공채|경력직|뽑는다")
 # 투자의견·주가 분석 위주 매체 (언론사명 기준)
 BLOCKED_SOURCE_RE = re.compile(r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan", re.I)
 # 사진/이미지 페이지, 주가 분석 사이트
