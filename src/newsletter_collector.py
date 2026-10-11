@@ -25,7 +25,7 @@ PHOTO_CAPTION_RE = re.compile(r"[\(\[〈][^\)\]〉]*사진[^\)\]〉]*[\)\]〉]\s
 PHOTO_TAG_RE = re.compile(r"^\s*[\(\[〈]\s*포토\s*[\)\]〉]")
 
 STOCK_NOISE_RE = re.compile(
-    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도)"
+    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|기판주|소재주|부품주|장비주|강세|약세)"
 )
 STOCK_BRACKET_RE = re.compile(r"\[.*(강세|약세|특징|종목|테마|토픽|시황|고래|주식|베스트).*\].*")
 BROKER_RE = re.compile(
@@ -39,10 +39,11 @@ ENGLISH_STOCK_RE = re.compile(
 FALSE_POSITIVE_PATTERNS = {
     "머크퍼포먼스머티리얼즈": r"제약|의약|신약|임상|바이오|치료제",
     "와이씨": r"예측|가상자산|블록체인|스타트업|달바|성과보수",
-    "프로텍": r"화장품|뷰티|쿠션|선크림|케이스|보호필름|아이폰|갤럭시|프로텍트|protect|사이버작전|프로텍션|프로텍터|아세아프로텍",
+    "프로텍": r"화장품|뷰티|쿠션|선크림|케이스|보호필름|아이폰|갤럭시|프로텍트|protect|사이버작전|프로텍션|프로텍터|아세아프로텍|시큐어|코나아이|카드",
     "AP시스템": r"중국|거버넌스\s*강화|esg\s*보고서|우드맥킨지|woodmac|태양광|인버터|solar|inverter",
     "유진테크": r"유진테크놀로지",
-    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|알파\s*테스트|베타\s*테스트|테스트\s*참가자|cbt|obt",
+    "에스티아이": r"여론조사|지지|응답|복당|대통령|정당|찬성|반대|국힘|민주당|후보",
+    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|cbt|obt",
     "후성": r"후성유전|유전체|유전학|유전 편집|에피크리스퍼|심포지엄",
     "제이티": r"jtbc|제이티비씨|jt방송|jt비씨|제이티시스템|제이티넷|제이티이엔지|제이티전자",
     "ASML": r"니콘|캐논|재도전장|도전장|장악한",
@@ -98,8 +99,12 @@ def is_false_positive(clean_title: str, company: str) -> bool:
     return bool(pattern and pattern.search(clean_title.lower()))
 
 
+# "이완호 한국알박 팀장." 처럼 인물 사진 캡션이 제목으로 들어오는 경우
+PERSON_CAPTION_RE = re.compile(r"^\S+\s+\S+\s+(팀장|대표|사장|부장|상무|전무|이사|교수|연구원|회장|본부장)\.?$")
+
+
 def is_photo_caption(title: str) -> bool:
-    return bool(PHOTO_CAPTION_RE.search(title) or PHOTO_TAG_RE.search(title))
+    return bool(PHOTO_CAPTION_RE.search(title) or PHOTO_TAG_RE.search(title) or PERSON_CAPTION_RE.search(title))
 
 
 def find_companies(clean_title: str, alias_map: dict) -> list:
@@ -236,7 +241,7 @@ def collect_articles() -> dict:
 
             src_name = _entry_source(entry, link)
             # 네이버 프리미엄콘텐츠(유료 구독형) 차단
-            if "contents.premium.naver.com" in link:
+            if "contents.premium.naver.com" in link or "blog.naver.com" in link or "네이버 블로그" in clean_title:
                 continue
             if re.search(r"네이버\s*프리미엄|프리미엄콘텐츠|premium\s*contents", src_name, re.IGNORECASE):
                 continue
