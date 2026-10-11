@@ -11,32 +11,32 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="nav">
-    <div class="wrap nav-inner">
-      <a class="brand" href="./" aria-label="상생기업 프로필 처음으로">
-        <span class="brand-mark" aria-hidden="true">상</span>
-        <span>상생기업 프로필</span>
-      </a>
-      <nav aria-label="주요 메뉴">
-        <a href="./#directory">기업 목록</a>
-      </nav>
+  <header class="site-head">
+    <div class="wrap">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">상</span>상생기업 프로필</a>
     </div>
   </header>
 
-  <main class="wrap profile-wrap">
-    <a class="back" href="./#directory"><i class="ph ph-arrow-left" aria-hidden="true"></i> 기업 목록</a>
-    <article class="profile" id="profile" aria-live="polite"></article>
+  <main class="wrap pf-wrap">
+    <div class="pf-bar">
+      <a class="back" href="./#companies"><i class="ph ph-arrow-left" aria-hidden="true"></i>기업 목록</a>
+      <button class="btn" type="button" id="copy-profile" hidden><i class="ph ph-copy" aria-hidden="true"></i>Word로 복사</button>
+    </div>
+    <article class="sheet" id="profile" aria-live="polite"></article>
   </main>
 
-  <footer class="footer">
-    <div class="wrap footer-inner">
-      <span>상생기업 프로필</span>
-      <span>자료: 금융감독원 DART, Yahoo Finance(주가)</span>
+  <footer class="site-foot">
+    <div class="wrap foot-inner">
+      <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서, 주가 Yahoo Finance</p>
+      <p>매일 오전 7시 30분 자동 갱신</p>
     </div>
   </footer>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script src="data/companies.js"></script>
   <script src="data/profiles.js"></script>
+  <script src="copy.js"></script>
   <script src="profile.js"></script>
 </body>
 </html>

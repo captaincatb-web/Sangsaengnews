@@ -713,7 +713,7 @@ def main() -> int:
     updated = datetime.now().strftime("%Y-%m-%d")
     PROFILES_PATH.write_text(
         "// scripts/build_company_profiles.py 가 생성한 파일입니다. 직접 수정하지 마세요.\n"
-        f"window.COMPANY_PROFILES = {json.dumps(ordered, ensure_ascii=False, indent=2)};\n"
+        f"window.COMPANY_PROFILES = {json.dumps(ordered, ensure_ascii=False, separators=(',', ':'))};\n"
         f'window.COMPANY_PROFILES_UPDATED = "{updated}";\n',
         encoding="utf-8",
     )
