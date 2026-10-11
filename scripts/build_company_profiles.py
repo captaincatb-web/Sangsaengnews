@@ -45,13 +45,29 @@ BORROWING_EXCLUDE = ("할인", "할증", "조정", "충당", "이자")
 
 # ---------- DART 호출 ----------
 
+class DartUnreachable(Exception):
+    pass
+
+
+_network_failures = 0
+MAX_NETWORK_FAILURES = 5  # 연속 접속 실패가 이만큼이면 DART 에 닿지 않는 것으로 보고 중단
+
+
 def call(api_key: str, endpoint: str, **params) -> dict | None:
+    global _network_failures
     try:
-        resp = requests.get(DART_API.format(endpoint), params={"crtfc_key": api_key, **params}, timeout=15)
+        resp = requests.get(DART_API.format(endpoint), params={"crtfc_key": api_key, **params}, timeout=(5, 10))
         resp.raise_for_status()
         data = resp.json()
-    except (requests.RequestException, ValueError) as e:
-        print(f"[dart] {endpoint} {params} 실패: {e}")
+        _network_failures = 0
+    except requests.RequestException as e:
+        _network_failures += 1
+        print(f"[dart] {endpoint} 접속 실패({_network_failures}회 연속): {e}")
+        if _network_failures >= MAX_NETWORK_FAILURES:
+            raise DartUnreachable(str(e)) from e
+        return None
+    except ValueError as e:
+        print(f"[dart] {endpoint} 응답 해석 실패: {e}")
         return None
     finally:
         time.sleep(0.12)  # OpenDART 요청 한도 보호
@@ -334,7 +350,7 @@ def fetch_price(stock_code: str, corp_cls: str) -> dict | None:
         return None
     try:
         import yfinance as yf
-        hist = yf.Ticker(stock_code + suffix).history(period="7d")
+        hist = yf.Ticker(stock_code + suffix).history(period="7d", timeout=10)
     except Exception as e:  # yfinance 는 네트워크·형식 오류를 다양한 예외로 던진다
         print(f"[price] {stock_code} 조회 실패: {e}")
         return None
@@ -422,18 +438,36 @@ def load_corp_codes() -> list:
     return re.findall(r'\[\s*"[^"]+",\s*"(\d{8})"', COMPANIES_PATH.read_text(encoding="utf-8"))
 
 
+TIME_BUDGET_SECONDS = 20 * 60  # 이 시간을 넘기면 모은 데이터까지만 저장한다
+
+
 def main() -> int:
+    sys.stdout.reconfigure(line_buffering=True)  # Actions 로그에 진행 상황이 바로 보이도록
     api_key = os.environ.get("DART_API_KEY")
     if not api_key:
         print("DART_API_KEY 환경변수가 없습니다.")
         return 1
 
-    profiles = {}
-    for corp_code in load_corp_codes():
-        profile = build_profile(api_key, corp_code)
-        if profile:
-            profiles[corp_code] = profile
-            print(f"[dart] {corp_code} {profile['corp_name']} 완료 (재무 {'있음' if 'financials' in profile else '없음'})")
+    corp_codes = load_corp_codes()
+    profiles, started = {}, time.monotonic()
+    try:
+        for i, corp_code in enumerate(corp_codes, 1):
+            if time.monotonic() - started > TIME_BUDGET_SECONDS:
+                print(f"시간 제한({TIME_BUDGET_SECONDS // 60}분)을 넘겨 {i - 1}개까지만 저장합니다.")
+                break
+            profile = build_profile(api_key, corp_code)
+            if profile:
+                profiles[corp_code] = profile
+                print(f"[{i}/{len(corp_codes)}] {corp_code} {profile['corp_name']} "
+                      f"(재무 {'있음' if 'financials' in profile else '없음'})")
+            else:
+                print(f"[{i}/{len(corp_codes)}] {corp_code} 개황 없음")
+    except DartUnreachable as e:
+        print(f"OpenDART 에 접속할 수 없어 중단합니다: {e}")
+
+    if not profiles:
+        print("받은 데이터가 없어 profiles.js 를 바꾸지 않습니다.")
+        return 1
 
     updated = datetime.now().strftime("%Y-%m-%d")
     PROFILES_PATH.write_text(
