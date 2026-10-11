@@ -19,7 +19,7 @@
 
   const p = (window.COMPANY_PROFILES || {})[code] || {};
   const updated = window.COMPANY_PROFILES_UPDATED || "";
-  document.title = `${company.name} 프로필 | 상생기업 프로필`;
+  document.title = `${company.name} 프로필 | 협력사 프로필`;
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const yy = (y) => `'${String(y).slice(2)}년`;
@@ -84,11 +84,22 @@
 
   // ---------- 1면: 개요 ----------
   const holders = p.shareholders && p.shareholders.top ? p.shareholders.top : [];
-  const ceoIsHolder = p.ceo_nm && holders[0] && p.ceo_nm.includes(holders[0].name);
-  const ceo = p.ceo_nm
-    ? `${esc(p.ceo_nm)}${p.ceo && p.ceo.birth_year ? `(${yy(p.ceo.birth_year)}생)` : ""}${ceoIsHolder ? " * 최대주주" : ""}`
+  // 각자대표·공동대표는 사람별로 나눠 출생연도와 경력을 따로 보여 준다
+  const execs0 = p.executives || [];
+  const ceoNames = String(p.ceo_nm || "").replace(/\([^)]*\)/g, "").split(/[,/·]|\s{2,}/).map((n) => n.trim()).filter(Boolean);
+  const multiCeo = ceoNames.length > 1;
+  const ceoPeople = ceoNames.map((name, i) => {
+    const e = execs0.find((x) => x.name && x.name.replace(/\s/g, "") === name.replace(/\s/g, ""));
+    const birth = e && e.birth_year ? e.birth_year : (i === 0 && p.ceo ? p.ceo.birth_year : null);
+    const career = e && e.career && e.career.length ? e.career : (i === 0 && p.ceo && p.ceo.career ? p.ceo.career : []);
+    return { name, birth, career, holder: holders[0] && holders[0].name === name };
+  });
+  const ceo = ceoPeople.length
+    ? ceoPeople.map((c) => `${esc(c.name)}${c.birth ? `(${yy(c.birth)}생)` : ""}${c.holder ? " * 최대주주" : ""}`).join(", ")
+      + (multiCeo ? (/공동/.test(p.ceo_nm) ? " (공동대표)" : " (각자대표)") : "")
     : "";
-  const career = (p.ceo && p.ceo.career ? p.ceo.career : []).map((c, i) => `${i ? "&nbsp;&nbsp;" : "* "}${esc(c)}`);
+  const career = ceoPeople.flatMap((c) => c.career.map((line, i) =>
+    `${i ? "&nbsp;&nbsp;" + (multiCeo ? "&nbsp;".repeat(c.name.length * 2 + 2) : "") : `* ${multiCeo ? `<strong>${esc(c.name)}</strong> : ` : ""}`}${esc(line)}`));
 
   const emp = p.employees || {};
   const empNote = [emp.avg_tenure ? `평균 근속 ${emp.avg_tenure}년` : "", emp.avg_salary_man ? `1인 평균 급여 ${num(emp.avg_salary_man)}만원` : ""]
