@@ -3,62 +3,76 @@ from html import escape
 
 from src.newsletter_config import FIXED_COMPANY_LIMIT, MAX_SIM, get_display_name
 
-# 메일 클라이언트가 <style> 블록을 무시하는 경우가 있어 인라인 스타일로 작성.
-# 본문 크기를 줄이기 위해 테두리/여백은 table 속성(border, cellpadding)으로 처리하고
-# 셀마다 다른 값(색상/정렬)만 인라인으로 지정한다.
+# 메일 클라이언트가 <style> 블록을 무시하는 경우가 있어 인라인으로 작성하되, 본문을 한 통에 담을 수 있도록
+# 테두리·여백·정렬은 table/tr 속성으로 한 번만 지정하고 셀마다 반복하지 않는다.
 TABLE = (
-    '<table border="1" cellspacing="0" cellpadding="7" width="100%" '
-    'style="border-collapse:collapse;border-color:#d1d6db;font-size:13px;table-layout:fixed;margin-bottom:15px">'
+    '<table border="1" cellspacing="0" cellpadding="6" width="100%" '
+    'style="border-collapse:collapse;border-color:#d1d6db;font-size:12px;margin-bottom:15px">'
 )
-COLUMNS = (("10%", "회사"), ("9%", "종가"), ("13%", "최근분기 재무"), ("29%", "제목"), ("10%", "출처"), ("10%", "보도일"), ("9%", "구분"), ("6%", "유사"))
-DART_BADGE = "background:#e8f3ff;border:1px solid #3182f6;border-radius:4px;padding:2px 6px;color:#3182f6;font-size:11px"
+DART_BADGE = "background:#e8f3ff;border:1px solid #3182f6;border-radius:4px;padding:1px 5px;color:#3182f6;font-size:11px"
 
 
 def _age_days(now: datetime, article: dict) -> float:
     return (now - article["pub_date"]).total_seconds() / 86400
 
 
-def _lead_cell(content: str, alt: bool, rowspan: int = 1) -> str:
-    span = f' rowspan="{rowspan}"' if rowspan > 1 else ""
-    bg = "#eef1f4" if alt else "#f8f9fa"
-    return f'<td{span} align="center" bgcolor="{bg}" style="font-size:11px;color:#333d4b">{content}</td>'
+def _link(article: dict, color: str, bold: bool) -> str:
+    title = escape(article["title"])
+    if bold:
+        title = f"<b>{title}</b>"
+    return f'<a href="{escape(article["link"])}" style="color:{color};text-decoration:none">{title}</a>'
 
 
 def build_newsletter_html(
-    company_articles: dict, now: datetime, groups: list, title_text: str, fin_cells: dict, price_cells: dict, price_short: dict
+    company_articles: dict,
+    now: datetime,
+    groups: list,
+    title_text: str,
+    fin_cells: dict,
+    price_cells: dict,
+    price_short: dict,
+    show_fin: bool = True,
 ) -> str:
+    columns = [("13%", "회사 · 종가")] + ([("14%", "최근분기 재무")] if show_fin else []) + [
+        ("", "제목"), ("11%", "출처"), ("9%", "보도일"), ("8%", "구분"), ("5%", "유사"),
+    ]
     out = ['<div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:1000px;color:#191f28">']
     out.append(f"<h2>📬 [뉴스레터] {title_text}</h2>")
     out.append(
-        '<p style="font-size:12px;color:#8b95a1">💡 <b>기사 색상 안내:</b> '
-        '<b style="color:#f04452">빨간색(오늘)</b> / <b style="color:#3182f6">파란색(최근 7일)</b> / '
+        '<p style="font-size:12px;color:#8b95a1">💡 <b>기사 색상:</b> '
+        '<b style="color:#f04452">빨강(오늘)</b> / <b style="color:#3182f6">파랑(최근 7일)</b> / '
         '<b style="color:#b0b8c1">회색(7일 경과)</b></p>'
     )
 
     for group in groups:
-        out.append(f'<h3 style="margin:30px 0 12px;font-size:16px;border-left:4px solid #3182f6;padding-left:10px">{group["group_name"]}</h3>')
+        out.append(f'<h3 style="margin:24px 0 10px;font-size:15px;border-left:4px solid #3182f6;padding-left:8px">{group["group_name"]}</h3>')
         out.append(TABLE)
         out.append(
             '<tr bgcolor="#f2f4f6" style="color:#4e5968">'
-            + "".join(f'<th width="{w}">{name}</th>' for w, name in COLUMNS)
+            + "".join(f'<th width="{w}">{n}</th>' if w else f"<th>{n}</th>" for w, n in columns)
             + "</tr>"
         )
 
         quiet = []
-        for idx, company in enumerate(group["companies"]):
+        alt = False
+        for company in group["companies"]:
             articles = company_articles.get(company, [])
             disp = get_display_name(company)
             name_html = f"<b>{company}</b>" if disp == company else f'<b title="{company}">{disp}</b>'
-            alt = idx % 2 == 1
-            lead = (name_html, price_cells[company], fin_cells[company])
 
             if not articles:
-                # 뉴스 없는 회사는 그룹 끝에 한 줄로 모아 메일 용량을 줄인다
+                # 뉴스 없는 회사는 그룹 끝에 한 줄로 모은다
                 quiet.append(f"{name_html} {price_short[company]}".strip())
                 continue
 
+            alt = not alt
+            bg = "#f8f9fa" if alt else "#eef1f4"
             selected = articles[:FIXED_COMPANY_LIMIT]
-            total_rows = sum(1 + min(len(a["similar_articles"]), MAX_SIM) for a in selected)
+            rows = sum(1 + min(len(a["similar_articles"]), MAX_SIM) for a in selected)
+            span = f' rowspan="{rows}"' if rows > 1 else ""
+            lead = f'<td{span} bgcolor="{bg}" style="color:#333d4b">{name_html}<br>{price_cells[company]}</td>'
+            if show_fin:
+                lead += f'<td{span} bgcolor="{bg}" style="font-size:11px">{fin_cells[company]}</td>'
 
             for a_idx, article in enumerate(selected):
                 age = _age_days(now, article)
@@ -67,38 +81,28 @@ def build_newsletter_html(
                 sim_color = "#f04452" if age <= 7 else "#f9a8b0"
                 sim_count = len(article["similar_articles"])
                 sim_text = "" if sim_count == 0 else (str(sim_count) if sim_count <= MAX_SIM else f"+{sim_count - MAX_SIM}")
-                category = (
-                    f'<span style="{DART_BADGE}">{article["cat3"]}</span>' if article["cat3"] == "공시자료" else article["cat2"]
-                )
+                category = f'<span style="{DART_BADGE}">공시</span>' if article["cat3"] == "공시자료" else article["cat2"]
 
-                # 글자색은 <tr>에 한 번만 지정해 셀마다 반복하지 않는다
-                row = [f'<tr style="color:{text_color}">']
-                if a_idx == 0:
-                    row += [_lead_cell(c, alt, total_rows) for c in lead]
-                row.append(
-                    f'<td><a href="{escape(article["link"])}" style="color:{title_color};text-decoration:none;font-weight:600">'
-                    f'{escape(article["title"])}</a></td>'
+                out.append(
+                    f'<tr align="center" style="color:{text_color}">'
+                    + (lead if a_idx == 0 else "")
+                    + f'<td align="left">{_link(article, title_color, True)}</td>'
+                    f'<td>{escape(article["source"])}</td><td>{article["date_str"]}</td><td>{category}</td>'
+                    f'<td style="color:{sim_color}"><b>{sim_text}</b></td></tr>'
                 )
-                row.append(f'<td align="center">{escape(article["source"])}</td>')
-                row.append(f'<td align="center" style="font-size:12px">{article["date_str"]}</td>')
-                row.append(f'<td align="center">{category}</td>')
-                row.append(f'<td align="center" style="color:{sim_color};font-weight:bold">{sim_text}</td></tr>')
-                out.append("".join(row))
 
                 for sim in article["similar_articles"][:MAX_SIM]:
                     s_age = _age_days(now, sim)
                     s_title_color = "#333d4b" if s_age <= 1 else ("#6b7684" if s_age <= 7 else "#c6cacc")
                     s_text_color = "#4e5968" if s_age <= 1 else ("#8b95a1" if s_age <= 7 else "#d1d6db")
                     out.append(
-                        f'<tr bgcolor="#fafafa" style="font-size:11px;color:{s_text_color}">'
-                        f'<td style="padding-left:16px">· <a href="{escape(sim["link"])}" style="color:{s_title_color};text-decoration:none;font-size:12px">'
-                        f'{escape(sim["title"])}</a></td>'
-                        f'<td align="center">{escape(sim["source"])}</td><td align="center">{sim["date_str"]}</td>'
-                        f'<td align="center">{sim["cat2"]}</td><td></td></tr>'
+                        f'<tr align="center" bgcolor="#fafafa" style="font-size:11px;color:{s_text_color}">'
+                        f'<td align="left">· {_link(sim, s_title_color, False)}</td>'
+                        f'<td>{escape(sim["source"])}</td><td>{sim["date_str"]}</td><td>{sim["cat2"]}</td><td></td></tr>'
                     )
         if quiet:
             out.append(
-                '<tr><td colspan="8" style="font-size:12px;color:#6b7684;line-height:1.8">'
+                f'<tr><td colspan="{len(columns)}" style="color:#6b7684;line-height:1.8">'
                 f'📭 <b>최근 뉴스 없음 ({len(quiet)}곳)</b> · ' + " · ".join(quiet) + "</td></tr>"
             )
         out.append("</table>")

@@ -49,7 +49,9 @@ def main() -> None:
     cache.save()
 
     # 1~4그룹을 한 통으로 (뉴스 없는 회사는 그룹별 한 줄 요약으로 접어 본문 크기를 줄임)
-    html_body = build_newsletter_html(company_articles, now, TARGET_GROUPS, MAIL_TITLE, fin_cells, price_cells, price_short)
+    html_body = build_newsletter_html(
+        company_articles, now, TARGET_GROUPS, MAIL_TITLE, fin_cells, price_cells, price_short, show_fin=bool(dart_key)
+    )
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUTPUT_DIR / "newsletter.html"
     out_path.write_text(html_body, encoding="utf-8")

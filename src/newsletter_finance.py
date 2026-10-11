@@ -241,39 +241,23 @@ def build_price_short(company: str) -> str:
 
 
 def build_price_cell(company: str) -> str:
+    """회사 칸에 붙는 종가 + 등락률 (클릭 시 시세 페이지)"""
     domestic = STOCK_TICKERS.get(company)
     ticker, quote = _quote_for(company)
     if not quote:
-        return '<span style="color:#b0b8c1;">-</span>'
+        return '<span style="color:#b0b8c1;font-size:11px">비상장</span>'
 
     currency = _currency(ticker)
-    decimals = 0 if currency == "KRW" else 2
-    price = _fmt_amount(quote["price"], decimals)
+    price = _fmt_amount(quote["price"], 0 if currency == "KRW" else 2)
     price_text = price + "원" if currency == "KRW" else ("$" if currency == "USD" else "¥") + price
-
     if domestic:
         detail_url = "https://finance.naver.com/item/main.naver?code=" + domestic.split(".")[0]
     else:
         detail_url = "https://finance.yahoo.com/quote/" + ticker
-
-    html = (
-        f'<a href="{detail_url}" style="text-decoration:none;color:#191f28;font-size:12px"><b>{price_text}</b></a>'
+    return (
+        f'<a href="{detail_url}" style="color:#191f28;text-decoration:none;font-size:11px">{price_text}</a> '
+        f'<span style="font-size:11px">{build_price_short(company)}</span>'
     )
-
-    prev = quote["prev_close"]
-    change = ""
-    if prev:
-        diff = quote["price"] - prev
-        pct = diff / prev * 100
-        pct_str = ("+" if pct >= 0 else "") + f"{pct:.2f}%"
-        diff_abs = _fmt_amount(abs(diff), decimals)
-        if diff > 0:
-            change = f'<span style="color:#f04452;">▲{diff_abs} {pct_str}</span>'
-        elif diff < 0:
-            change = f'<span style="color:#3182f6;">▼{diff_abs} {pct_str}</span>'
-        else:
-            change = f'<span style="color:#8b95a1;">0 ({pct_str})</span>'
-    return html + f"<br>{change}"
 
 
 # ------------------------------------------------------------
