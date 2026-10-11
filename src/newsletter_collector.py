@@ -48,11 +48,11 @@ FALSE_POSITIVE_PATTERNS = {
     "AP시스템": r"중국|거버넌스\s*강화|esg\s*보고서|우드맥킨지|woodmac|태양광|인버터|solar|inverter",
     "유진테크": r"유진테크놀로지",
     "에스티아이": r"여론조사|지지|응답|복당|대통령|정당|찬성|반대|국힘|민주당|후보",
-    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\s*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt",
+    "테스": r"미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\W*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt",
     "후성": r"후성유전|유전체|유전학|유전 편집|에피크리스퍼|심포지엄",
     "제이티": r"jtbc|제이티비씨|jt방송|jt비씨|제이티시스템|제이티넷|제이티이엔지|제이티전자",
     "ASML": r"니콘|캐논|재도전장|도전장|장악한",
-    "케이씨": r"케이씨지|kcg|케이씨씨|kcc|케이씨에스|케이씨티|선박|방식|방오|조선|^pkc|\bpkc\b|케이씨피드|hkc|케이씨텍",
+    "케이씨": r"케이씨지|kcg|케이씨씨|kcc|케이씨에스|케이씨티|선박|방식|방오|조선|^pkc|\bpkc\b|케이씨피드|hkc|케이씨텍|제이케이씨",
     "디아이": r"어드밴텍|advantech|디아이에프엠|difm|디아이동일|디아이씨|adi|아나로그디바이스|sdi|배터리|holding|asml|디바인|divine|변동 원인|주식 마감|nvidia|슈퍼마이크로|3di|도쿄일렉트론|디아이랩|디아이파워|디아이건설|엑스디아이",
     "솔브레인": r"솔브레인홀딩스|홀딩스",
     "피에스케이": r"피에스케이홀딩스|홀딩스",
@@ -114,8 +114,14 @@ def is_false_positive(clean_title: str, company: str) -> bool:
 PERSON_CAPTION_RE = re.compile(r"^\S+\s+\S+\s+(팀장|대표|사장|부장|상무|전무|이사|교수|연구원|회장|본부장)\.?$")
 
 
+# "OOO 대표(앞줄 왼쪽부터)와 ... 기념촬영 했다" 같은 단체사진 캡션
+GROUP_CAPTION_RE = re.compile(r"기념촬영|앞줄|뒷줄|왼쪽부터|오른쪽부터|를 비롯해")
+
+
 def is_photo_caption(title: str) -> bool:
-    return bool(PHOTO_CAPTION_RE.search(title) or PHOTO_TAG_RE.search(title) or PERSON_CAPTION_RE.search(title))
+    return bool(
+        PHOTO_CAPTION_RE.search(title) or PHOTO_TAG_RE.search(title) or PERSON_CAPTION_RE.search(title) or GROUP_CAPTION_RE.search(title)
+    )
 
 
 def find_companies(clean_title: str, alias_map: dict) -> list:
