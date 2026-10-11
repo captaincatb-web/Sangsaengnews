@@ -115,7 +115,7 @@ PERSON_CAPTION_RE = re.compile(r"^\S+\s+\S+\s+(팀장|대표|사장|부장|상�
 
 
 # "OOO 대표(앞줄 왼쪽부터)와 ... 기념촬영 했다" 같은 단체사진 캡션
-GROUP_CAPTION_RE = re.compile(r"기념촬영|앞줄|뒷줄|왼쪽부터|오른쪽부터|를 비롯해")
+GROUP_CAPTION_RE = re.compile(r"기념촬영|앞줄|뒷줄|왼쪽부터|오른쪽부터|를 비롯해|하고 있다\.?$")
 
 
 def is_photo_caption(title: str) -> bool:
