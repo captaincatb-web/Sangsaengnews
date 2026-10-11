@@ -68,6 +68,12 @@
   const q = p.quarter;
   const r = p.ratios;
   const accNote = p.acc_mt && p.acc_mt !== "12" ? `* 결산기준일: ${Number(p.acc_mt)}월 말일자` : "";
+  const SOURCE = {
+    annual: "* 개별기준 (사업보고서)",
+    audit: "* 개별기준 (감사보고서 원문에서 자동 추출, 원문과 대조 권장)",
+    quarter: "* 연간 재무 공시 없음, 최근 분기 실적만 제공",
+  };
+  const sourceNote = SOURCE[p.fin_source] || "* 개별기준";
 
   const page1 = `
     <header class="pf-head">
@@ -80,14 +86,17 @@
 
     ${item("설립 및 이력", "", [est || NEED, est ? `<span class="muted">* 상세 연혁은 사업보고서 확인필요</span>` : ""])}
     ${item("대표이사", ceo, (p.ceo?.career || []).map((c, i) => `${i ? "" : "* "}${esc(c)}`))}
-    ${item("인력", p.employees?.count ? `${num(p.employees.count)}명(${esc(p.employees.as_of)} 기준)` : NEED)}
+    ${item("인력", p.employees?.count ? `${num(p.employees.count)}명(${esc(p.employees.as_of)} 기준)` : NEED, [
+      p.employees?.avg_tenure ? `* 평균 근속 ${p.employees.avg_tenure}년` : "",
+      p.employees?.avg_salary_man ? `* 1인 평균 급여 ${num(p.employees.avg_salary_man)}만원` : "",
+    ])}
     ${listed ? item("시총", p.market ? `${eokText(p.market.cap)}원 (주가 ${num(p.market.price)}원)` : NEED,
       [p.market ? `* ${yy(p.market.date.slice(0, 4))}${Number(p.market.date.slice(5, 7))}.${Number(p.market.date.slice(8))}일 종가 기준` : ""]) : ""}
     ${item("자산", p.assets?.total != null ? `${eokText(p.assets.total)}(부채 ${eokText(p.assets.debt)} / 자본 ${eokText(p.assets.equity)})` : NEED,
       [p.assets?.debt_ratio != null ? `* 부채비율 ${Math.round(p.assets.debt_ratio)}%` : ""])}
     ${item("주주", shareholders)}
     ${item("주요 제품", NEED)}
-    ${item("경영 현황", `<span class="muted">* 개별기준</span>`)}
+    ${item("경영 현황", `<span class="muted">${sourceNote}</span>`)}
     ${perf ? table(["[단위 : 억]", ...perf.years.map(yy)], [
       ["매출액", ...perf["매출액"].map((v) => num(v))],
       ["영업이익", ...perf["영업이익"].map((v) => num(v))],
@@ -121,6 +130,52 @@
       ...r.values[k].map((v) => num(v, 1)), NEED, r.status[k] ? esc(r.status[k]) : NEED]),
     { cls: "pf-ratio", groupCol: true }) : "";
 
+
+  // ---------- 추가 정보 (DART 공시) ----------
+  const dartLink = (no, text) => `<a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${encodeURIComponent(no)}" target="_blank" rel="noopener">${text}</a>`;
+  const MARKETS = { Y: "유가증권시장", K: "코스닥", N: "코넥스", E: "기타(비상장)" };
+  const fmtDate = (d) => (/^\d{8}$/.test(d || "") ? `${d.slice(0, 4)}.${d.slice(4, 6)}.${d.slice(6)}` : esc(d));
+  const basics = [
+    ["정식 법인명", p.corp_name], ["영문명", p.corp_name_eng], ["시장 구분", MARKETS[p.corp_cls]],
+    ["설립일", /^\d{8}$/.test(p.est_dt || "") ? fmtDate(p.est_dt) : ""], ["결산월", p.acc_mt ? `${Number(p.acc_mt)}월` : ""],
+    ["법인등록번호", p.jurir_no], ["사업자등록번호", p.bizr_no], ["대표 전화", p.phn_no], ["팩스", p.fax_no],
+    ["업종코드", p.induty_code], ["홈페이지", p.hm_url], ["IR 페이지", p.ir_url],
+  ].filter(([, v]) => v);
+  const safeHref = (u) => (/^https?:\/\//i.test(u) ? u : `http://${u}`);
+  const basicRows = basics.map(([k, v]) => [k, /홈페이지|IR/.test(k) && /^[\w.-]+\.[a-z]{2,}/i.test(String(v).replace(/^https?:\/\//i, ""))
+    ? `<a href="${esc(safeHref(v))}" target="_blank" rel="noopener">${esc(v)}</a>` : esc(v)]);
+
+  const execs = (p.executives || []).filter((e) => e.name);
+  const registered = execs.filter((e) => /이사|감사/.test(e.registered) && !/미등기/.test(e.registered));
+  const shownExecs = (registered.length ? registered : execs).slice(0, 12);
+
+  const extraHtml = `
+    <h2 class="pf-part">추가 정보 <span class="pf-part-sub">DART 공시 기준</span></h2>
+    ${basicRows.length ? `${item("기업 기본정보", "")}${table(["항목", "내용"], basicRows, { cls: "pf-kv" })}` : ""}
+
+    ${p.shareholders?.top?.length ? `${item("주요 주주", p.shareholders.total ? `최대주주 및 특수관계인 합계 ${esc(p.shareholders.total)}%` : "")}
+      ${table(["주주명", "관계", "지분율"], p.shareholders.top.map((h) => [esc(h.name), esc(h.relation || "-"), `${esc(h.ratio)}%`]), { cls: "pf-kv" })}` : ""}
+
+    ${shownExecs.length ? `${item("임원 현황", `${registered.length ? "등기임원 " : ""}${shownExecs.length}명`)}
+      ${table(["성명", "직위", "등기", "상근", "담당업무"], shownExecs.map((e) => [
+        `${esc(e.name)}${e.birth_year ? ` <small>(${yy(e.birth_year).replace("년", "년생")})</small>` : ""}`,
+        esc(e.position || "-"), esc(e.registered || "-"), esc(e.fulltime || "-"), esc(e.duty || "-")]), { cls: "pf-kv" })}` : ""}
+
+    ${p.audit?.length ? `${item("외부감사", "")}
+      ${table(["사업연도", "감사인", "감사의견"], p.audit.map((a) => [esc(a.period),
+        a.rcept_no ? dartLink(a.rcept_no, esc(a.auditor)) : esc(a.auditor), a.opinion ? esc(a.opinion) : "-"]), { cls: "pf-kv" })}` : ""}
+
+    ${p.dividends?.length && perf ? `${item("배당", "")}
+      ${table(["구분", ...perf.years.slice(1).map(yy)], p.dividends.map((d) => [esc(d.item), ...d.values.map((v) => esc(v || "-"))]))}` : ""}
+
+    ${p.investments?.length ? `${item("타법인 출자", `장부가액 상위 ${p.investments.length}곳`)}
+      ${table(["법인명", "출자 목적", "지분율", "장부가액(억)"], p.investments.map((v) => [esc(v.name), esc(v.purpose || "-"),
+        v.ratio == null ? "-" : `${v.ratio}%`, num(v.book_eok)]), { cls: "pf-kv" })}` : ""}
+
+    ${p.filings?.length ? `${item("최근 공시", "최근 1년")}
+      ${table(["접수일", "보고서명", "제출인"], p.filings.map((f) => [fmtDate(f.date), dartLink(f.rcept_no, esc(f.title)), esc(f.filer)]), { cls: "pf-kv pf-filings" })}` : ""}
+  `;
+
   const page2 = `
     <h2 class="pf-part">재무현황 분석</h2>
     ${item("신용평가", "")}
@@ -139,6 +194,8 @@
 
     ${item("재무비율 분석", "")}
     ${r ? `${bullets(r.text)}<p class="pf-note">(업종 : ${p.induty_code ? `업종코드 ${esc(p.induty_code)}` : NEED})</p>${ratioTable}` : `<p class="pf-sub">${NEED}</p>`}
+
+    ${extraHtml}
 
     <section class="pf-ref">
       <h3>[참고 1] 경영성과 핵심지표</h3>
