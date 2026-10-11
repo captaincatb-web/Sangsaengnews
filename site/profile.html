@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>기업 프로필 | 상생기업 프로필</title>
+  <meta name="description" content="지정 협력사 프로필: 설립 이력, 대표이사, 재무현황 분석">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="vendor/pretendard/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="./" aria-label="상생기업 프로필 처음으로">
+        <span class="brand-mark" aria-hidden="true">상</span>
+        <span>상생기업 프로필</span>
+      </a>
+      <nav aria-label="주요 메뉴">
+        <a href="./#directory">기업 목록</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap profile-wrap">
+    <a class="back" href="./#directory"><i class="ph ph-arrow-left" aria-hidden="true"></i> 기업 목록</a>
+    <article class="profile" id="profile" aria-live="polite"></article>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <span>상생기업 프로필</span>
+      <span>자료: 금융감독원 DART, Yahoo Finance(주가)</span>
+    </div>
+  </footer>
+
+  <script src="data/companies.js"></script>
+  <script src="data/profiles.js"></script>
+  <script src="profile.js"></script>
+</body>
+</html>
