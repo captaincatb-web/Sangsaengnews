@@ -4,111 +4,73 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>상생기업 프로필</title>
-  <meta name="description" content="반도체 상생 협력 지정 기업 64곳의 프로필과 공시·시세 정보를 한곳에서 확인합니다.">
+  <meta name="description" content="반도체 상생 협력 지정 기업 64곳의 매출, 이익, 주가를 금융감독원 전자공시(DART) 기준으로 한눈에 정리했습니다.">
   <link rel="icon" href="data:,">
   <link rel="preload" href="vendor/pretendard/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip" href="#directory">본문으로 건너뛰기</a>
+  <a class="skip" href="#companies">기업 표로 건너뛰기</a>
 
-  <header class="nav">
-    <div class="wrap nav-inner">
-      <a class="brand" href="#top" aria-label="상생기업 프로필 처음으로">
-        <span class="brand-mark" aria-hidden="true">상</span>
-        <span>상생기업 프로필</span>
-      </a>
-      <nav aria-label="주요 메뉴">
-        <a href="#directory">기업 목록</a>
-        <a href="#sources">정보 출처</a>
-      </nav>
+  <header class="site-head">
+    <div class="wrap wrap-wide">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">상</span>상생기업 프로필</a>
     </div>
   </header>
 
-  <main id="top">
-    <section class="hero wrap">
-      <div class="hero-copy">
-        <h1>반도체 상생 협력 기업<br><span id="hero-total">64</span>곳을 한눈에</h1>
-        <p class="lead">DART 고유번호와 종목코드를 기준으로 기업별 공시와 시세 정보를 한곳에 모았습니다.</p>
-        <a class="btn btn-primary" href="#directory">
-          기업 찾아보기 <i class="ph ph-arrow-down" aria-hidden="true"></i>
-        </a>
-      </div>
-
-      <div class="hero-panel" aria-label="그룹별 기업 수">
-        <ul class="group-stats" id="group-stats"></ul>
-        <p class="panel-foot">
-          <span><strong id="listed-count">-</strong> 상장</span>
-          <span><strong id="unlisted-count">-</strong> 비상장</span>
-        </p>
-      </div>
+  <main class="wrap wrap-wide">
+    <section class="intro" aria-labelledby="title">
+      <h1 id="title">반도체 상생 협력 기업 <span id="total">64</span>곳을 한눈에</h1>
+      <p class="lead">기업별 매출, 이익, 주가를 금융감독원 전자공시(DART) 기준으로 정리했습니다.</p>
+      <ul class="meta" id="summary"></ul>
     </section>
 
-    <section id="directory" class="directory wrap" aria-labelledby="directory-title">
-      <h2 id="directory-title">기업 목록</h2>
-
-      <div class="toolbar">
-        <div class="field">
-          <label for="search">기업명·고유번호·종목코드 검색</label>
-          <div class="input-wrap">
-            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-            <input id="search" type="search" autocomplete="off" spellcheck="false">
-          </div>
+    <section aria-label="기업 표">
+      <div class="controls">
+        <div class="search">
+          <label class="sr-only" for="search">기업명, 종목코드, 고유번호 검색</label>
+          <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+          <input id="search" type="search" placeholder="기업명, 종목코드, 고유번호 검색" autocomplete="off" spellcheck="false">
         </div>
-
-        <div class="field">
-          <span class="field-label" id="group-filter-label">그룹</span>
-          <div class="segmented" role="radiogroup" aria-labelledby="group-filter-label" id="group-filter"></div>
-        </div>
-
+        <div class="segmented" role="radiogroup" aria-label="그룹" id="group-filter"></div>
         <label class="switch">
           <input type="checkbox" id="listed-only">
           <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
           상장사만
         </label>
+        <button class="btn" type="button" id="copy-table"><i class="ph ph-copy" aria-hidden="true"></i>표 복사</button>
       </div>
 
-      <p class="result-count" id="result-count" aria-live="polite"></p>
+      <p class="table-note" id="table-note"></p>
+      <p class="sr-only" id="result-count" aria-live="polite"></p>
 
-      <ul class="company-grid" id="company-grid"></ul>
+      <div class="table-wrap">
+        <table class="data" id="companies">
+          <thead><tr id="table-head"></tr></thead>
+        </table>
+      </div>
 
       <div class="empty" id="empty" hidden>
-        <i class="ph ph-buildings" aria-hidden="true"></i>
         <p class="empty-title">조건에 맞는 기업이 없습니다</p>
-        <p>검색어를 줄이거나 그룹 필터를 전체로 바꿔 보세요.</p>
-        <button class="btn btn-ghost" type="button" id="reset-filters">필터 초기화</button>
+        <p>검색어를 줄이거나 그룹을 전체로 바꿔 보세요.</p>
+        <button class="btn" type="button" id="reset-filters">필터 초기화</button>
       </div>
-    </section>
-
-    <section id="sources" class="sources wrap" aria-labelledby="sources-title">
-      <h2 id="sources-title">정보는 이렇게 모읍니다</h2>
-      <dl class="source-list">
-        <div>
-          <dt><i class="ph ph-identification-card" aria-hidden="true"></i>DART 고유번호</dt>
-          <dd>금융감독원 전자공시시스템이 기업마다 부여한 8자리 번호입니다. 비상장 기업도 이 번호로 찾을 수 있습니다.</dd>
-        </div>
-        <div>
-          <dt><i class="ph ph-chart-line" aria-hidden="true"></i>종목코드</dt>
-          <dd>상장 기업은 6자리 종목코드로 네이버 증권의 시세 페이지에 바로 연결됩니다.</dd>
-        </div>
-        <div>
-          <dt><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>기업 프로필</dt>
-          <dd>대표이사, 주주, 인력, 재무제표는 OpenDART API에서 매일 자동으로 받아와 기업별 프로필을 만듭니다. <span id="profiles-status"></span></dd>
-        </div>
-      </dl>
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="wrap footer-inner">
-      <span>상생기업 프로필</span>
-      <span>자료: 금융감독원 DART, 네이버 증권</span>
+  <footer class="site-foot">
+    <div class="wrap wrap-wide foot-inner">
+      <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서, 주가 Yahoo Finance</p>
+      <p>매일 오전 7시 30분 자동 갱신</p>
     </div>
   </footer>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <script src="data/companies.js"></script>
   <script src="data/profiles.js"></script>
+  <script src="copy.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
