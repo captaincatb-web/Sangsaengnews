@@ -40,6 +40,9 @@ jobs:
       # DART_API_KEY 가 없으면 건너뛰고 기본 정보만 배포한다
       - name: Collect DART profiles
         if: ${{ env.DART_API_KEY != '' }}
+        # 수집이 실패해도 사이트는 기본 정보로 배포한다
+        continue-on-error: true
+        timeout-minutes: 25
         run: python scripts/build_company_profiles.py
 
       - uses: actions/configure-pages@v5
