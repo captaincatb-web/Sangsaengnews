@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from src.newsletter_collector import normalize_title
+from src.newsletter_collector import HANGUL_RE, normalize_title
 from src.newsletter_config import (
     CATEGORY_WEIGHT,
     FIXED_COMPANY_LIMIT,
@@ -27,7 +27,9 @@ def score(article: dict, now: datetime) -> float:
     coverage = min(len(article["similar_articles"]), 3) * 0.7
     # 같은 소식에 공시가 함께 묶여 있으면(회사가 공식 확인한 사안) 가산점
     filed = 1 if article["cat3"] != "공시자료" and any(m["cat3"] == "공시자료" for m in article["similar_articles"]) else 0
-    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed
+    # 영문 기사(해외 기업)는 국문 기사가 없을 때 보완용
+    foreign = 0 if HANGUL_RE.search(article["title"]) else -2
+    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed + foreign
 
 
 def select_company(articles: list, now: datetime) -> dict:

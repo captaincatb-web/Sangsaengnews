@@ -9,10 +9,27 @@ from src.config import ROOT_DIR
 RECIPIENT_EMAIL_DEFAULT = "devla@naver.com"
 FIXED_COMPANY_LIMIT = 2
 SIMILARITY_THRESHOLD = 0.30
-MAX_STORED_PER_COMPANY = 15
+MAX_STORED_PER_COMPANY = 30
+MAX_FOREIGN_PER_COMPANY = 5  # 영문 기사는 양이 많아 국문 기사를 밀어내지 않도록 따로 상한을 둔다
 MAX_SIM = 1  # 기사당 표시할 유사기사 최대 건수
 MAX_AGE_DAYS = 30  # 이보다 오래된 기사는 제외
 FALLBACK_DEPTH = 4  # 최신 분기 조회 실패 시 과거로 최대 몇 단계까지 더 시도할지
+
+# 이름이 일반 단어·다른 회사와 겹치는 회사는 포털 검색에 문맥어를 붙인다 (제목의 회사명은 수집 단계에서 다시 확인)
+SEARCH_CONTEXT = {name: "반도체" for name in ("테스", "케이씨", "디아이", "와이씨", "제이티", "프로텍", "에스티아이")}
+
+# 해외 기업 영문 검색어 (구글 뉴스 영문판). 국문 기사가 없을 때 보완용이라 순위에서는 국문 기사보다 뒤로 간다
+ENGLISH_SEARCH_TERMS = {
+    "ASML": ["ASML"],
+    "어플라이드머티어리얼즈": ["Applied Materials"],
+    "램리서치": ["Lam Research"],
+    "도쿄일렉트론": ["Tokyo Electron"],
+    "KLA": ["KLA Corp", "KLA Corporation"],
+    "에바라": ["Ebara"],
+    "인테그리스": ["Entegris"],
+    "이비덴": ["Ibiden"],
+    "레이저텍": ["Lasertec"],
+}
 
 CACHE_PATH = ROOT_DIR / "data" / "newsletter_cache.json"
 OUTPUT_DIR = ROOT_DIR / "output"
@@ -25,6 +42,11 @@ RSS_LIST = [
     "http://rss.etnews.com/06064.xml",  # 전자 > 소재
     "http://rss.etnews.com/06062.xml",  # 전자 > 부품
     "http://rss.etnews.com/06061.xml",  # 전자 > 장비
+    # 반도체·전자 전문지와 경제지 산업면 (최신 50건 안팎만 주므로 포털 검색의 보조)
+    "https://www.kipost.net/rss/allArticle.xml",
+    "https://www.epnc.co.kr/rss/allArticle.xml",
+    "https://www.mk.co.kr/rss/50100032/",
+    "https://www.ebn.co.kr/rss/allArticle.xml",
     "https://news.google.com/rss/search?q=(반도체+기술개발+OR+신제품+OR+양산+OR+국산화+OR+공급계약+OR+수주+OR+투자+OR+증설)+when:14d&hl=ko&gl=KR&ceid=KR:ko",
     "https://news.google.com/rss/search?q=(반도체+사업재편+OR+합병+OR+인수+OR+거버넌스+OR+ESG)+when:14d&hl=ko&gl=KR&ceid=KR:ko",
     "https://news.google.com/rss/search?q=(AP시스템+OR+국제엘렉트릭+OR+글로벌스탠다드테크놀로지+OR+버슘머트리얼즈+OR+신성이엔지+OR+에드워드코리아+OR+에스티아이)+when:30d&hl=ko&gl=KR&ceid=KR:ko",
