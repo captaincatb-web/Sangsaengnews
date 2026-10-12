@@ -34,7 +34,12 @@
   const fmtDate = (d) => (/^\d{8}$/.test(d || "") ? `${d.slice(0, 4)}.${d.slice(4, 6)}.${d.slice(6)}` : "");
   const MARKETS = { Y: "유가증권시장", K: "코스닥", N: "코넥스" };
   const listed = p.corp_cls ? Object.keys(MARKETS).includes(p.corp_cls) : !!company.stockCode;
-  const accNote = p.acc_mt && p.acc_mt !== "12" ? ` * 결산기준일 ${Number(p.acc_mt)}월 말` : "";
+  const accNote = (() => {
+    const m = Number(p.acc_mt || 12);
+    if (m === 12 || !p.report_year) return "";
+    const y = p.report_year, sm = m === 12 ? 1 : m + 1;
+    return ` * ${m}월 결산: '${String(y).slice(2)}년 = '${String(y).slice(2)}.${sm}~'${String(y + 1).slice(2)}.${m}`;
+  })();
 
   // 공시로 확인할 수 없어 표시하지 않는 항목. 회사마다 비어 있는 항목이 뒤에 더해진다.
   const missing = new Set(["기업규모", "연혁", "주요 제품", "제조거점", "거래금액·비중", "신용등급", "업종평균"]);
