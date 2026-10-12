@@ -34,6 +34,7 @@
           <input id="search" type="search" placeholder="기업명, 종목코드, 고유번호 검색" autocomplete="off" spellcheck="false">
         </div>
         <div class="segmented" role="radiogroup" aria-label="그룹" id="group-filter"></div>
+        <button class="btn" type="button" id="add-toggle" aria-expanded="false" aria-controls="add-form"><i class="ph ph-plus" aria-hidden="true"></i>기업 추가</button>
         <label class="switch">
           <input type="checkbox" id="listed-only">
           <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
@@ -41,6 +42,21 @@
         </label>
         <button class="btn" type="button" id="copy-table"><i class="ph ph-copy" aria-hidden="true"></i>표 복사</button>
       </div>
+
+      <form class="add-panel" id="add-form" hidden>
+        <div class="add-fields">
+          <div class="field field-grow">
+            <label for="add-name">추가할 기업</label>
+            <input id="add-name" type="text" required placeholder="회사명, 종목코드(6자리) 또는 DART 고유번호(8자리)" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="field">
+            <label for="add-group">넣을 그룹</label>
+            <select id="add-group"></select>
+          </div>
+          <button class="btn btn-primary" type="submit">추가 요청</button>
+        </div>
+        <p class="add-help">GitHub 이슈 화면이 새 창으로 열립니다. <strong>Create</strong>(이슈 등록)를 누르면 DART에서 회사를 찾아 목록에 넣고, 약 15분 뒤 이 표와 프로필에 나타납니다. 결과는 이슈 댓글로 알려 드리며, 저장소 관리자 계정으로 로그인해야 합니다.</p>
+      </form>
 
       <p class="table-note" id="table-note"></p>
       <p class="sr-only" id="result-count" aria-live="polite"></p>

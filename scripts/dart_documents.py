@@ -26,8 +26,12 @@ SITE_HEADER = re.compile(r"소재지|주\s*소|위\s*치")
 SITE_EXCLUDE = re.compile(r"설립일|지분|주요\s*사업|최대주주|대표이사|상\s*호|자산총액|종속|관계")
 SITE_ROLES = [("본사", r"본사|본점|본관|HQ"), ("연구소", r"연구|R&D|기술원"), ("제조", r"공장|생산|제조|팹|Fab|FAB"),
               ("물류", r"물류|창고"), ("영업", r"지점|영업소|사무소|지사|영업"), ("사업장", r"사업장|캠퍼스")]
-ADDRESS_RE = re.compile(r"([가-힣]+(?:특별시|광역시|특별자치시|특별자치도|도)\s+[가-힣]+(?:시|군|구)"
-                        r"(?:\s+[가-힣]+(?:구|군))?(?:\s+[가-힣0-9]+(?:동|읍|면|가))?)")
+# '경기도 화성시', '경기 화성시', '서울특별시 강남구' 처럼 시·도로 시작하는 국내 주소
+PROVINCE = (r"(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|"
+            r"경상북|경상남|경북|경남|제주)(?:특별시|광역시|특별자치시|특별자치도|도)?")
+_END = r"(?=[^가-힣]|$|에|과|와|으로|로|은|는|이며)"  # '평택시 청북면에' 처럼 조사가 붙어도 지명 끝으로 본다
+ADDRESS_RE = re.compile(r"(" + PROVINCE + r"\s*[가-힣]+?(?:시|군|구)" + _END +
+                        r"(?:\s+[가-힣]+?(?:구|군)" + _END + r")?(?:\s+[가-힣0-9]+?(?:동|읍|면|가)" + _END + r")?)")
 
 
 def strip_tags(raw: str) -> str:
@@ -64,7 +68,7 @@ def _rank(event: str) -> int:
 
 
 def _cell_lines(raw: str) -> list:
-    return [t for t in (strip_tags(x) for x in BREAK_RE.split(raw)) if t]
+    return [t for t in (strip_tags(x) for x in re.split(r"<(?:BR|P)\b[^>]*>|\n", raw, flags=re.I)) if t]
 
 
 def parse_history(doc: str) -> list:
@@ -85,9 +89,11 @@ def parse_history(doc: str) -> list:
                 if rest and re.fullmatch(r"\d{1,2}\s*월?", strip_tags(rest[0])):  # 연도 칸 + 월 칸
                     month, rest = int(re.sub(r"\D", "", strip_tags(rest[0]))), rest[1:]
                 for raw in rest:
-                    for text in _cell_lines(raw):  # 한 칸에 '04.01 설립<br>11.20 상장' 처럼 여러 줄
-                        mm = MONTH_RE.match(text)
-                        if mm and len(text) > mm.end() + 2 and int(mm.group(1)) <= 12:
+                    for text in _cell_lines(raw):  # 한 칸에 '04.01 설립<br>2019.05 상장' 처럼 여러 줄
+                        md, mm = DATE_RE.match(text), MONTH_RE.match(text)
+                        if md and len(text) > md.end() + 2:  # 줄마다 자기 날짜가 있는 경우
+                            events.append((int(md.group(1)), int(md.group(2) or 0), text[md.end():]))
+                        elif mm and len(text) > mm.end() + 2 and int(mm.group(1)) <= 12:
                             events.append((year, int(mm.group(1)), text[mm.end():]))
                         else:
                             events.append((year, month, text))
@@ -194,9 +200,27 @@ def parse_sites(doc: str) -> list:
             if len(row) <= max(addr_idx, name_idx):
                 continue
             name, addr = row[name_idx], row[addr_idx]
-            if not re.search(r"[가-힣]+(?:시|군|구|도)(?:\s|$)|특별시|광역시", addr):
+            if not (re.match(PROVINCE, addr.strip()) or re.search(r"[가-힣]+(?:시|군|구|도)(?:\s|$)", addr)):
                 continue  # 해외 사업장이나 빈 칸
             pairs += [(shorten_address(addr), role) for role in site_roles(name)]
+    if not pairs:
+        text = strip_tags(re.sub(r"<(?:P|BR)\b[^>]*>", "\n", TABLE_RE.sub(" ", section), flags=re.I))
+        pairs = sentence_sites(text, own_only=True)
+    return pairs
+
+
+def sentence_sites(text: str, own_only: bool = False) -> list:
+    """'본사 및 공장은 경기도 평택시 진위면에 소재' 같은 문장에서 (위치, 역할) 쌍을 찾는다.
+    own_only 이면 '당사'·'회사' 가 주어인 문장만 본다 (고객사 공장 위치 등을 거르기 위해)."""
+    pairs = []
+    for s in re.split(r"(?<=다\.)\s+|\n", text):
+        if not re.search(r"소재|위치", s) or (own_only and not re.search(r"당사|회사의|회사는|본사", s)):
+            continue
+        for addr in ADDRESS_RE.findall(s):
+            before = s[: s.find(addr)][-25:]
+            roles = [role for role, pattern in SITE_ROLES if re.search(pattern, before)] or \
+                    [role for role, pattern in SITE_ROLES if re.search(pattern, s)] or ["본사"]
+            pairs += [(shorten_address(addr), role) for role in roles]
     return pairs
 
 
@@ -214,6 +238,20 @@ def business_overview(doc: str) -> dict:
 
 # ---------- 감사보고서 주석 '회사의 개요' ----------
 
+def _history_sentence(s: str) -> dict:
+    """'주식회사 OO(이하 "회사")는 1995년 7월 1일에 ... 설립된 ...으로서, ...' → 설립 부분까지 줄인 한 문장."""
+    s = re.sub(r"^.{0,60}?\(이하[^)]*\)\s*(?:은|는)\s*", "", s)  # '주식회사 OO(이하 "회사")는' 떼기
+    s = re.sub(r"(?:대한민국\s*)?상법(?:의\s*규정)?에\s*(?:준거|의거|따라)하?여\s*", "", s)
+    m = re.search(r"설립|합병|분할|상장", s)
+    if m and len(s) > 80:
+        cut = re.search(r"(?:으로서|으며|이며|하였고|되었고|하고),", s[m.end():])
+        if cut:
+            s = s[: m.end() + cut.start()].rstrip(" ,") + "…"
+    s = s if len(s) <= 120 else s[:120] + "…"
+    year = re.search(r"((?:19|20)\d{2})\s*년", s)
+    return {"year": int(year.group(1)) if year else None, "text": s}
+
+
 def audit_overview(doc: str) -> dict:
     """감사보고서 주석 1(일반사항)에서 연혁 문장, 사업장 (위치, 역할) 쌍, 회계기준을 읽는다."""
     text = strip_tags(doc)
@@ -225,17 +263,9 @@ def audit_overview(doc: str) -> dict:
     chunk = text[m.end(): m.end() + 1500]
     sentences = [s.strip() for s in re.split(r"(?<=다\.)\s+", chunk) if s.strip()][:6]
     for s in sentences:
-        if re.search(r"설립|합병|분할|상호|사명|상장|인수", s) and not re.search(r"회계|기준서|재무제표|공시|주석", s):
-            s = re.sub(r"^.{0,60}?\(이하[^)]*\)\s*(?:은|는)\s*", "", s)  # '주식회사 OO(이하 "회사")는' 떼기
-            m_year = re.search(r"((?:19|20)\d{2})\s*년", s)
-            out["history"].append({"year": int(m_year.group(1)) if m_year else None,
-                                   "text": s[:150] + ("…" if len(s) > 150 else "")})
-        if re.search(r"소재|위치", s):
-            for addr in ADDRESS_RE.findall(s):
-                before = s[: s.find(addr)][-25:]
-                roles = [role for role, pattern in SITE_ROLES if re.search(pattern, before)] or \
-                        [role for role, pattern in SITE_ROLES if re.search(pattern, s)] or ["본사"]
-                for role in roles:
-                    out["sites"].append((shorten_address(addr), role))
+        if (re.search(r"설립|합병|분할|상호|사명|상장|인수", s)
+                and not re.search(r"회계|기준서|재무제표|공시|주석|자본금|주주|증자|주식(?!\s*회사)", s)):
+            out["history"].append(_history_sentence(s))
+        out["sites"] += sentence_sites(s)
     out["history"] = out["history"][:3]
     return out

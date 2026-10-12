@@ -38,14 +38,15 @@ NEWS_RULES = [
     ("실적", 4, r"사상\s*최대|최대\s*실적|역대\s*최대|흑자\s*전환|적자\s*전환|어닝\s*서프라이즈"),
     ("구조개편", 4, r"인수|합병|M&A|지분\s*매각|최대주주|경영권"),
     ("상장", 4, r"상장\s*(?:추진|예정|심사|승인)|IPO|공모"),
-    ("위험", 4, r"소송|횡령|배임|압수수색|제재|화재|사고|파업"),
+    ("위험", 4, r"소송|횡령|배임|압수수색|제재|화재|폭발|인명\s*사고|산재|파업"),
     ("투자", 3, r"증설|신공장|공장|투자|캐파|CAPA"),
     ("제품", 3, r"개발|국산화|양산|출시|신제품|퀄\s*테스트|공급\s*개시|진출"),
     ("실적", 3, r"실적|영업이익|매출"),
     ("경영", 2, r"대표이사|신임\s*대표|사장\s*선임|회장"),
 ]
 NEWS_NOISE = re.compile(r"특징주|목표\s*주가|목표가|주가|상한가|하한가|급등|급락|강세|약세|순매수|순매도|"
-                        r"외국인|기관\s*매|마감|시황|52주|신고가|신저가|\[포토\]|부고|게시판|인사\]|ETF|수혜주|테마")
+                        r"외국인|기관\s*매|마감|시황|52주|신고가|신저가|\[포토\]|부고|게시판|인사\]|ETF|수혜|테마|"
+                        r"주목|팔았다|샀다|담았다|매수|매도|펀드|운용사|포트폴리오|관련주|종목")
 CHIP_WORDS = re.compile(r"반도체|장비|소재|부품|웨이퍼|디스플레이|공정|파운드리|HBM|메모리|낸드|D램|수주|실적|코스닥|상장")
 PARTICLE = r"(?:은|는|이|가|을|를|과|와|의|도|에|에서|로|으로|만|측)?"
 
@@ -162,7 +163,9 @@ def fetch_google(query: str) -> list:
             continue
         source = entry.get("source", {})
         press = source.get("title", "") if isinstance(source, dict) else ""
-        title = re.sub(r"\s+-\s+[^-]+$", "", entry.title) if press else entry.title
+        title = entry.title.strip()
+        while press and title.endswith(f" - {press}"):
+            title = title[: -len(f" - {press}")].rstrip()
         out.append({"title": title, "source": press, "url": entry.link,
                     "date": datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)})
     return out
@@ -218,6 +221,10 @@ def news_candidates(names: list, since: datetime) -> list:
         category, score = _score(title, NEWS_RULES)
         if NEWS_NOISE.search(title):
             score -= 3
+        if re.match(r"[\"'“‘]?" + re.escape(hit) + PARTICLE + r"(?:[,·…]|\s)", title):
+            score += 1  # '피에스케이, ...' 처럼 회사가 주어
+        if re.search(re.escape(hit) + r"\s*·|·\s*" + re.escape(hit), title):
+            score -= 1  # 'A·B·C' 처럼 여러 회사를 나열
         if score <= 0:
             continue
         out.append({"kind": "뉴스", "category": category, "score": score, "date": a["date"],
