@@ -40,6 +40,8 @@
       p.textContent = [...ul.children].map((li) => li.textContent.trim()).filter(Boolean).join(" | ");
       ul.replaceWith(p);
     });
+    // 목록 안의 보조 설명(대표이사 경력 등)은 줄을 바꿔 작은 글씨로
+    root.querySelectorAll(".pf-sub").forEach((n) => n.replaceWith(el("br"), el("span", "font-size:9pt;color:#444;", n.innerHTML)));
     root.querySelectorAll("ul.pf-bullets").forEach((ul) => {
       const frag = document.createDocumentFragment();
       [...ul.children].forEach((li) => frag.appendChild(el("p", S.sub, `- ${li.innerHTML}`)));

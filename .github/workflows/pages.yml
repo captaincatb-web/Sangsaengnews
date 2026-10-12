@@ -8,6 +8,8 @@ on:
     paths:
       - "site/**"
       - "scripts/build_company_profiles.py"
+      - "scripts/dart_documents.py"
+      - "scripts/company_highlights.py"
       - ".github/workflows/pages.yml"
   schedule:
     # 매일 07:30 KST = 전날 22:30 UTC (DART 데이터·주가 갱신)
@@ -28,6 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DART_API_KEY: ${{ secrets.DART_API_KEY }}
+      # 주요 특징의 뉴스 검색 (없으면 Google 뉴스만 쓴다)
+      NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+      NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
