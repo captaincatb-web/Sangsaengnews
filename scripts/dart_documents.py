@@ -16,8 +16,8 @@ BREAK_RE = re.compile(r"<(?:BR|P)\b[^>]*>", re.I)
 # 연혁에서 남길 사건과 뺄 사건
 HISTORY_KEEP = re.compile(r"설립|창립|창업|상장|상호|사명|분할|합병|인수|현지\s*법인|해외\s*법인|법인\s*(?:신설|설립)|"
                           r"지주\s*회사|(?:공장|캠퍼스|연구소|사옥|센터)\s*(?:준공|신설|착공|완공|개소|신축)|본점\s*이전|본사\s*이전|최대주주\s*변경")
-HISTORY_DROP = re.compile(r"선임|사임|취임|퇴임|대표이사|수상|인증|선정|특허|표창|훈장|포상|ISO|벤처|"
-                          r"신주인수권|사채|증자|감자|액면")
+HISTORY_DROP = re.compile(r"선임|사임|취임|퇴임|대표이사|사내이사|사외이사|임원|감사위원|임기만료|수상|인증|선정|특허|표창|훈장|포상|"
+                          r"ISO|벤처|신주|사채|증자|감자|액면|전환권|추가상장|dart\.fss|전자공시|공시된|협약")
 # 해외 법인·지사·공장처럼 회사 자체의 설립이 아닌 사건
 SUBSIDIARY = re.compile(r"Inc\b|Ltd\b|Co\.|Corp|GmbH|LLC|해외|현지|미국|중국|일본|대만|베트남|싱가포르|말레이시아|"
                         r"유럽|독일|지사|자회사|연구소|공장|센터|사무소|합작")
@@ -28,7 +28,7 @@ SITE_ROLES = [("본사", r"본사|본점|본관|HQ"), ("연구소", r"연구|R&D
               ("물류", r"물류|창고"), ("영업", r"지점|영업소|사무소|지사|영업"), ("사업장", r"사업장|캠퍼스")]
 # '경기도 화성시', '경기 화성시', '서울특별시 강남구' 처럼 시·도로 시작하는 국내 주소
 PROVINCE = (r"(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청북|충청남|충북|충남|전라북|전라남|전북|전남|"
-            r"경상북|경상남|경북|경남|제주)(?:특별시|광역시|특별자치시|특별자치도|도)?")
+            r"경상북|경상남|경북|경남|제주)(?:특별시|광역시|특별자치시|특별자치도|도|시)?")
 _END = r"(?=[^가-힣]|$|에|과|와|으로|로|은|는|이며)"  # '평택시 청북면에' 처럼 조사가 붙어도 지명 끝으로 본다
 ADDRESS_RE = re.compile(r"(" + PROVINCE + r"\s*[가-힣]+?(?:시|군|구)" + _END +
                         r"(?:\s+[가-힣]+?(?:구|군)" + _END + r")?(?:\s+[가-힣0-9]+?(?:동|읍|면|가)" + _END + r")?)")
@@ -138,7 +138,15 @@ def parse_history(doc: str) -> list:
         seen.add(key)
         picked.append({"year": year, "month": month, "text": event, "rank": _rank(event)})
     # 날짜 조각('01)을 통해 …')은 버리고, 짧은 연혁 항목이 있으면 '…되었습니다' 같은 설명 문장은 뺀다
-    picked = [e for e in picked if not re.match(r"[\d)(.,~]", e["text"])]
+    def junk(t: str) -> bool:
+        core = re.sub(r"\([^)]*\)?|[-–:\s]+$", "", t).strip()
+        return (re.match(r"(?!\(주\))[\d)(.,~:\-]", t) is not None                      # 날짜가 잘린 조각
+                or re.match(r"(?:을|를|은|는|이|가|에|의|로|으로|와|과)\s", t) is not None  # 앞이 잘린 문장
+                or len(core) < 5 or t.rstrip().endswith(":")                   # '설립-', '합병기일 :'
+                or re.fullmatch(r"(?:법인\s*)?설립.{0,3}", core) is not None and not picked_has_name(t))
+    def picked_has_name(t: str) -> bool:
+        return bool(re.search(r"[가-힣A-Za-z]{2,}\s*(?:\(주\)|㈜)|주식회사", t))
+    picked = [e for e in picked if not junk(e["text"])]
     prose = re.compile(r"습니다|었으며|되었|하였|이며,")
     if any(not prose.search(e["text"]) for e in picked):
         picked = [e for e in picked if not prose.search(e["text"])]
@@ -153,6 +161,8 @@ def parse_history(doc: str) -> list:
 def shorten_address(addr: str) -> str:
     """'경기도 화성시 동탄산단4길 9-29 (방교동)' → '화성시 방교동', '서울특별시 강남구 테헤란로' → '서울 강남구'."""
     addr = re.sub(r"\s+", " ", addr or "").strip()
+    addr = re.sub(r"(\S+)\s+(광역시|특별시|특별자치시)", r"\1\2", addr)  # '인천 광역시' → '인천광역시'
+    addr = re.sub(r"^(" + PROVINCE + r")(?!특별|광역)(?=[가-힣]{2,}(?:시|군|구)(?:\s|$|[가-힣]))", r"\1 ", addr)  # '경기도안성시' → '경기도 안성시'
     dong = ""
     m = re.search(r"\(([가-힣0-9]+(?:동|읍|면|가))[,)\s]", addr + " ")
     if m:
@@ -204,6 +214,9 @@ def merge_sites(pairs: list) -> list:
             site["roles"].append(role)
     order = {"본사": 0, "제조": 1, "사업장": 2, "연구소": 3, "물류": 4, "영업": 5}
     items = [{"location": s["location"], "roles": sorted(s["roles"], key=lambda x: order.get(x, 9))} for s in merged.values()]
+    for site in items[1:]:  # 본사는 처음(회사 개황 주소) 한 곳만
+        if "본사" in site["roles"] and len(site["roles"]) > 1 or items[0]["roles"].count("본사") and "본사" in site["roles"]:
+            site["roles"] = [r for r in site["roles"] if r != "본사"] or ["사업장"]
     items.sort(key=lambda s: min(order.get(x, 9) for x in s["roles"]))
     return items[:5]
 
@@ -259,10 +272,15 @@ def _production_sites(rows: list) -> list:
         name = row[idx].strip()
         if not re.search(r"[가-힣]", name) or len(name) > 25 or re.fullmatch(r"(?:합\s*계|소\s*계|총\s*계|계|-)", name):
             continue
-        place = shorten_address(name) if ADDRESS_RE.search(name) else \
-            re.sub(r"\s+", " ", re.sub(r"\(.*?\)|본사|본점|공장|사업장|사업소|캠퍼스|\d+", " ", name)).strip()
-        if place:
-            pairs += [(place, role) for role in dict.fromkeys(site_roles(name) + ["제조"])]
+        roles = list(dict.fromkeys(site_roles(name) + ["제조"]))
+        for part in re.split(r"[,/·]|\s및\s|및", re.sub(r"\(.*?\)", " ", name)):
+            part = part.strip()
+            if not part or len(part.replace(" ", "")) > 10 and " " not in part:
+                continue  # '경기도안성시및서울시강남구외' 처럼 붙여 쓴 긴 이름은 버린다
+            place = shorten_address(part) if ADDRESS_RE.search(part) else \
+                re.sub(r"\s+", " ", re.sub(r"본사|본점|공장|사업장|사업소|캠퍼스|\d+|외$", " ", part)).strip()
+            if place and len(place) <= 12:
+                pairs += [(place, role) for role in roles]
     return pairs
 
 
