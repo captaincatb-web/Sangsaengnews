@@ -754,6 +754,20 @@ def load_companies() -> dict:
     return out
 
 
+def print_review(profiles: dict, companies: dict):
+    """회사마다 화면 항목이 채워졌는지 한 줄로 남긴다 (Actions 로그에서 빠진 곳을 찾기 위해)."""
+    print("===== 항목 점검 =====")
+    for code, p in profiles.items():
+        ex = {e["name"].replace(" ", ""): e for e in p.get("executives", [])}
+        ceos = [n for n in re.split(r"[,/·]", re.sub(r"\([^)]*\)|각자|공동|대표이사|대표", "", p.get("ceo_nm", ""))) if n.strip()]
+        careers = sum(1 for n in ceos if ex.get(n.replace(" ", ""), {}).get("career"))
+        sites = ";".join(f"{x['location']}({','.join(x['roles'])})" for x in p.get("sites", []))
+        hist = " | ".join(f"{h.get('year') or ''} {h['text'][:40]}" for h in p.get("history", []))
+        print(f"[점검] {companies.get(code, [code])[0]} | 출처 {p.get('fin_source', '-')} | 연혁 {len(p.get('history', []))} "
+              f"| 대표 {len(ceos)}명/경력 {careers} | 주주 {len((p.get('shareholders') or {}).get('top', []))} "
+              f"| 분기 {'O' if p.get('quarter') else 'X'} | 특징 {len(p.get('highlights', []))} | 사업장 {sites} | 연혁: {hist}")
+
+
 def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)  # Actions 로그에 진행 상황이 바로 보이도록
     api_key = os.environ.get("DART_API_KEY")
@@ -796,6 +810,7 @@ def main() -> int:
         return 1
 
     ordered = {c: profiles[c] for c in corp_codes if c in profiles}
+    print_review(ordered, companies)
     updated = datetime.now().strftime("%Y-%m-%d")
     PROFILES_PATH.write_text(
         "// scripts/build_company_profiles.py 가 생성한 파일입니다. 직접 수정하지 마세요.\n"
