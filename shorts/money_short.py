@@ -59,10 +59,24 @@ def find_media(d: Path, n: int) -> Path | None:
     return None
 
 
-def sub_blocks(sentence: str, line_chars: int) -> list[str]:
-    """문장을 길이가 고른 2줄(줄당 line_chars자 안팎) 자막 덩어리로 나눈다."""
+def split_lines(text: str, k: int) -> str:
+    """text를 k줄로 고르게 나눈다(쉼표·마침표 뒤에서 끊기를 선호)."""
+    out, rest = [], text
+    for left in range(k, 1, -1):
+        spaces = [i for i, ch in enumerate(rest) if ch == " "]
+        if not spaces:
+            break
+        goal = len(rest) / left
+        cut = min(spaces, key=lambda i: abs(i - goal) - (3 if rest[i - 1] in ",." else 0))
+        out.append(rest[:cut])
+        rest = rest[cut + 1:]
+    return "\n".join(out + [rest])
+
+
+def sub_blocks(sentence: str, line_chars: int, max_lines: int = 3) -> list[str]:
+    """문장을 자막 덩어리로 나눈다. 덩어리마다 최대 max_lines줄, 줄당 line_chars자 안팎."""
     words = sentence.split()
-    n = max(1, math.ceil(len(sentence) / (line_chars * 2)))
+    n = max(1, math.ceil(len(sentence) / (line_chars * max_lines)))
     target = len(sentence) / n
     blocks, cur = [], ""
     for w in words:
@@ -72,15 +86,7 @@ def sub_blocks(sentence: str, line_chars: int) -> list[str]:
         else:
             cur = f"{cur} {w}".strip()
     blocks.append(cur)
-    out = []
-    for b in blocks:
-        if len(b) <= line_chars or " " not in b:
-            out.append(b)
-            continue
-        spaces = [i for i, ch in enumerate(b) if ch == " "]
-        cut = min(spaces, key=lambda i: abs(i - len(b) / 2) - (3 if b[i - 1] in ",." else 0))
-        out.append(b[:cut] + "\n" + b[cut + 1:])
-    return out
+    return [split_lines(b, min(max_lines, math.ceil(len(b) / (line_chars + 1)))) for b in blocks]
 
 
 def ken_burns(src: Path, out: Path, length: float, mode: str) -> str:
@@ -114,21 +120,22 @@ def board_fallback(sc: dict, n: int, renderer, out: Path, s0: float, v0: float, 
 
 
 def write_kit(spec: dict, style: dict, scenes: list, media_dir: Path, proj: Path) -> None:
-    character = spec.get("character") or style["character"]
+    cast = spec.get("characters") or style.get("characters") or {"main": spec.get("character") or style["character"]}
     look = style["look"] + (", " + spec["style"] if spec.get("style") else "")
     rows = [f"# {spec['topic']} — 장면 이미지 만들기", "",
             "## 순서", "",
-            "1. 먼저 아래 **캐릭터 시트**를 한 장 만듭니다. 마음에 드는 결과를 저장해 두세요.",
-            "2. 장면마다 캐릭터 시트 이미지를 **참조 이미지로 첨부**하고 장면 프롬프트를 넣어 세로(9:16) 이미지를 만듭니다.",
+            "1. 먼저 아래 **캐릭터 시트**를 캐릭터마다 한 장씩 만듭니다. 마음에 드는 결과를 저장해 두세요(다음 영상에도 계속 씁니다).",
+            "2. 장면 프롬프트에 적힌 캐릭터의 시트를 **참조 이미지로 첨부**하고 세로(9:16) 이미지를 만듭니다. 캐릭터가 없는 장면은 첨부하지 않습니다.",
             "   - 추천: Gemini 앱의 Nano Banana Pro(한글 글자를 잘 씀), ChatGPT 이미지 생성",
-            "   - 이미지 속 한글 숫자가 틀리면 그 부분만 고쳐 달라고 다시 요청하세요.",
+            "   - 이미지 속 한글·숫자가 대본과 다르면 그 부분만 고쳐 달라고 다시 요청하세요(AI가 숫자를 자주 틀립니다).",
             "3. (선택) Kling·Veo 같은 도구에서 이미지를 시작 프레임으로 넣고 움직임 프롬프트로 5초 영상을 만듭니다.",
             "   영상이 없으면 이미지에 천천히 움직이는 효과가 자동으로 들어갑니다.",
-            "4. 만든 파일을 장면 순서대로 대화창에 올리세요. 이름에 `S03`처럼 번호를 넣으면 그 장면에 들어갑니다.", "",
-            "## 캐릭터 시트", "", "```text",
-            f"Character reference sheet of {character}. Front view, three-quarter view and back view side by side, "
-            "full body, neutral friendly expression, plain light gray background, consistent proportions, no text.",
-            "```", ""]
+            "4. 만든 파일을 장면 순서대로 대화창에 올리세요. 이름에 `S03`처럼 번호를 넣으면 그 장면에 들어갑니다.", ""]
+    for name, desc in cast.items():
+        rows += [f"## 캐릭터 시트: {name}", "", "```text",
+                 f"Character reference sheet of {desc}. Front view, three-quarter view and back view side by side, "
+                 "full body, neutral friendly expression, plain light gray background, consistent proportions, no text.",
+                 "```", ""]
     for i, sc in enumerate(scenes, 1):
         have = find_media(media_dir, i)
         texts = sc.get("screen_text") or []
@@ -137,13 +144,22 @@ def write_kit(spec: dict, style: dict, scenes: list, media_dir: Path, proj: Path
             quoted = ", ".join(f'"{t}"' for t in texts)
             text_part = (f" Korean text clearly visible {sc.get('screen_where', 'on a large digital display in the scene')}: "
                          f"{quoted} (exact characters, no other text).")
-        rows += [f"## S{i:02d} · {sc['_len']:.1f}초" + (f"  ✅ {have.name}" if have else ""), "",
+        who = sc.get("cast", list(cast)[:1])
+        if who:
+            names = " and ".join(who)
+            lead = (f"Use the attached character reference sheet(s) for {names} and keep "
+                    f"{'them' if len(who) > 1 else 'the character'} exactly the same.")
+            look_now = look
+        else:
+            lead = "No characters in this shot."
+            look_now = re.sub(r",? ?the 3D chibi character[^,]*", "", look)
+        rows += [f"## S{i:02d} · {sc['_len']:.1f}초 · 캐릭터: {', '.join(who) if who else '없음'}"
+                 + (f"  ✅ {have.name}" if have else ""), "",
                  "내레이션: " + " ".join(sc["lines"]), "", "이미지 프롬프트:", "```text",
-                 f"Use the attached character reference and keep the character exactly the same. "
-                 f"{sc.get('image', '')}.{text_part} {look}.", "```"]
+                 f"{lead} {sc.get('image', '')}.{text_part} {look_now}.", "```"]
         if sc.get("motion"):
             rows += ["움직임 프롬프트(선택):", "```text",
-                     f"{sc['motion']}. Keep the character's appearance and all on-screen text unchanged, "
+                     f"{sc['motion']}. Keep any characters' appearance and all on-screen text unchanged, "
                      "smooth subtle camera movement, 5 seconds.", "```"]
         rows.append("")
     (proj / "prompts.md").write_text("\n".join(rows), encoding="utf-8")
@@ -279,7 +295,7 @@ def cmd_render(a) -> None:
         sc["_len"] = sc["_v1"] - sc["_v0"]
     cues = []
     for k, s in enumerate(sentences):
-        blocks = sub_blocks(s, sub_style["line_chars"])
+        blocks = sub_blocks(s, sub_style["line_chars"], sub_style.get("max_lines", 3))
         weights = [len(b.replace(" ", "").replace("\n", "")) for b in blocks]
         t, dur = starts[k], len(clips[k]) / ms.SR
         for b, wt in zip(blocks, weights):
