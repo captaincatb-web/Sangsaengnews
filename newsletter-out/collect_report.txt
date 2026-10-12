@@ -1,6 +1,6 @@
-소스별 원본 건수: google 2157, naver_web 1197, google_en 461, rss 230, dart 35
-소스별 채택 건수: google 217, google_en 70, naver_web 56, dart 24, rss 3
-제외 사유: 주가·증시 740, 영문 주가 317, 스팸·채용 134, 동명이인·오탐 43, 차단 매체 33, 옛 기사 12, 블로그·유료 10, 사진 캡션 5, 첨부 정정 공시 1
+소스별 원본 건수: google 2156, naver_web 1197, google_en 458, rss 410, dart 35
+소스별 채택 건수: google 215, google_en 69, naver_web 56, dart 24, rss 3
+제외 사유: 주가·증시 744, 영문 주가 311, 스팸·채용 133, 동명이인·오탐 43, 차단 매체 34, 옛 기사 12, 블로그·유료 10, 사진 캡션 5, 첨부 정정 공시 1
 
 [회사별 최근 7일 기사 수 · 처음 찾은 소스 기준]
 AP시스템: -
@@ -71,7 +71,7 @@ ASML: google 6, google_en 5, rss 1, naver_web 1
 어플라이드머티어리얼즈: google 9, google_en 5
 램리서치: google 18, google_en 5, naver_web 2, rss 2
 도쿄일렉트론: google_en 5, google 3
-KLA: google 1, google_en 1
+KLA: -
 에바라: -
 인테그리스: -
 이비덴: -
@@ -172,6 +172,7 @@ KLA: google 1, google_en 1
 영문 주가 | ASML | google_en | Yahoo Finance | Advanced Micro Devices vs. ASML: Which Semiconductor Stock Is a Better Buy in 2026?
 영문 주가 | ASML | google_en | Yahoo Finance | Dear ASML Stock Fans, Mark Your Calendars for October 14
 영문 주가 | ASML | google_en | Yahoo Finance | Is ASML’s (ASML) Monopoly Worth the Premium?
+영문 주가 | ASML | google_en | Yahoo Finance | Top Research Reports for JPMorgan, ASML & Chevron
 영문 주가 | ASML | google_en | Yahoo Finance | VOO Doesn't Hold SpaceX, Taiwan Semiconductor, Samsung Electronics, SK Hynix, or ASML. Meet the Vanguard ETF That Does.
 영문 주가 | ASML | google_en | Yahoo Finance | What is ASML’s (ASML) Economic Moat, and is it Widening or Narrowing?
 영문 주가 | ASML | google_en | Yahoo! Finance Canada | Why ASML’s (ASML) Capacity Is Fully Booked Through 2027
@@ -180,7 +181,6 @@ KLA: google 1, google_en 1
 영문 주가 | ASML | google_en | digitimes | China's ASML DUV stockpile spurs calls to close export-control loophole
 영문 주가 | ASML | google_en | investing.com | ASML shares may move 4.6% on Oct. 14 earnings report
 영문 주가 | ASML | google_en | investing.com | BofA downgrades BE Semiconductor on HBM delays, ASML threat
-영문 주가 | ASML | google_en | investing.com | BofA raises ASML stock price target to €2,557 on higher estimates
 영문 주가 | ASML | google_en | investing.com | RBC Capital reiterates ASML stock rating on strong EUV demand
 영문 주가 | KLA | google_en | AD HOC NEWS | KLA Corporation loses 0.64 percent pre-market to EUR 174.43
 영문 주가 | KLA | google_en | AD HOC NEWS | KLA Corporation loses 0.68 percent after-hours to EUR 174.91
@@ -200,7 +200,6 @@ KLA: google 1, google_en 1
 영문 주가 | KLA | google_en | GuruFocus | KLA Corp (KLAC) Shares Fall 4.5% -- What GF Score of 87 Tells In
 영문 주가 | KLA | google_en | GuruFocus | MARCO INVESTMENT MANAGEMENT LLC's KLA Corp(KLAC) Holding History
 영문 주가 | KLA | google_en | GuruFocus | Nomura VIP Global Growth Series's KLA Corp(KLAC) Holding History
-영문 주가 | KLA | google_en | GuruFocus | Pacer S&P 500 3AI Top 100 ETF's KLA Corp(KLAC) Holding History
 영문 주가 | KLA | google_en | GuruFocus | Washington Mutual Investors Fund's KLA Corp(KLAC) Holding History
 영문 주가 | KLA | google_en | MarketBeat | 6,900 KLA Corporation $KLAC Shares Sold by CoreCap Advisors LLC
 영문 주가 | KLA | google_en | MarketBeat | KLA Corporation $KLAC Shares Bought by Quintet Private Bank Europe S.A.
@@ -210,6 +209,7 @@ KLA: google 1, google_en 1
 영문 주가 | KLA | google_en | Moomoo | Morgan Stanley Maintains KLA Corp(KLAC.US) With Buy Rating, Cuts Target Price to $227
 영문 주가 | KLA | google_en | Stock Traders Daily | How Kla Corporation (KLAC) Affects Rotational Strategy Timing
 영문 주가 | KLA | google_en | TradingKey | KLA Corp Stock (KLAC) Moved Down by 4.08% on Oct 6: What Signal Does It Send?
+영문 주가 | KLA | google_en | Yahoo Finance | Top Research Reports for SpaceX, Dell & KLA Corp.
 영문 주가 | KLA | google_en | Yahoo Finance Australia | KLA Corporation (KLAC) options chain
 영문 주가 | KLA | google_en | ad-hoc-news.de | KLA Corporation stock after-hours at EUR 175.57: minus 4.86 percent versus prior close
 영문 주가 | KLA | google_en | ad-hoc-news.de | KLA sets October 28 results date and KLA Corporation stock costs EUR 184.42
@@ -310,10 +310,8 @@ KLA: google 1, google_en 1
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Wells Fargo Adjusts Price Target on Applied Materials to $610 From $740
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance Australia | Investors Heavily Search Applied Materials, Inc. (AMAT): Here is What You Need to Know
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo! Finance Canada | Applied Materials Inc Stock Fut (SAMATH27.CME) Stock Price, News, Quote & History
-영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo! Finance Canada | Applied Materials, Inc. tokenized stock (xStock) AMATX (AMATX-USD) Live Price, News, Chart & Price History
 영문 주가 | 어플라이드머티어리얼즈 | google_en | investing.com | Goldman Sachs sees upside for Applied Materials stock ahead of earnings
 영문 주가 | 어플라이드머티어리얼즈 | google_en | investing.com | Josh Gottheimer sells stocks in Applied Materials and McDonald’s
-영문 주가 | 어플라이드머티어리얼즈,KLA | google_en | Yahoo Finance | Applied Materials vs. KLA: Does Faster Growth Beat the Cheaper Cash-Flow Price?
 영문 주가 | 어플라이드머티어리얼즈,램리서치 | google_en | Zacks Investment Research | Zacks Industry Outlook Applied Materials, Lam Research and FormFactor
 영문 주가 | 에바라 | google_en | AD HOC NEWS | Ebara stock falls 1.63 percent while 2026 guidance holds
 영문 주가 | 에바라 | google_en | AD HOC NEWS | Ebara stock trades at JPY 4,839 as 2026 guidance rises
@@ -323,16 +321,15 @@ KLA: google 1, google_en 1
 영문 주가 | 이비덴 | google_en | Moomoo | $Ibiden (4062.JP)$ Unrealized gain ratio 🈹 95.75... I wonder how much I overpaid by buying at the peak. So frustrating!
 영문 주가 | 이비덴 | google_en | Simply Wall Street | Ibiden And 2 Other Hydrogen Stocks To Own
 영문 주가 | 인테그리스 | google | AD HOC NEWS | Entegris stock heads into October 29 results after Q2 revenue beat
+영문 주가 | 인테그리스 | google | GuruFocus | Stifel Initiates Buy on Entegris (ENTG), Projects 30% EPS Growth Starting 2027
 영문 주가 | 인테그리스 | google | Pluang | Entegris stock set for 20% gain on strong AI de...
 영문 주가 | 인테그리스 | google | Seeking Alpha | Entegris initiated at Buy as products align for leading-edge logic and memory devices: Stifel
 영문 주가 | 인테그리스 | google | Simply Wall Street | Did Reaffirmed 2026 Guidance Just Shift Entegris (ENTG) Stock Narrative?
 영문 주가 | 인테그리스 | google | Simply Wall Street | Entegris (ENTG) Could Be 4% Undervalued On Flat Sales And Rich P E
-영문 주가 | 인테그리스 | google | Simply Wall Street | Entegris (NasdaqGS:ENTG) Stock Forecast & Analyst Predictions
 영문 주가 | 인테그리스 | google | The Globe and Mail | Zacks Investment Ideas feature highlights: Taiwan, Entegris and MACOM Technology
 영문 주가 | 인테그리스 | google | Yahoo Finance | Will Flat Sales, Soft Demand and Tight Cash Flow Change Entegris' (ENTG) AI Materials Narrative?
 영문 주가 | 인테그리스 | google_en | AD HOC NEWS | BMO reiterates Buy on Entegris stock at USD 167 target
 영문 주가 | 인테그리스 | google_en | AD HOC NEWS | Stifel initiates Buy coverage: Entegris stock falls 4.33 percent
-영문 주가 | 인테그리스 | google_en | GuruFocus | Stifel Initiates Buy on Entegris (ENTG), Projects 30% EPS Growth Starting 2027
 영문 주가 | 인테그리스 | google_en | MarketBeat | Entegris (NASDAQ:ENTG) Stock Rating Cut to Hold at Zacks Research
 영문 주가 | 인테그리스 | google_en | MarketBeat | Entegris, Inc. (NASDAQ:ENTG) Stock Has Average Price Target of $170.89 According to Brokerages
 영문 주가 | 인테그리스 | google_en | Moomoo | Entegris Price Target Announced at $200.00/Share by Stifel
@@ -342,6 +339,7 @@ KLA: google 1, google_en 1
 영문 주가 | 인테그리스 | google_en | investing.com | Stifel initiates Entegris stock with buy rating on chip recovery
 옛 기사 | ASML | google | 글로벌이코노믹 | ASML, 노광 장비 판 흔든다… 2020년대 후반 노린 삼성·SK하이닉스 수율 셈법 복잡
 옛 기사 | ASML | google_en | Yahoo! Finance Canada | ASML Oct 2026 1905.000 call (ASML261009C01905000) Stock Price, News, Quote & History
+옛 기사 | 티에스이 | google | 에이빙 | [미리보는 LED&OLED EXPO 2012] 티에스이, 스마트 카메라 솔루션 선보여
 주가·증시 | AP시스템 | google | 주달 | AP시스템 투자분석 2026. 10. 01
 주가·증시 | AP시스템 | google | 주달 | AP시스템 투자분석 2026. 10. 08
 주가·증시 | ASML | google | Investing.com 한국어 | ASML 주가, 10월 14일 실적 발표에 4.6% 변동 예상
@@ -357,12 +355,14 @@ KLA: google 1, google_en 1
 주가·증시 | ASML | google | 재경일보 | ASML 주가 목표 2100달러 찍었다…월가 '매수' 외친 이유 : 해외증시
 주가·증시 | ASML | google | 중앙일보 | ASML이 베시 독주 흔든다…BofA, 목표가 절반 수준으로 하향｜Global Money Club
 주가·증시 | ASML | google | 중앙일보 | 월가는 은행, AI는 반도체…JP모간·ASML·TSMC 실적 주간[10/12~10/16 투자캘린더]｜Global Money Club
+주가·증시 | ASML | google_en | Yahoo Finance UK | ASML Oct 2026 1330.000 put (ASML261009P01330000) stock price, news, quote and history
+주가·증시 | ASML | google_en | Yahoo Finance UK | ASML Oct 2026 1750.000 put (ASML261009P01750000) stock price, news, quote and history
+주가·증시 | ASML | google_en | Yahoo Finance UK | ASML Oct 2026 2310.000 call (ASML261009C02310000) stock price, news, quote and history
 주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Dec 2027 1080.000 call (ASML271217C01080000) Stock Price, News, Quote & History
 주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Dec 2028 1340.000 call (ASML281215C01340000) Stock Price, News, Quote & History
 주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Oct 2026 1290.000 put (ASML261009P01290000) Stock Price, News, Quote & History
 주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Oct 2026 1490.000 call (ASML261009C01490000) Stock Price, News, Quote & History
 주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Oct 2026 1817.500 call (ASML261009C01817500) Stock Price, News, Quote & History
-주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Oct 2026 2510.000 call (ASML261009C02510000) Stock Price, News, Quote & History
 주가·증시 | ASML | google_en | Yahoo! Finance Canada | ASML Oct 2026 950.000 put (ASML261009P00950000) Stock Price, News, Quote & History
 주가·증시 | ASML | naver_web | 머니투데이 | ASML·TSMC 실적, AI주 풍향계…CPI·워시 연설, 금리 분수령[이번주 美 증시는]
 주가·증시 | KLA | google | Investing.com 한국어 | 모건 스탠리, KLA 목표주가 하향…밸류에이션 우려
@@ -434,6 +434,7 @@ KLA: google 1, google_en 1
 주가·증시 | 심텍 | naver_web | 중앙이코노미뉴스 | 심텍 주가, 10월 7일 장중 170,500원 2.57% 하락
 주가·증시 | 심텍 | naver_web | 중앙이코노미뉴스 | 심텍 주가, 10월 8일 장중 173,300원 1.70% 상승
 주가·증시 | 심텍 | naver_web | 충청타임즈 | 심텍 AI CPU 수요확대 수혜 ... iM증권, 목표주가 상향
+주가·증시 | 어플라이드머티어리얼즈 | google_en | Yahoo! Finance Canada | Applied Materials, Inc. tokenized stock (xStock) AMATX (AMATX-USD) Live Price, News, Chart & Price History
 주가·증시 | 에스티아이 | google | 매일경제 마켓 | 특징주, 에스티아이-반도체 장비 테마 상승세에 5.77% ↑
 주가·증시 | 에스티아이 | google | 주달 | 에스티아이 투자분석 2026. 09. 21
 주가·증시 | 에프에스티 | google | 주달 | 에프에스티 투자분석 2026. 10. 08
@@ -472,10 +473,10 @@ KLA: google 1, google_en 1
 주가·증시 | 원익IPS | naver_web | 잡포스트 | 원익IPS 13만3200원…반도체 장비주에 5.73% 조정
 주가·증시 | 원익IPS | naver_web | 조선비즈 | 메리츠證 “원익IPS, 설비 투자 사이클 실적 반영… 목표가 16만9000원으로 상향”
 주가·증시 | 원익IPS | naver_web | 중앙이코노미뉴스 | 10월 2주차 원익IPS 주가 변동성 장세
-주가·증시 | 원익머트리얼즈 | google | 주달 | 원익머트리얼즈 투자분석 2026. 10. 08
 주가·증시 | 원익큐엔씨 | naver_web | 중앙이코노미뉴스 | 원익QnC 주가, 10월 6일 장중 32,700원 1.24% 상승
 주가·증시 | 원익큐엔씨 | naver_web | 중앙이코노미뉴스 | 원익QnC 주가, 10월 8일 장중 32,900원 4.11% 상승
 주가·증시 | 유니셈 | google | 뉴스핌 | [장중수급포착] 유니셈, 외국인 5일 연속 순매수행진... 주가 +2.99%
+주가·증시 | 유니셈 | google | 주달 | 유니셈 투자분석 2026. 10. 10
 주가·증시 | 유진테크 | google | 주달 | 유진테크 투자분석 2026. 10. 07
 주가·증시 | 유진테크 | naver_web | 중앙이코노미뉴스 | 유진테크 주가, 10월 6일 장중 180,000원 1.81% 상승
 주가·증시 | 유진테크 | naver_web | 중앙이코노미뉴스 | 유진테크 주가, 10월 7일 장중 172,000원 4.50% 하락
@@ -511,6 +512,7 @@ KLA: google 1, google_en 1
 주가·증시 | 테스 | google | 톱스타뉴스 | 테스 주가, 10월 6일 애프터마켓 176,300원 0.62% 하락
 주가·증시 | 테스 | google | 톱스타뉴스 | 테스 주가, 10월 7일 장중 166,500원 5.61% 하락
 주가·증시 | 테스 | naver_web | 중앙이코노미뉴스 | 테스 주가, 10월 7일 장중 165,600원 6.12% 하락
+주가·증시 | 티에스이 | google | ThinkPool | 투신, 코스닥 시장에서 티에스이 1,267.55억원 순매수
 주가·증시 | 티에스이 | google | TopStarNews | 티에스이 주가, 10월 7일 애프터마켓 310,000원 1.12% 하락
 주가·증시 | 티에스이,테스 | google | 비즈니스포스트 | 반도체 생산 확대 투자 수혜는 소부장, 리노공업·ISC·티에스이 테스트부품주 기대감 인다
 주가·증시 | 티엘비 | google | MTN 머니투데이방송 | [여의도 클라쓰] 'LS머트리얼즈, 나인테크, 티엘비' 클라쓰 올릴 종목은?
