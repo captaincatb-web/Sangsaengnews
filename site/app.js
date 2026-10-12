@@ -48,7 +48,7 @@
     const p = profiles[corpCode];
     return {
       name, corpCode, stockCode, note: note || "", groupId: g.id, groupLabel: g.label, order,
-      code: stockCode || "비상장", legal: p ? `${p.corp_name || ""} ${p.corp_name_eng || ""}` : "",
+      code: stockCode || "비상장", legal: p ? `${p.corp_name || ""} ${p.corp_name_eng || ""}` : "", corpName: p ? p.corp_name || "" : "",
       ...metrics(p),
     };
   }));
@@ -204,5 +204,43 @@
     window.CopyKit.copyNode(box, "표를 복사했습니다. Word나 Excel에 붙여 넣으세요.");
   });
 
+  // ---------- 기업 추가 ----------
+  // 정적 사이트라 여기서 바로 목록을 바꿀 수 없다. 미리 채운 GitHub 이슈를 열고, 관리자가 등록하면
+  // .github/workflows/add-company.yml 이 DART 에서 회사를 찾아 목록에 넣고 사이트를 다시 만든다.
+  const REPO = "captaincatb-web/Sangsaengnews";
+  const EXTRA_GROUP = "추가 기업";
+  const addForm = $("add-form");
+  $("add-group").innerHTML = [...new Set([...groups.map((g) => g.label), EXTRA_GROUP])]
+    .map((label) => `<option${label === EXTRA_GROUP ? " selected" : ""}>${esc(label)}</option>`).join("");
+  $("add-toggle").addEventListener("click", () => {
+    addForm.hidden = !addForm.hidden;
+    $("add-toggle").setAttribute("aria-expanded", String(!addForm.hidden));
+    if (!addForm.hidden) $("add-name").focus();
+  });
+  addForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const q = $("add-name").value.trim();
+    if (!q) return;
+    const nq = norm(q);
+    const dup = companies.find((c) => c.corpCode === q || c.stockCode === q || norm(c.name) === nq || norm(c.corpName) === nq);
+    if (dup) {
+      window.CopyKit.toast(`${dup.name}은(는) 이미 목록에 있습니다.`);
+      state.query = dup.name;
+      $("search").value = dup.name;
+      setGroup("all");
+      return;
+    }
+    const body = `그룹: ${$("add-group").value}\n\n`
+      + "이 이슈를 등록하면 DART에서 회사를 찾아 기업 목록에 자동으로 추가합니다. 결과는 댓글로 알려 드립니다.";
+    const url = `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(`기업 추가: ${q}`)}&body=${encodeURIComponent(body)}`;
+    window.open(url, "_blank", "noopener");
+    window.CopyKit.toast("GitHub 창에서 이슈를 등록하면 추가가 시작됩니다.");
+  });
+
+  // 머리글의 '검색'(./#search)으로 오면 검색창에 바로 입력할 수 있게 한다
+  const focusSearch = () => { if (location.hash === "#search") $("search").focus(); };
+  window.addEventListener("hashchange", focusSearch);
+
   render();
+  focusSearch();
 })();
