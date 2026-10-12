@@ -17,6 +17,7 @@ import json
 import math
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -154,6 +155,82 @@ def write_kit(spec: dict, style: dict, scenes: list, media_dir: Path, proj: Path
     (proj / "caption.txt").write_text("\n".join(cap).strip() + "\n", encoding="utf-8")
 
 
+def frame_of(src: Path) -> "Image.Image":
+    """이미지 파일이나 영상의 첫 장면을 1080x1920으로 꽉 차게 맞춰 돌려준다."""
+    from io import BytesIO
+
+    from PIL import Image, ImageOps
+
+    if src.suffix.lower() in ws.IMAGE_EXT:
+        im = Image.open(src).convert("RGB")
+    else:
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-ss", "0.5", "-i", str(src), "-frames:v", "1",
+                              "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, check=True).stdout
+        im = Image.open(BytesIO(raw)).convert("RGB")
+    return ImageOps.fit(im, (W, H), Image.LANCZOS)
+
+
+def make_cover(spec: dict, bg, out: Path, font_path: str) -> None:
+    """레퍼런스형 표지: 아래쪽 어두운 붓터치 띠 위에 2줄 제목(핵심어 노랑·민트), 위에 라벨, 아래에 시리즈 표시."""
+    import random
+
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+    cv = spec.get("cover") or {}
+    lines = cv.get("lines") or [spec["topic"]]
+    marks = cv.get("highlight") or []
+    colors = [(255, 213, 74), (94, 242, 214)]
+    im = bg.convert("RGBA")
+    band = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(band)
+    top, bottom = 1180, 1180 + 150 * len(lines) + 120
+    rnd = random.Random(7)
+    for k in range(60):  # 거친 붓터치 띠
+        y = rnd.uniform(top, bottom)
+        h = rnd.uniform(40, 110)
+        x0, x1 = rnd.uniform(-40, 60), rnd.uniform(W - 60, W + 40)
+        d.rounded_rectangle([x0, y - h / 2, x1, y + h / 2], int(h / 2), fill=rnd.randint(170, 235))
+    band = band.filter(ImageFilter.GaussianBlur(3))
+    im.alpha_composite(Image.composite(Image.new("RGBA", (W, H), (12, 12, 16, 255)),
+                                       Image.new("RGBA", (W, H), (0, 0, 0, 0)), band))
+    d = ImageDraw.Draw(im)
+    if cv.get("label"):
+        f = ImageFont.truetype(font_path, 44)
+        w = f.getlength(cv["label"]) + 40
+        d.rectangle([W / 2 - w / 2, top - 70, W / 2 + w / 2, top - 14], fill=(20, 20, 26, 235))
+        d.text((W / 2, top - 42), cv["label"], font=f, fill=(255, 255, 255), anchor="mm")
+    y = top + 95
+    for line in lines:
+        size = 128
+        f = ImageFont.truetype(font_path, size)
+        while f.getlength(line) > W - 90 and size > 60:
+            size -= 6
+            f = ImageFont.truetype(font_path, size)
+        parts, rest = [], line
+        while rest:  # 핵심어를 색으로 구분
+            hit = min(((rest.find(m), m) for m in marks if m and rest.find(m) >= 0), default=None)
+            if not hit:
+                parts.append((rest, None))
+                break
+            i, m = hit
+            if i:
+                parts.append((rest[:i], None))
+            parts.append((m, colors[marks.index(m) % 2]))
+            rest = rest[i + len(m):]
+        x = W / 2 - f.getlength(line) / 2
+        for text, col in parts:
+            d.text((x, y), text, font=f, fill=col or (255, 255, 255), anchor="lm",
+                   stroke_width=8, stroke_fill=(0, 0, 0))
+            x += f.getlength(text)
+        y += size + 22
+    if cv.get("series"):
+        f = ImageFont.truetype(font_path, 42)
+        w = f.getlength(cv["series"]) + 56
+        d.rounded_rectangle([W / 2 - w / 2, y + 10, W / 2 + w / 2, y + 78], 34, fill=(122, 31, 43, 245))
+        d.text((W / 2, y + 44), cv["series"], font=f, fill=(255, 255, 255), anchor="mm")
+    im.convert("RGB").save(out, quality=92)
+
+
 def cmd_render(a) -> None:
     spec, style = load_spec(a.spec), load_style()
     topic, slug = spec["topic"], ms.slugify(spec["topic"])
@@ -185,7 +262,8 @@ def cmd_render(a) -> None:
     target = a.target or spec.get("target", 45.0)
     ms.log(f"내레이션 합성({tts.name}, 속도 {speed:.2f})")
     says = spec.get("say", {})
-    clips, speed = ms.synthesize(tts, [says.get(s, s) for s in sentences], speed, target, work)
+    clips, speed = ms.synthesize(tts, [says.get(s, s) for s in sentences], speed, target, work,
+                                 check_texts=sentences)
     starts, bounds, total, voice = ms.build_timeline(clips)
     asr = ms.asr_check(clips, sentences)
 
@@ -254,6 +332,11 @@ def cmd_render(a) -> None:
     sheet = proj / "sheet.jpg"
     times = ms.contact_sheet(final, sheet, font=font)
     sub_font = ms.MPT_DIR / "resource" / "fonts" / sub_style.get("font", ms.FONT_NAME)
+    cover_font = ms.MPT_DIR / "resource" / "fonts" / "Pretendard-Black.otf"
+    if not cover_font.exists():
+        cover_font = sub_font if sub_font.exists() else Path(font)
+    cover_src = find_media(media_dir, int((spec.get("cover") or {}).get("scene", 1)))
+    make_cover(spec, frame_of(cover_src or visual), proj / "cover.jpg", str(cover_font))
     miss = ms.missing_glyphs(str(sub_font) if sub_font.exists() else font, "".join(sentences))
     if miss:
         warnings.append(f"폰트에 없는 글자(자막 깨짐): {' '.join(miss)}")
@@ -271,7 +354,8 @@ def cmd_render(a) -> None:
         if sc["_len"] > 7.5:
             warnings.append(f"S{i:02d}가 {sc['_len']:.1f}초로 김: 장면을 나누면 덜 지루합니다")
     missing = [i for i in range(1, len(scenes) + 1) if not find_media(media_dir, i)]
-    qa = {"video": str(final), "sheet": str(sheet), "prompts": str(proj / "prompts.md"),
+    qa = {"video": str(final), "sheet": str(sheet), "cover": str(proj / "cover.jpg"),
+          "prompts": str(proj / "prompts.md"),
           "caption": str(proj / "caption.txt"), "media_dir": str(media_dir), "missing_media": missing,
           **info, "chars": chars, "tts": tts.name, "speed": round(speed, 2), "scenes": report,
           "subtitles": [{"start": round(x, 2), "end": round(y, 2), "text": b} for x, y, b in cues],
@@ -283,7 +367,7 @@ def cmd_render(a) -> None:
     print("\n===== 결과 =====")
     print(f"영상: {final}  ({info['duration']}초, {info['width']}x{info['height']})")
     print(f"장면 확인용: {sheet}  ({', '.join(f'{t:g}s' for t in times)})")
-    print(f"이미지 프롬프트: {proj / 'prompts.md'} / 게시 캡션: {proj / 'caption.txt'}")
+    print(f"이미지 프롬프트: {proj / 'prompts.md'} / 게시 캡션: {proj / 'caption.txt'} / 표지: {proj / 'cover.jpg'}")
     print(f"장면 파일 폴더: {media_dir}  (넣은 파일 {len(scenes) - len(missing)}/{len(scenes)}개)")
     print(f"음성: {tts.name} (속도 {speed:.2f}) / 대본 {chars}자 / 장면 {len(scenes)}개 / 자막 {len(cues)}개")
     if asr:

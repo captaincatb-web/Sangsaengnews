@@ -224,7 +224,12 @@ def pick_tts(mode: str, sid: int, work: Path):
     return LocalTTS(sid), None
 
 
-def synthesize(tts, texts, speed, target, work):
+MAX_AUTO_SPEED = 1.2  # Supertonic은 이보다 빠르면 발음이 크게 뭉개진다
+
+
+def synthesize(tts, texts, speed, target, work, check_texts=None):
+    """문장별로 합성하고 목표 길이에 맞춰 속도를 한 번 조정한다.
+    음성인식 모델이 있으면 잘 안 들리는 문장은 다시 합성해 가장 잘 들리는 결과를 고른다."""
     def run(sp):
         return [tts.synth(t, sp, work, i) for i, t in enumerate(texts)]
 
@@ -234,12 +239,26 @@ def synthesize(tts, texts, speed, target, work):
     factor = speech / max(1.0, target - fixed)
     new = speed
     if factor > 1.08:
-        new = min(1.45, speed * factor)
+        new = min(max(speed, MAX_AUTO_SPEED), speed * factor)
     elif factor < 0.85:
         new = max(0.95, speed * factor)
     if abs(new - speed) > 0.02:
         log(f"길이 맞춤: 속도 {speed:.2f} → {new:.2f}")
         clips, speed = run(new), new
+    asr = ASR.load()
+    if asr and tts.name == "local":
+        check = check_texts or texts
+        for i, (t, ref) in enumerate(zip(texts, check)):
+            best = asr.score(clips[i], ref)
+            tries = 0
+            while best < 0.85 and tries < 3:
+                tries += 1
+                alt = tts.synth(t, speed, work, i)
+                sc = asr.score(alt, ref)
+                if sc > best:
+                    clips[i], best = alt, sc
+            if tries:
+                log(f"문장 {i + 1} 다시 합성 {tries}번 → 일치도 {best:.2f}")
     return clips, speed
 
 
@@ -258,20 +277,40 @@ def build_timeline(clips):
     return starts, bounds, len(voice) / SR, voice
 
 
-def asr_check(clips, texts):
-    if not (ASR_DIR / "model.int8.onnx").exists():
-        return None
-    import sherpa_onnx
+class ASR:
+    """발음 검사용 음성인식(SenseVoice). 모델이 없으면 load()가 None."""
+    _inst = None
 
-    rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-        model=str(ASR_DIR / "model.int8.onnx"), tokens=str(ASR_DIR / "tokens.txt"),
-        language="ko", use_itn=False, num_threads=os.cpu_count() or 2)
+    def __init__(self):
+        import sherpa_onnx
+
+        self.rec = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+            model=str(ASR_DIR / "model.int8.onnx"), tokens=str(ASR_DIR / "tokens.txt"),
+            language="ko", use_itn=False, num_threads=os.cpu_count() or 2)
+
+    @classmethod
+    def load(cls):
+        if cls._inst is None and (ASR_DIR / "model.int8.onnx").exists():
+            cls._inst = cls()
+        return cls._inst
+
+    def hear(self, clip) -> str:
+        s = self.rec.create_stream()
+        s.accept_waveform(SR, clip)
+        self.rec.decode_stream(s)
+        return s.result.text.strip()
+
+    def score(self, clip, text) -> float:
+        return similarity(text, self.hear(clip))
+
+
+def asr_check(clips, texts):
+    asr = ASR.load()
+    if not asr:
+        return None
     out = []
     for c, t in zip(clips, texts):
-        s = rec.create_stream()
-        s.accept_waveform(SR, c)
-        rec.decode_stream(s)
-        heard = s.result.text.strip()
+        heard = asr.hear(c)
         out.append({"text": t, "heard": heard, "score": round(similarity(t, heard), 2)})
     return out
 
@@ -512,7 +551,7 @@ def cmd_render(a) -> None:
     speed = a.speed if a.speed else (1.05 if tts.name == "edge" else 1.1)
     log(f"음성 합성({tts.name}, 속도 {speed:.2f})")
     speech_in = [s.get("say") or s["text"] for s in scenes]
-    clips, speed = synthesize(tts, speech_in, speed, a.target, work)
+    clips, speed = synthesize(tts, speech_in, speed, a.target, work, check_texts=texts)
     starts, bounds, total, voice = build_timeline(clips)
     voice_wav = work / "voice.wav"
     write_wav(voice_wav, voice)

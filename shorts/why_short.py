@@ -245,7 +245,7 @@ def cmd_render(a) -> None:
     speed = a.speed or spec.get("speed") or (1.15 if tts.name == "edge" else 1.2)
     target = a.target or spec.get("target", 42.0)
     ms.log(f"내레이션 합성({tts.name}, 속도 {speed:.2f})")
-    clips, speed = ms.synthesize(tts, speech, speed, target, work)
+    clips, speed = ms.synthesize(tts, speech, speed, target, work, check_texts=texts)
     starts, bounds, total, voice = ms.build_timeline(clips)
     cuts = build_cuts(spec, clips, starts, bounds, total)
     asr = ms.asr_check(clips, texts)

@@ -77,6 +77,9 @@ fi
 
 # 자막용 굵은 폰트(Pretendard, OFL)
 PRET_DST="$MPT_DIR/resource/fonts/Pretendard-ExtraBold.otf"
+PRET_BLACK="$MPT_DIR/resource/fonts/Pretendard-Black.otf"
+[ -f "$PRET_BLACK" ] || fetch "https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/packages/pretendard/dist/public/static/Pretendard-Black.otf" "$PRET_BLACK" \
+  || log "Pretendard Black 받기 실패(표지는 ExtraBold로 대체됨)"
 [ -f "$PRET_DST" ] || fetch "https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/packages/pretendard/dist/public/static/Pretendard-ExtraBold.otf" "$PRET_DST" \
   || log "Pretendard 폰트 받기 실패(나눔고딕으로 대체됨)"
 
