@@ -37,14 +37,14 @@ PHOTO_CAPTION_RE = re.compile(r"[\(\[〈][^\)\]〉]*사진[^\)\]〉]*[\)\]〉]\s
 PHOTO_TAG_RE = re.compile(r"^\s*[\(\[〈]\s*포토\s*[\)\]〉]")
 
 STOCK_NOISE_RE = re.compile(
-    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목|애프터마켓|프리마켓|상승폭|하락폭|장\s*마감|마감\s*시황|매수세|매도세|주요\s*공시|경제\s*일정|주간\s*일정|(?:상승|하락)\s*vi\b|\d+만\s*\d*\s*원(?:대|으로|에|선)|%\s*대\s*(?:상승|하락|강세|약세))"
+    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목|애프터마켓|프리마켓|상승폭|하락폭|장\s*마감|마감\s*시황|매수세|매도세|주요\s*공시|경제\s*일정|주간\s*일정|(?:상승|하락)\s*vi\b|\d+만\s*\d*\s*원(?:대|으로|에|선)|%\s*대\s*(?:상승|하락|강세|약세)|가격\s*내역|과거\s*데이터|tokenized|xstock)"
 )
 STOCK_BRACKET_RE = re.compile(r"\[.*(강세|약세|특징|종목|테마|토픽|시황|고래|주식|베스트).*\].*")
 BROKER_RE = re.compile(
     r"(한국투자|nh투자|kb증권|삼성증권|미래에셋|대신증권|키움증권|신한투자|하나증권|메리츠증권|유안타|리서치센터|목표주가|투자의견|상승 마감|하락 마감|주가\s*전망|주가\s*추이|주가)"
 )
 ENGLISH_STOCK_RE = re.compile(
-    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors|initiated at|initiates|reiterat|outperform|underperform|overweight|underweight|rating|margin trading|earnings preview|wall street|better buy|\bvs\.?\s|\betf\b|(?:loses|gains|rises|falls|drops|jumps|climbs|slides)\s+\d+(?:\.\d+)?\s*(?:percent|%)|pre-?market|after-hours)"
+    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors|initiated at|initiates|reiterat|outperform|underperform|overweight|underweight|rating|margin trading|earnings preview|wall street|better buy|\bvs\.?\s|\betf\b|research reports?|(?:loses|gains|rises|falls|drops|jumps|climbs|slides)\s+\d+(?:\.\d+)?\s*(?:percent|%)|pre-?market|after-hours)"
 )
 
 # 회사별 오탐 필터 (제목을 소문자로 바꾼 뒤 검사)
@@ -75,7 +75,7 @@ ASCII_ALIAS_RE = re.compile(r"^[a-z0-9.&\- ]+$")
 GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입|공채|경력직|뽑는다")
 # 투자의견·주가 분석 위주 매체 (언론사명 기준)
 BLOCKED_SOURCE_RE = re.compile(
-    r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan|smartkarma|ad hoc news|tradingview|moomoo",
+    r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan|smartkarma|ad hoc news|tradingview|moomoo|coinmarketcap",
     re.I,
 )
 # 사진/이미지 페이지, 주가 분석 사이트
@@ -310,7 +310,8 @@ DOMAIN_LIKE_RE = re.compile(r"^(?:www\.)?[\w-]+(?:\.[\w-]+)+$")
 
 
 def normalize_press(name: str) -> str:
-    """'www.edaily.co.kr' 처럼 도메인으로 들어온 언론사명을 '이데일리'로"""
+    """'www.edaily.co.kr'·'https://www.edaily.co.kr/' 처럼 주소로 들어온 언론사명을 '이데일리'로"""
+    name = re.sub(r"^https?://|/+$", "", name or "")
     if name and DOMAIN_LIKE_RE.match(name):
         return _press_from_link("https://" + name)
     return name
