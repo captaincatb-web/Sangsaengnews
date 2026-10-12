@@ -28,7 +28,7 @@ TIME_LABEL_RE = re.compile(r">\s*(\d+\s*(?:분|시간|일|주)\s*전|\d{4}\.\d{1
 TIME_UNITS = {"분": "minutes", "시간": "hours", "일": "days", "주": "weeks"}
 
 # 네이버: 언론사명(.prof) → 시각 → 제목(.tit) 순으로 나온다
-NAVER_TITLE_RE = re.compile(r'href="([^"]+)"[^>]*data-heatmap-target="\.tit"[^>]*>(.*?)</a>', re.S)
+NAVER_TITLE_RE = re.compile(r'href="([^"]+)"[^>]*data-heatmap-target="\.tit(?:le)?"[^>]*>(.*?)</a>', re.S)  # PC .tit / 모바일 .title
 NAVER_PRESS_RE = re.compile(r"^[^>]*>\s*<span[^>]*>([^<]+)</span>")
 # 다음: 기사 1건이 <li data-docid=...> 하나, 링크 v.daum.net/v/YYYYMMDDHHMMSS... 에 게재 시각이 들어 있다
 DAUM_TITLE_RE = re.compile(r'<strong class="tit-g[^"]*">\s*<a href="([^"]+)"[^>]*>(.*?)</a>', re.S)
