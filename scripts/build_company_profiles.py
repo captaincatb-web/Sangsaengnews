@@ -365,7 +365,13 @@ def business_report_overview(api_key: str, corp_code: str) -> dict:
     """가장 최근 사업보고서 원문에서 연혁·사업장·회계기준을 읽는다."""
     for f in list_filings(api_key, corp_code, 2, pblntf_ty="A"):
         if "사업보고서" in f.get("report_nm", ""):
-            return read_overview(business_overview, fetch_document_text(api_key, f["rcept_no"]), f["rcept_no"])
+            doc = fetch_document_text(api_key, f["rcept_no"])
+            info = read_overview(business_overview, doc, f["rcept_no"])
+            if doc and not info.get("history"):  # 연혁 형식을 보완할 수 있도록 앞부분을 남긴다
+                m = re.search(r"<TITLE[^>]*>[^<]*회사의\s*연혁.{0,600}", doc, re.S)
+                snippet = re.sub(r"\s+", " ", m.group(0)) if m else "제목 없음"
+                print(f"[history] {corp_code} 연혁을 찾지 못함: {snippet}")
+            return info
     return {}
 
 

@@ -102,6 +102,11 @@
       const t = part.trim().split(/\s+/).filter(Boolean);
       return t.length > 1 && t.every((x) => /^[가-힣]{2,4}$/.test(x)) ? t : [t.join(" ")]; // '이경일 하형찬' 처럼 띄어 쓴 경우
     }).filter((n) => n.length >= 2))];
+  // 개황의 대표 이름이 영문(예: Tae Hyuk Ahn)이라 임원 명단과 맞지 않으면, 임원 명단에서 대표이사를 찾아 쓴다
+  if (ceoNames.length && !ceoNames.some((n) => execs0.some((x) => same(x.name, n)))) {
+    const reps = execs0.filter((x) => /대표/.test(`${x.position || ""} ${x.duty || ""}`)).map((x) => x.name);
+    if (reps.length) ceoNames.splice(0, ceoNames.length, ...new Set(reps));
+  }
   const multiCeo = ceoNames.length > 1;
   const FAMILY = /배우자|자녀|아들|딸|장남|차남|삼남|장녀|차녀|형제|자매|부친|모친|친인척|친족|인척|사위|며느리|손자|손녀|조카|동생|처남|남편|부인/;
   const ceoTag = (name, e) => {

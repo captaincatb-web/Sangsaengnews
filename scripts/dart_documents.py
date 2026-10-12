@@ -68,8 +68,20 @@ def _rank(event: str) -> int:
     return 6
 
 
+LINE_SPLIT = r"<(?:BR|P)\b[^>]*>|\n|\r|&cr;"
+MIDDATE = re.compile(r"(?<=[^\d\s(~.])\s*(?=(?:19|20)\d{2}\s*[.년]\s*\d{1,2}(?!\d))")
+
+
+def _lines(raw: str) -> list:
+    """원문 조각을 줄로 나눈다. 줄 사이에 태그가 없어도 'YYYY.MM' 이 새로 시작하면 다른 줄로 본다."""
+    out = []
+    for x in re.split(LINE_SPLIT, raw, flags=re.I):
+        out += [t.strip() for t in MIDDATE.split(strip_tags(x)) if t.strip()]
+    return out
+
+
 def _cell_lines(raw: str) -> list:
-    return [t for t in (strip_tags(x) for x in re.split(r"<(?:BR|P)\b[^>]*>|\n", raw, flags=re.I)) if t]
+    return _lines(raw)
 
 
 def parse_history(doc: str) -> list:
@@ -79,13 +91,19 @@ def parse_history(doc: str) -> list:
         return []
     events = []
     for table in TABLE_RE.findall(section):
+        last_year = None
         for tr in ROW_RE.findall(table):
             raw_cells = [c[1] for c in CELL_RE.findall(tr)]
             cells = [strip_tags(c) for c in raw_cells]
+            if cells and last_year and not DATE_RE.match(cells[0]) and len(cells) > 1:
+                mo = re.fullmatch(r"(\d{1,2})\s*(?:월|\.\s*\d{1,2}\s*일?)?\.?", cells[0])
+                if mo and int(mo.group(1)) <= 12:  # 앞 행의 연도를 이어받는 '04월 | 내용' 행
+                    cells[0] = f"{last_year}.{mo.group(1)}"
             for i, cell in enumerate(cells[:-1]):
                 m = DATE_RE.match(cell)
                 if not (m and len(cell) <= 20):
                     continue
+                last_year = int(m.group(1))
                 year, month, rest = int(m.group(1)), int(m.group(2) or 0), raw_cells[i + 1:]
                 if rest and re.fullmatch(r"\d{1,2}\s*월?", strip_tags(rest[0])):  # 연도 칸 + 월 칸
                     month, rest = int(re.sub(r"\D", "", strip_tags(rest[0]))), rest[1:]
@@ -101,8 +119,8 @@ def parse_history(doc: str) -> list:
                 break
     # 표 밖의 줄글: "1990.12 회사 설립" 형식
     text = TABLE_RE.sub(" ", section)
-    for line in re.split(r"<(?:BR|P)\b[^>]*>|\n", text, flags=re.I):
-        row = re.sub(r"^[\s\-·ㆍ•▶○●□■*]+", "", strip_tags(line))
+    for line in _lines(text):
+        row = re.sub(r"^[\s\-·ㆍ•▶○●□■*]+", "", line)
         m = DATE_RE.match(row)
         if m and len(row) > m.end() + 2:
             events.append((int(m.group(1)), int(m.group(2) or 0), row[m.end():]))
