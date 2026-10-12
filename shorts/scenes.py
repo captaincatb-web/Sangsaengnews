@@ -34,7 +34,7 @@ PALETTE = {
 
 SCENE_TYPES = (
     "icon", "icons", "vs", "flow", "chart", "counter", "list",
-    "network", "globe", "chip", "grid", "trend", "neon",
+    "network", "globe", "chip", "grid", "trend", "neon", "board",
 )
 
 
@@ -593,6 +593,31 @@ class Renderer:
                 d.ellipse([x - r, y - r, x + r, y + r], fill=(255, 255, 255))
         if sc.get("icon"):
             self.draw_icon(base, sc["_icons"][0], vx, vy - 40, 300, ease_out_back(t / 0.5), accent=acc)
+
+
+    def s_board(self, base, d, sc, t, u):
+        """전광판: 장면 속 숫자(items)를 보여 주는 대체 장면. 상승은 빨강, 하락은 파랑."""
+        lines = [str(x) for x in (sc.get("items") or [])][:4] or ["…"]
+        x0, x1, y0 = 80, 1000, 500
+        y1 = y0 + 90 + 160 * len(lines)
+        d.rectangle([W / 2 - 26, y1, W / 2 + 26, 1340], fill=(46, 50, 64))
+        d.rounded_rectangle([x0 - 16, y0 - 16, x1 + 16, y1 + 16], 26, fill=(58, 62, 78))
+        d.rounded_rectangle([x0, y0, x1, y1], 16, fill=(6, 8, 14))
+        for yy in range(y0 + 10, y1 - 6, 12):
+            d.line([x0 + 10, yy, x1 - 10, yy], fill=(13, 15, 22), width=2)
+        for i, line in enumerate(lines):
+            if t < 0.15 + i * 0.25:
+                continue
+            if re.search(r"\+|▲|상승|올라|급등", line):
+                col = (255, 88, 76)
+            elif re.search(r"−|-\d|▼|하락|내려|급락", line):
+                col = (84, 156, 255)
+            else:
+                col = (255, 232, 160)
+            f = self.fit_font(line, x1 - x0 - 70, 124 if re.search(r"\d", line) else 84)
+            d.text((W / 2, y0 + 125 + i * 160), line, font=f, fill=col, anchor="mm")
+        if sc.get("icon"):
+            self.draw_icon(base, sc["_icons"][0], 850, 1190, 250, ease_out_back((t - 0.3) / 0.45), glow=False)
 
 
 def prepare_scene(sc: dict, idx: int, renderer: Renderer, accent) -> dict:

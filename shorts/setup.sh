@@ -75,6 +75,11 @@ if [ ! -f "$FONT_DST" ]; then
   else log "폰트 직접 내려받기"; fetch "$FONT_URL" "$FONT_DST"; fi
 fi
 
+# 자막용 굵은 폰트(Pretendard, OFL)
+PRET_DST="$MPT_DIR/resource/fonts/Pretendard-ExtraBold.otf"
+[ -f "$PRET_DST" ] || fetch "https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/packages/pretendard/dist/public/static/Pretendard-ExtraBold.otf" "$PRET_DST" \
+  || log "Pretendard 폰트 받기 실패(나눔고딕으로 대체됨)"
+
 # 5) config.toml (Pixabay 키는 환경변수 PIXABAY_API_KEY가 있으면 저장)
 CFG="$MPT_DIR/config.toml"
 [ -f "$CFG" ] || cp "$MPT_DIR/config.example.toml" "$CFG"

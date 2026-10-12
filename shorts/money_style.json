@@ -1,0 +1,13 @@
+{
+  "character": "a cute 3D chibi character: a young Korean woman with a short brown bob haircut and round black glasses, big expressive brown eyes, wearing a mustard-yellow knit cardigan over a white shirt, navy slacks and white sneakers, carrying a small brown notebook, Pixar-style 3D render with soft shading",
+  "look": "vertical 9:16, photorealistic real-world Korean location, the 3D chibi character naturally placed in the real scene, warm golden-hour sunlight, cinematic lighting, shallow depth of field, rich detail, keep the lower third of the frame visually simple for subtitles",
+  "voice": 2,
+  "speed": 1.15,
+  "subtitle": {
+    "font": "Pretendard-ExtraBold.otf",
+    "font_size": 78,
+    "stroke_width": 6,
+    "custom_position": 74.0,
+    "line_chars": 12
+  }
+}

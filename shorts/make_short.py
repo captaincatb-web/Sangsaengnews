@@ -409,7 +409,7 @@ def compose(visual: Path, audio: Path, srt: Path, out: Path, topic: str, style: 
         params = VideoParams(
             video_subject=topic, video_aspect="9:16", subtitle_enabled=True,
             bgm_type="custom" if bgm else "none", bgm_file=str(bgm) if bgm else "",
-            bgm_volume=bgm_volume, font_name=FONT_NAME, font_size=st["font_size"],
+            bgm_volume=bgm_volume, font_name=st.get("font", FONT_NAME), font_size=st["font_size"],
             text_fore_color="#FFFFFF", stroke_color="#000000", stroke_width=st["stroke_width"],
             subtitle_position="custom", custom_position=st["custom_position"],
             n_threads=os.cpu_count() or 2)

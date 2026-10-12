@@ -30,6 +30,22 @@ shorts/run.sh doctor                                 # 설치·네트워크 점�
 
 spec 작성 규칙과 장면 종류는 `.claude/skills/shorts/SKILL.md`, 예시는 `example.json`에 있습니다.
 
+## 경제 해부형 쇼츠 (/money-shorts)
+
+실사 배경 속 귀여운 3D 캐릭터, 장면 속 전광판에 들어간 숫자, 굵은 외곽선 2줄 자막으로 만드는 약 45초짜리 경제·주식 해설 릴스입니다.
+Claude Code에서 `/money-shorts 환율이 오르면 내 돈은?`처럼 입력합니다.
+
+1. Claude가 웹 검색으로 수치를 확인한 대본, 캐릭터 시트와 장면별 이미지·움직임 프롬프트(`prompts.md`), 게시 캡션(`caption.txt`)을 만듭니다.
+2. Gemini(Nano Banana Pro)나 ChatGPT로 캐릭터 시트를 먼저 만들고, 그 이미지를 첨부해 장면 이미지를 만듭니다. Kling 등으로 영상을 만드는 단계는 선택입니다.
+3. 만든 파일을 올리면 `money.sh add`로 장면에 배정한 뒤 `money.sh render`로 조립합니다.
+
+```bash
+shorts/money.sh render shorts/money_example.json        # → output/money/<주제>/
+shorts/money.sh add shorts/money_example.json a.png ... # 장면 S01, S02 …에 배정
+```
+
+캐릭터, 화면 톤, 자막 폰트·크기는 `money_style.json`에서 바꿉니다. 자막 폰트는 Pretendard ExtraBold(OFL)입니다.
+
 ## 시네마틱 설명형 쇼츠 (/why-shorts)
 
 사실적인 AI 영상 컷에 네온 강조를 넣고, 중앙 자막, 크로스페이드, 워터마크, 엔딩 카드를 붙이는 약 45초짜리 형식입니다.
