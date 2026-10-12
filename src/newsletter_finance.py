@@ -231,10 +231,10 @@ _QUOTE_CACHE = {}
 
 def _pct_html(pct) -> str:
     if pct is None:
-        return '<span style="color:#b0b8c1">-</span>'
+        return '<font color="#b0b8c1">-</font>'
     color = "#f04452" if pct > 0 else ("#3182f6" if pct < 0 else "#8b95a1")
     arrow = "▲" if pct > 0 else ("▼" if pct < 0 else "")
-    return f'<span style="color:{color}">{arrow}{abs(pct):.1f}%</span>'
+    return f'<font color="{color}">{arrow}{abs(pct):.1f}%</font>'
 
 
 def build_price_short(company: str) -> str:
@@ -262,11 +262,10 @@ def build_price_cell(company: str) -> str:
     day = _pct_html(quote["change_pct"]) if quote.get("prev_close") else _pct_html(None)
     week = _pct_html(quote.get("week_change_pct"))
     # 좁은 화면에서도 "1주 ▼6.8%"가 중간에 끊기지 않도록 줄마다 nowrap
-    nowrap = 'style="white-space:nowrap;font-size:11px"'
+    nowrap = '<span style="white-space:nowrap"><font color="#8b95a1">'
     return (
-        f'<a href="{detail_url}" style="color:#191f28;text-decoration:none;font-size:11px">{price_text}</a>'
-        f'<br><span {nowrap}><span style="color:#8b95a1">1일 </span>{day}</span>'
-        f'<br><span {nowrap}><span style="color:#8b95a1">1주 </span>{week}</span>'
+        f'<div style="font-size:11px"><a href="{detail_url}" style="color:#191f28;text-decoration:none">{price_text}</a>'
+        f"<br>{nowrap}1일</font> {day}</span><br>{nowrap}1주</font> {week}</span></div>"
     )
 
 

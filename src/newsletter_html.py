@@ -11,7 +11,7 @@ TABLE = (
     '<table border="1" cellspacing="0" cellpadding="7" width="100%" '
     'style="border-collapse:collapse;border-color:#e5e8eb;font-size:13px;margin-bottom:16px">'
 )
-BADGE = "font-size:10px;border-radius:3px;padding:1px 4px;white-space:nowrap"
+BADGE = "font-size:10px;padding:1px 4px;white-space:nowrap"
 META = "font-size:11px;color:#8b95a1"
 
 
@@ -39,11 +39,13 @@ def _article(article: dict, now: datetime, show_sim: bool = True) -> str:
         f'<a href="{escape(article["link"])}" style="color:{_title_color(age)};text-decoration:none">'
         f'<b>{escape(article["title"])}</b></a><br><span style="{META}">{_meta(article)}</span>'
     )
-    if show_sim and article["similar_articles"]:
-        sim = article["similar_articles"][0]
+    # 다른 매체·공시가 같은 소식을 어떻게 다뤘는지 한 줄 (같은 매체의 재송고는 생략, 긴 제목은 줄임)
+    sim = next((s for s in article["similar_articles"] if s["source"] != article["source"]), None) if show_sim else None
+    if sim:
+        title = sim["title"] if len(sim["title"]) <= 42 else sim["title"][:40].rstrip() + "…"
         out += (
             f'<br><span style="{META}">↳ <a href="{escape(sim["link"])}" style="color:#6b7684;text-decoration:none">'
-            f'{escape(sim["title"])}</a> · {escape(sim["source"])}</span>'
+            f"{escape(title)}</a> · {escape(sim['source'])}</span>"
         )
     return out + "</div>"
 

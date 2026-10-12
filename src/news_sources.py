@@ -67,7 +67,9 @@ def parse_naver_news(page: str, now: datetime) -> list:
         pub_date, date_only = parse_time_label(time_m.group(1), now)
         if not pub_date:
             continue
+        press = _text(press_m.group(1))
         title = _text(title_m.group(2)).replace("새 창 열림", "").strip()
+        title = re.sub(r"\s+-\s+" + re.escape(press) + r"$|\s*[|｜]\s*$", "", title)  # 제목 끝의 '- 언론사', '|'
         # 네이버는 긴 제목을 '...'으로 잘라 보낸다 → 다른 소스의 전체 제목이 있으면 그쪽을 대표로 쓴다
         truncated = title.endswith("...")
         if truncated:
@@ -77,7 +79,7 @@ def parse_naver_news(page: str, now: datetime) -> list:
                 "title": title,
                 "link": html.unescape(title_m.group(1)),
                 "pub_date": pub_date,
-                "source": _text(press_m.group(1)),
+                "source": press,
                 "date_only": date_only,
                 "truncated": truncated,
                 "clean": True,
