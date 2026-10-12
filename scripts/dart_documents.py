@@ -58,6 +58,7 @@ def _clean_event(text: str) -> str:
     # '…설립된 법인으로서, 설립 이후 … 변경사항은 없습니다' 의 뒷부분(변경 없음 안내)은 뗀다
     t = re.sub(r"(?:으로서|이며|으며)?,?\s*설립\s*이후.*(?:없습니다|않았습니다|없음)\.?$", "", t)
     t = re.sub(r"\s+", " ", t).strip(" .")
+    t = re.sub(r"\s*[-–]\s*(?:당사는|회사는)?$", "", t)  # '…설립- 당사는' 꼬리 떼기
     return t if len(t) <= 160 else t[:160].rsplit(" ", 1)[0] + "…"
 
 
@@ -205,8 +206,8 @@ def merge_sites(pairs: list) -> list:
     """(위치, 역할) 쌍을 같은 시·군(광역시는 구)끼리 합친다. 이름은 더 자세한 쪽을, 같으면 먼저 나온 쪽을 쓴다."""
     merged = {}
     for loc, role in pairs:
-        if not (loc and role):
-            continue
+        if not (loc and role) or re.search(r"및|외$|,", loc):
+            continue  # '경기도 안성시및서울시강남구외' 처럼 여러 곳을 묶은 이름은 쓰지 않는다
         site = merged.setdefault(_site_key(loc), {"location": loc, "roles": []})
         if len(loc.split()) > len(site["location"].split()):
             site["location"] = loc
