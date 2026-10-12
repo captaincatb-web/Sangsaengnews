@@ -15,7 +15,7 @@ BREAK_RE = re.compile(r"<(?:BR|P)\b[^>]*>", re.I)
 
 # 연혁에서 남길 사건과 뺄 사건
 HISTORY_KEEP = re.compile(r"설립|창립|창업|상장|상호|사명|분할|합병|인수|현지\s*법인|해외\s*법인|법인\s*(?:신설|설립)|"
-                          r"지주\s*회사|공장\s*(?:준공|신설|착공|완공)|본점\s*이전|본사\s*이전|최대주주\s*변경")
+                          r"지주\s*회사|(?:공장|캠퍼스|연구소|사옥|센터)\s*(?:준공|신설|착공|완공|개소|신축)|본점\s*이전|본사\s*이전|최대주주\s*변경")
 HISTORY_DROP = re.compile(r"선임|사임|취임|퇴임|대표이사|수상|인증|선정|특허|표창|훈장|포상|ISO|벤처|"
                           r"신주인수권|사채|증자|감자|액면")
 # 해외 법인·지사·공장처럼 회사 자체의 설립이 아닌 사건
@@ -48,8 +48,9 @@ def _section(doc: str, title_pattern: str, limit: int = 150000) -> str:
     m = re.search(r"<TITLE[^>]*>[^<]*" + title_pattern + r"[^<]*</TITLE>", doc, re.I)
     if not m:
         return ""
-    end = doc.find("<TITLE", m.end())
-    return doc[m.end(): end if end != -1 else m.end() + limit][:limit]
+    # '가. 연혁' 같은 하위 제목은 건너뛰고 '3. 자본금 변동사항', 'II. 사업의 내용' 같은 같은·윗단계 제목에서 끊는다
+    end = re.search(r"<TITLE[^>]*>\s*(?:\d+\s*\.|[IVXⅠ-Ⅻ]+\s*\.)", doc[m.end():], re.I)
+    return doc[m.end(): m.end() + end.start() if end else m.end() + limit][:limit]
 
 
 def _clean_event(text: str) -> str:
@@ -154,20 +155,28 @@ def site_roles(name: str) -> list:
     return [r for r in roles if r != "사업장"] or roles
 
 
+METRO = ("서울", "부산", "대구", "인천", "광주", "대전", "울산")
+
+
+def _site_key(loc: str) -> str:
+    """'화성시 석우동'·'화성 동탄'·'화성시' → '화성', '서울 강남구 역삼동' → '서울 강남'."""
+    toks = [re.sub(r"(?<=[가-힣])(?:시|군|구)$", "", t) for t in loc.split()]
+    return " ".join(toks[:2]) if toks and toks[0] in METRO else (toks[0] if toks else "")
+
+
 def merge_sites(pairs: list) -> list:
-    """(위치, 역할) 쌍을 위치별로 합친다. '화성시' 처럼 다른 위치의 앞부분인 곳은 더 자세한 쪽에 합친다."""
+    """(위치, 역할) 쌍을 같은 시·군(광역시는 구)끼리 합친다. 이름은 더 자세한 쪽을, 같으면 먼저 나온 쪽을 쓴다."""
     merged = {}
     for loc, role in pairs:
-        if loc and role:
-            roles = merged.setdefault(loc, [])
-            if role not in roles:
-                roles.append(role)
-    for loc in sorted(merged, key=len):
-        longer = next((o for o in merged if o != loc and o.startswith(loc + " ")), None)
-        if longer:
-            merged[longer] += [r for r in merged.pop(loc) if r not in merged[longer]]
+        if not (loc and role):
+            continue
+        site = merged.setdefault(_site_key(loc), {"location": loc, "roles": []})
+        if len(loc.split()) > len(site["location"].split()):
+            site["location"] = loc
+        if role not in site["roles"]:
+            site["roles"].append(role)
     order = {"본사": 0, "제조": 1, "사업장": 2, "연구소": 3, "물류": 4, "영업": 5}
-    items = [{"location": loc, "roles": sorted(r, key=lambda x: order.get(x, 9))} for loc, r in merged.items()]
+    items = [{"location": s["location"], "roles": sorted(s["roles"], key=lambda x: order.get(x, 9))} for s in merged.values()]
     items.sort(key=lambda s: min(order.get(x, 9) for x in s["roles"]))
     return items[:5]
 
@@ -190,7 +199,10 @@ def parse_sites(doc: str) -> list:
             continue
         header = rows[0]
         joined = " ".join(header)
-        if not SITE_HEADER.search(joined) or SITE_EXCLUDE.search(joined):
+        if SITE_EXCLUDE.search(joined):
+            continue
+        if not SITE_HEADER.search(joined):
+            pairs += _production_sites(rows)
             continue
         addr_idx = next((i for i, h in enumerate(header) if SITE_HEADER.search(h)), None)
         if addr_idx is None:
@@ -203,9 +215,27 @@ def parse_sites(doc: str) -> list:
             if not (re.match(PROVINCE, addr.strip()) or re.search(r"[가-힣]+(?:시|군|구|도)(?:\s|$)", addr)):
                 continue  # 해외 사업장이나 빈 칸
             pairs += [(shorten_address(addr), role) for role in site_roles(name)]
-    if not pairs:
-        text = strip_tags(re.sub(r"<(?:P|BR)\b[^>]*>", "\n", TABLE_RE.sub(" ", section), flags=re.I))
-        pairs = sentence_sites(text, own_only=True)
+    text = strip_tags(re.sub(r"<(?:P|BR)\b[^>]*>", "\n", TABLE_RE.sub(" ", section), flags=re.I))
+    return pairs + sentence_sites(text, own_only=True)
+
+
+def _production_sites(rows: list) -> list:
+    """생산실적·생산능력 표의 '사업소/사업장/공장' 칸에서 생산 거점을 읽는다. '화성 동탄 (본사)' → ('화성 동탄', 본사·제조)."""
+    header = [re.sub(r"\s", "", h) for h in rows[0]]
+    idx = next((i for i, h in enumerate(header) if re.fullmatch(r"사업소|사업장|공장(?:명)?|생산(?:거점|공장)", h)), None)
+    if idx is None or not re.search(r"제\d+\s*\(?(?:당|전)|생산|가동|수량|실적", " ".join(rows[0])):
+        return []
+    pairs = []
+    for row in rows[1:]:
+        if len(row) <= idx:
+            continue
+        name = row[idx].strip()
+        if not re.search(r"[가-힣]", name) or len(name) > 25 or re.fullmatch(r"(?:합\s*계|소\s*계|총\s*계|계|-)", name):
+            continue
+        place = shorten_address(name) if ADDRESS_RE.search(name) else \
+            re.sub(r"\s+", " ", re.sub(r"\(.*?\)|본사|본점|공장|사업장|사업소|캠퍼스|\d+", " ", name)).strip()
+        if place:
+            pairs += [(place, role) for role in dict.fromkeys(site_roles(name) + ["제조"])]
     return pairs
 
 

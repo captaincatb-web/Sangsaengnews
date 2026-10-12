@@ -237,5 +237,10 @@
     window.CopyKit.toast("GitHub 창에서 이슈를 등록하면 추가가 시작됩니다.");
   });
 
+  // 머리글의 '검색'(./#search)으로 오면 검색창에 바로 입력할 수 있게 한다
+  const focusSearch = () => { if (location.hash === "#search") $("search").focus(); };
+  window.addEventListener("hashchange", focusSearch);
+
   render();
+  focusSearch();
 })();

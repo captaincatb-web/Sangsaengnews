@@ -3,59 +3,87 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>협력사 프로필</title>
-  <meta name="description" content="반도체 협력 지정 기업 64곳의 매출, 이익, 주가를 금융감독원 전자공시(DART) 기준으로 한눈에 정리했습니다.">
+  <title>협력 기업 현황 | 협력사 프로필</title>
+  <meta name="description" content="반도체 협력 지정 기업의 매출, 이익, 주가를 금융감독원 전자공시(DART) 기준으로 한눈에 정리했습니다.">
   <link rel="icon" href="data:,">
-  <link rel="preload" href="vendor/pretendard/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip" href="#companies">기업 표로 건너뛰기</a>
+  <a class="skip" href="#content">본문 바로가기</a>
 
-  <header class="site-head">
-    <div class="wrap wrap-wide">
-      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">협</span>협력사 프로필</a>
+  <header class="krds-header">
+    <div class="inner head-inner">
+      <ul class="utility" aria-label="관련 사이트">
+        <li><a href="https://dart.fss.or.kr" target="_blank" rel="noopener">DART 전자공시<i class="ph ph-arrow-square-out" aria-hidden="true"></i></a></li>
+        <li><a href="https://github.com/captaincatb-web/Sangsaengnews" target="_blank" rel="noopener">GitHub 저장소<i class="ph ph-arrow-square-out" aria-hidden="true"></i></a></li>
+      </ul>
+      <div class="branding">
+        <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">협</span><span class="brand-name">협력사 프로필<small>반도체 협력 기업 정보</small></span></a>
+        <div class="head-actions">
+          <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+        </div>
+      </div>
     </div>
+    <nav class="gnb" aria-label="주 메뉴">
+      <div class="inner">
+        <ul>
+          <li><a href="./" aria-current="page">기업 현황</a></li>
+          <li><a href="./#guide">이용 안내</a></li>
+        </ul>
+      </div>
+    </nav>
   </header>
 
-  <main class="wrap wrap-wide">
-    <section class="intro" aria-labelledby="title">
-      <h1 id="title">반도체 협력 기업 <span id="total">64</span>곳을 한눈에</h1>
-      <p class="lead">기업별 매출, 이익, 주가를 금융감독원 전자공시(DART) 기준으로 정리했습니다.</p>
+  <main id="content" class="inner">
+    <nav class="breadcrumb" aria-label="현재 위치">
+      <ol>
+        <li><a href="./"><i class="ph ph-house" aria-hidden="true"></i>홈</a></li>
+        <li aria-current="page">기업 현황</li>
+      </ol>
+    </nav>
+
+    <section class="page-head" aria-labelledby="title">
+      <h1 id="title">협력 기업 현황</h1>
+      <p class="lead">반도체 협력 기업 <strong id="total">64</strong>곳의 매출, 이익, 주가를 금융감독원 전자공시(DART) 기준으로 정리했습니다.</p>
       <ul class="meta" id="summary"></ul>
     </section>
 
     <section aria-label="기업 표">
       <div class="controls">
-        <div class="search">
+        <div class="sch-input">
           <label class="sr-only" for="search">기업명, 종목코드, 고유번호 검색</label>
-          <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
           <input id="search" type="search" placeholder="기업명, 종목코드, 고유번호 검색" autocomplete="off" spellcheck="false">
+          <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
         </div>
-        <div class="segmented" role="radiogroup" aria-label="그룹" id="group-filter"></div>
-        <button class="btn" type="button" id="add-toggle" aria-expanded="false" aria-controls="add-form"><i class="ph ph-plus" aria-hidden="true"></i>기업 추가</button>
         <label class="switch">
           <input type="checkbox" id="listed-only">
           <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
           상장사만
         </label>
-        <button class="btn" type="button" id="copy-table"><i class="ph ph-copy" aria-hidden="true"></i>표 복사</button>
+        <button class="btn btn-tertiary" type="button" id="copy-table"><i class="ph ph-copy" aria-hidden="true"></i>표 복사</button>
+      </div>
+
+      <div class="tab-row">
+        <div class="krds-tabs" role="radiogroup" aria-label="그룹" id="group-filter"></div>
+        <button class="btn btn-secondary btn-sm" type="button" id="add-toggle" aria-expanded="false" aria-controls="add-form"><i class="ph ph-plus" aria-hidden="true"></i>기업 추가</button>
       </div>
 
       <form class="add-panel" id="add-form" hidden>
         <div class="add-fields">
           <div class="field field-grow">
             <label for="add-name">추가할 기업</label>
-            <input id="add-name" type="text" required placeholder="회사명, 종목코드(6자리) 또는 DART 고유번호(8자리)" autocomplete="off" spellcheck="false">
+            <input class="krds-input" id="add-name" type="text" required placeholder="회사명, 종목코드(6자리) 또는 DART 고유번호(8자리)" autocomplete="off" spellcheck="false">
           </div>
           <div class="field">
             <label for="add-group">넣을 그룹</label>
-            <select id="add-group"></select>
+            <select class="krds-select" id="add-group"></select>
           </div>
           <button class="btn btn-primary" type="submit">추가 요청</button>
         </div>
-        <p class="add-help">GitHub 이슈 화면이 새 창으로 열립니다. <strong>Create</strong>(이슈 등록)를 누르면 DART에서 회사를 찾아 목록에 넣고, 약 15분 뒤 이 표와 프로필에 나타납니다. 결과는 이슈 댓글로 알려 드리며, 저장소 관리자 계정으로 로그인해야 합니다.</p>
+        <p class="hint"><i class="ph ph-info" aria-hidden="true"></i><span>GitHub 이슈 화면이 새 창으로 열립니다. <strong>Create</strong>(이슈 등록)를 누르면 DART에서 회사를 찾아 목록에 넣고, 약 15분 뒤 이 표와 프로필에 나타납니다. 결과는 이슈 댓글로 알려 드리며, 저장소 관리자 계정으로 로그인해야 합니다.</span></p>
       </form>
 
       <p class="table-note" id="table-note"></p>
@@ -63,6 +91,7 @@
 
       <div class="table-wrap">
         <table class="data" id="companies">
+          <caption class="sr-only">협력 기업별 매출액, 영업이익, 영업이익률, 순이익, 부채비율, 주가, 시가총액</caption>
           <thead><tr id="table-head"></tr></thead>
         </table>
       </div>
@@ -70,15 +99,38 @@
       <div class="empty" id="empty" hidden>
         <p class="empty-title">조건에 맞는 기업이 없습니다</p>
         <p>검색어를 줄이거나 그룹을 전체로 바꿔 보세요.</p>
-        <button class="btn" type="button" id="reset-filters">필터 초기화</button>
+        <button class="btn btn-tertiary" type="button" id="reset-filters">필터 초기화</button>
       </div>
+    </section>
+
+    <section class="guide" id="guide" aria-labelledby="guide-title">
+      <h2 id="guide-title">이용 안내</h2>
+      <dl class="guide-list">
+        <div><dt>자료 기준</dt><dd>재무는 개별(별도) 재무제표 기준입니다. 상장사는 사업보고서, 비상장사는 감사보고서에서 읽고, 최근 분기 실적을 함께 보여 줍니다. 주가와 시가총액은 전 거래일 종가입니다.</dd></div>
+        <div><dt>갱신</dt><dd>매일 오전 7시 30분에 DART와 주가 자료를 다시 받아 자동으로 고칩니다.</dd></div>
+        <div><dt>Word로 옮기기</dt><dd>표 위의 <strong>표 복사</strong>, 기업 프로필의 <strong>Word로 복사</strong>를 누른 뒤 Word에 붙여 넣으면 표와 서식이 그대로 들어갑니다.</dd></div>
+        <div><dt>기업 추가</dt><dd>그룹 탭 옆 <strong>기업 추가</strong>에 회사명이나 종목코드를 넣고 GitHub에서 이슈를 등록하면 자동으로 목록에 들어갑니다.</dd></div>
+      </dl>
     </section>
   </main>
 
-  <footer class="site-foot">
-    <div class="wrap wrap-wide foot-inner">
-      <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서, 주가 Yahoo Finance</p>
-      <p>매일 오전 7시 30분 자동 갱신</p>
+  <footer class="krds-footer">
+    <div class="inner">
+      <p class="f-logo"><span class="brand-mark" aria-hidden="true">협</span>협력사 프로필</p>
+      <div class="f-cnt">
+        <div class="f-info">
+          <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 주가 Yahoo Finance</p>
+          <p><strong>매일 오전 7시 30분 자동 갱신</strong> · 공시 원문을 자동으로 정리한 참고 자료입니다.</p>
+        </div>
+        <ul class="f-link">
+          <li><a href="https://dart.fss.or.kr" target="_blank" rel="noopener">DART 전자공시<i class="ph ph-caret-right" aria-hidden="true"></i></a></li>
+          <li><a href="https://github.com/captaincatb-web/Sangsaengnews" target="_blank" rel="noopener">GitHub 저장소<i class="ph ph-caret-right" aria-hidden="true"></i></a></li>
+        </ul>
+      </div>
+      <div class="f-btm">
+        <p class="f-copy">© 2026 협력사 프로필</p>
+        <p class="f-credit">화면은 대한민국 정부 디자인 시스템(KRDS, krds.go.kr)의 색상·글꼴·구성 기준을 따랐습니다. 글꼴: Pretendard GOV (SIL OFL 1.1)</p>
+      </div>
     </div>
   </footer>
 
