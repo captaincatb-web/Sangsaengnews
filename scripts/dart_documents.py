@@ -55,6 +55,8 @@ def _section(doc: str, title_pattern: str, limit: int = 150000) -> str:
 
 def _clean_event(text: str) -> str:
     t = re.sub(r"^[\s\-·ㆍ•▶○●□■*]+", "", text)
+    # '…설립된 법인으로서, 설립 이후 … 변경사항은 없습니다' 의 뒷부분(변경 없음 안내)은 뗀다
+    t = re.sub(r"(?:으로서|이며|으며)?,?\s*설립\s*이후.*(?:없습니다|않았습니다|없음)\.?$", "", t)
     t = re.sub(r"\s+", " ", t).strip(" .")
     return t if len(t) <= 160 else t[:160].rsplit(" ", 1)[0] + "…"
 
@@ -131,6 +133,8 @@ def parse_history(doc: str) -> list:
         key = re.sub(r"\W", "", event)
         if not event or key in seen or not HISTORY_KEEP.search(event) or HISTORY_DROP.search(event):
             continue
+        if any(key[:25] == k[:25] for k in seen if len(key) > 40):
+            continue  # 앞부분이 같은 설명 문장은 하나만
         seen.add(key)
         picked.append({"year": year, "month": month, "text": event, "rank": _rank(event)})
     # 날짜 조각('01)을 통해 …')은 버리고, 짧은 연혁 항목이 있으면 '…되었습니다' 같은 설명 문장은 뺀다
@@ -309,7 +313,7 @@ def audit_overview(doc: str) -> dict:
 
     m = re.search(r"1\s*[.)]\s*(?:일반\s*사항|일반적인?\s*사항|(?:회사|당사)의?\s*개요|보고\s*기업|일반\s*정보)", text)
     if not m:  # 제목이 다르면 '…설립되었' 문장이 처음 나오는 곳을 쓴다
-        m = re.search(r"[^.]{0,120}(?:에|일)\s*설립되", text)
+        m = re.search(r"[^.]{0,120}설립(?:되|된|하였|하여)", text)
         if not m:
             return out
         start = m.start()
