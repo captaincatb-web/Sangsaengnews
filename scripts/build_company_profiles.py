@@ -145,10 +145,29 @@ def yy(year) -> str:
 
 # ---------- 재무제표: 사업·분기보고서 API ----------
 
-def find_row(rows: list, sj_divs: tuple, names: list) -> dict | None:
+# 계정 표준 코드(XBRL). 회사마다 표시 이름이 달라도 이 코드는 같아서 먼저 찾는다.
+ACCOUNT_IDS = {
+    "총자산": ["ifrs-full_Assets", "ifrs_Assets"],
+    "유동자산": ["ifrs-full_CurrentAssets", "ifrs_CurrentAssets"],
+    "부채총계": ["ifrs-full_Liabilities", "ifrs_Liabilities"],
+    "유동부채": ["ifrs-full_CurrentLiabilities", "ifrs_CurrentLiabilities"],
+    "자본총계": ["ifrs-full_Equity", "ifrs_Equity"],
+    "매출액": ["ifrs-full_Revenue", "ifrs_Revenue"],
+    "매출원가": ["ifrs-full_CostOfSales", "ifrs_CostOfSales"],
+    "영업이익": ["dart_OperatingIncomeLoss"],
+    "당기순이익": ["ifrs-full_ProfitLoss", "ifrs_ProfitLoss"],
+}
+
+
+def find_row(rows: list, sj_divs: tuple, names: list, label: str = "") -> dict | None:
+    for account_id in ACCOUNT_IDS.get(label, []):
+        for r in rows:
+            if r.get("sj_div") in sj_divs and r.get("account_id") == account_id:
+                return r
+    # 이름 비교는 'Ⅰ.', '(주석3)' 같은 꾸밈을 떼고 한다
     for name in names:
         for r in rows:
-            if r.get("sj_div") in sj_divs and squash(r.get("account_nm")) == squash(name):
+            if r.get("sj_div") in sj_divs and normalize_label(r.get("account_nm")) == squash(name):
                 return r
     return None
 
@@ -171,7 +190,7 @@ def annual_by_year(rows: list, year: int) -> dict:
     cols = [("thstrm_amount", year), ("frmtrm_amount", year - 1), ("bfefrmtrm_amount", year - 2)]
     out = {y: {} for _, y in cols}
     for label, sj_divs, names in ACCOUNTS:
-        row = find_row(rows, sj_divs, names)
+        row = find_row(rows, sj_divs, names, label)
         if row:
             for col, y in cols:
                 v = to_number(row.get(col))
@@ -188,13 +207,16 @@ def quarter_values(rows: list) -> dict:
     """분기·반기보고서의 당기 금액. 손익은 누적 금액을 우선한다."""
     out = {}
     for label, sj_divs, names in ACCOUNTS:
-        row = find_row(rows, sj_divs, names)
+        row = find_row(rows, sj_divs, names, label)
         if not row:
             continue
         v = to_number(row.get("thstrm_add_amount")) if sj_divs != ("BS",) else None
         v = v if v is not None else to_number(row.get("thstrm_amount"))
         if v is not None:
             out[label] = v
+    if rows and "매출액" not in out:
+        names = sorted({r.get("account_nm", "") for r in rows if r.get("sj_div") in ("IS", "CIS")})[:15]
+        print(f"[quarter] 매출액 계정을 찾지 못함. 손익 계정 예: {names}")
     return out
 
 
