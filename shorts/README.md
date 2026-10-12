@@ -30,6 +30,20 @@ shorts/run.sh doctor                                 # 설치·네트워크 점�
 
 spec 작성 규칙과 장면 종류는 `.claude/skills/shorts/SKILL.md`, 예시는 `example.json`에 있습니다.
 
+## 시네마틱 설명형 쇼츠 (/why-shorts)
+
+사실적인 AI 영상 컷에 네온 강조를 넣고, 중앙 자막, 크로스페이드, 워터마크, 엔딩 카드를 붙이는 약 45초짜리 형식입니다.
+Claude Code에서 `/why-shorts 엘리베이터는 왜 추락하지 않을까`처럼 입력합니다.
+
+1. Claude가 대본과 컷별 AI 영상 프롬프트(`prompts.md`)를 쓰고, 네온 대체 장면으로 미리보기를 만듭니다.
+2. Google Flow(Veo), Kling 같은 도구로 컷 영상(또는 이미지)을 만들어 대화창에 올립니다.
+3. Claude가 컷에 배정(`why.sh add`)한 뒤 다시 조립(`why.sh render`)해 완성본을 만듭니다.
+
+```bash
+shorts/why.sh render shorts/why_example.json             # 미리보기 또는 완성본 → output/why/<주제>/
+shorts/why.sh add shorts/why_example.json clip1.mp4 ...  # 클립을 C01, C02 …에 배정
+```
+
 ## Pixabay 키
 
 이 저장소는 공개 저장소라서 키를 커밋하지 않습니다.

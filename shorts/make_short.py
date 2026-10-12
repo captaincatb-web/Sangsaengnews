@@ -395,8 +395,10 @@ def render_footage(scenes, voice_wav: Path, source="pixabay", materials=None) ->
     raise RuntimeError("MoneyPrinterTurbo 소재 단계 실패: " + (r.stderr or r.stdout)[-600:])
 
 
-def compose(visual: Path, audio: Path, srt: Path, out: Path, topic: str) -> None:
-    """MoneyPrinterTurbo의 최종 합성(자막·음성)을 그대로 쓴다."""
+def compose(visual: Path, audio: Path, srt: Path, out: Path, topic: str, style: dict | None = None,
+            bgm: Path | None = None, bgm_volume: float = 0.15) -> None:
+    """MoneyPrinterTurbo의 최종 합성(자막·음성·배경음악)을 그대로 쓴다."""
+    st = {**SUB, **(style or {})}
     sys.path.insert(0, str(MPT_DIR))
     cwd = os.getcwd()
     os.chdir(MPT_DIR)
@@ -405,10 +407,12 @@ def compose(visual: Path, audio: Path, srt: Path, out: Path, topic: str) -> None
         from app.services import video as mpt_video
 
         params = VideoParams(
-            video_subject=topic, video_aspect="9:16", bgm_type="none", subtitle_enabled=True,
-            font_name=FONT_NAME, font_size=SUB["font_size"], text_fore_color="#FFFFFF",
-            stroke_color="#000000", stroke_width=SUB["stroke_width"], subtitle_position="custom",
-            custom_position=SUB["custom_position"], n_threads=os.cpu_count() or 2)
+            video_subject=topic, video_aspect="9:16", subtitle_enabled=True,
+            bgm_type="custom" if bgm else "none", bgm_file=str(bgm) if bgm else "",
+            bgm_volume=bgm_volume, font_name=FONT_NAME, font_size=st["font_size"],
+            text_fore_color="#FFFFFF", stroke_color="#000000", stroke_width=st["stroke_width"],
+            subtitle_position="custom", custom_position=st["custom_position"],
+            n_threads=os.cpu_count() or 2)
         mpt_video.generate_video(str(visual), str(audio), str(srt), str(out), params)
     finally:
         os.chdir(cwd)

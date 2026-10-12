@@ -34,7 +34,7 @@ PALETTE = {
 
 SCENE_TYPES = (
     "icon", "icons", "vs", "flow", "chart", "counter", "list",
-    "network", "globe", "chip", "grid", "trend",
+    "network", "globe", "chip", "grid", "trend", "neon",
 )
 
 
@@ -159,6 +159,7 @@ class Renderer:
         self.accent = to_rgb(accent)
         self.fallback_icon = icons.resolve(fallback_icon) or (icons.names[0] if icons.names else None)
         self.warnings: list[str] = []
+        self.progress = True  # 화면 맨 위 진행 막대
 
     # ---- 공통 도구 ----
     @lru_cache(maxsize=32)
@@ -259,7 +260,8 @@ class Renderer:
         kind = scene.get("scene", "icon")
         getattr(self, f"s_{kind}", self.s_icon)(base, d, scene, t, u)
         self.title(base, d, scene, t)
-        d.rectangle([0, 0, W * global_u, 9], fill=accent)
+        if self.progress:
+            d.rectangle([0, 0, W * global_u, 9], fill=accent)
         return base.convert("RGB")
 
     # ---- 장면 종류 ----
@@ -559,6 +561,38 @@ class Renderer:
         if sc.get("icon"):
             self.draw_icon(base, sc["_icons"][0], 230 if up else 850, 700, 170,
                            ease_out_back(t / 0.4), glow=False)
+
+
+    def s_neon(self, base, d, sc, t, u):
+        """네온 터널: 소실점으로 빨려 들어가는 화면(시네마틱 영상이 없을 때의 대체 장면)."""
+        acc = sc["_accent"]
+        vx, vy = W / 2, 820
+        for k in range(9):
+            z = (t * 0.32 + k / 9) % 1.0
+            s = 0.04 + z ** 2.2 * 1.5
+            w2, h2 = W * 0.62 * s, H * 0.42 * s
+            c = mix((8, 10, 20), (90, 96, 120), min(1, z * 1.4))
+            d.rounded_rectangle([vx - w2, vy - h2, vx + w2, vy + h2 * 1.25], int(40 * s) + 2,
+                                outline=c, width=max(1, int(6 * z)))
+            if z > 0.15:
+                for side in (-1, 1):
+                    lx = vx + side * w2 * 0.92
+                    d.rectangle([lx - 3 - 6 * z, vy - h2 * 0.95, lx + 3 + 6 * z, vy - h2 * 0.95 + 10 * z],
+                                fill=mix((20, 20, 30), (255, 255, 240), z))
+        for x0 in (W / 2 - 260, W / 2 + 260):
+            for wdt, col in ((34, mix((0, 0, 0), acc, 0.35)), (18, mix((0, 0, 0), acc, 0.75)),
+                             (7, mix(acc, (255, 255, 255), 0.6))):
+                d.line([x0, H, vx + (x0 - vx) * 0.04, vy + 40], fill=col, width=wdt)
+        for k in range(6):
+            z = (t * 0.9 + k / 6) % 1.0
+            for x0 in (W / 2 - 260, W / 2 + 260):
+                f = z ** 2.4
+                x = vx + (x0 - vx) * (0.04 + 0.96 * f)
+                y = vy + 40 + (H - vy - 40) * f
+                r = 3 + 14 * f
+                d.ellipse([x - r, y - r, x + r, y + r], fill=(255, 255, 255))
+        if sc.get("icon"):
+            self.draw_icon(base, sc["_icons"][0], vx, vy - 40, 300, ease_out_back(t / 0.5), accent=acc)
 
 
 def prepare_scene(sc: dict, idx: int, renderer: Renderer, accent) -> dict:
