@@ -1,7 +1,6 @@
 import html
 import os
 import re
-import threading
 from calendar import timegm
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
@@ -12,7 +11,7 @@ import feedparser
 import requests
 
 from src.history import KST
-from src.news_sources import fetch_daum_news, fetch_naver_news, google_news_url
+from src.news_sources import fetch_naver_news, google_news_url
 from src.newsletter_config import (
     COMPANY_ALIAS_RAW,
     DART_CORP_CODES,
@@ -27,7 +26,6 @@ from src.newsletter_config import (
     NEWS_CATEGORIES,
     OUTPUT_DIR,
     RSS_LIST,
-    SEARCH_CONTEXT,
     SIMILARITY_THRESHOLD,
     all_company_names,
 )
@@ -283,10 +281,8 @@ def format_date_string(dt: datetime) -> str:
 NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
 
 # 소스 우선순위: 같은 기사가 여러 곳에서 오면 먼저 처리된 소스의 링크·제목을 남긴다
-# (원문 링크·정확한 시각을 주는 소스 먼저, 다음은 다음뉴스 사본 링크, 네이버 검색은 제목이 잘려 와서 마지막)
-SOURCE_PRIORITY = {"dart": 0, "naver": 1, "rss": 2, "google": 3, "google_en": 4, "daum_web": 5, "naver_web": 6}
-# 포털 검색 결과 페이지는 동시에 너무 많이 요청하지 않는다
-PORTAL_LIMIT = {"naver_web": threading.Semaphore(3), "daum_web": threading.Semaphore(3)}
+# (원문 링크·정확한 시각을 주는 소스 먼저, 네이버 검색 페이지는 긴 제목이 잘려 와서 마지막)
+SOURCE_PRIORITY = {"dart": 0, "naver": 1, "rss": 2, "google": 3, "google_en": 4, "naver_web": 5}
 
 # 네이버 API는 언론사명을 주지 않으므로 원문 도메인으로 표기
 PRESS_BY_DOMAIN = {
@@ -346,10 +342,9 @@ def build_sources() -> list:
         terms = _search_terms(company)
         q = " OR ".join(f'"{t}"' for t in terms)
         sources.append({"kind": "google", "url": google_news_url(q, MAX_AGE_DAYS), "company": ""})
-        # 포털 뉴스 검색: 구글 뉴스가 다루지 않는 국내 매체까지 (네이버는 제목 검색, 다음은 전체 검색)
-        context = SEARCH_CONTEXT.get(company, "")
-        sources.append({"kind": "naver_web", "terms": terms, "context": context, "company": ""})
-        sources.append({"kind": "daum_web", "terms": terms, "context": context, "company": ""})
+        # 네이버 뉴스 제목검색: 구글 뉴스가 다루지 않는 국내 매체까지 (검색어 OR가 안 돼 별칭은 따로 검색)
+        for term in terms:
+            sources.append({"kind": "naver_web", "term": term, "company": ""})
         if company in ENGLISH_SEARCH_TERMS:
             q_en = " OR ".join(f'"{t}"' for t in ENGLISH_SEARCH_TERMS[company])
             sources.append({"kind": "google_en", "url": google_news_url(q_en, 14, lang="en"), "company": ""})
@@ -364,10 +359,8 @@ def _fetch_feed(source: dict) -> list:
     kind = source["kind"]
     if kind == "naver":
         return _fetch_naver(source["query"])
-    if kind in PORTAL_LIMIT:
-        fetch = fetch_naver_news if kind == "naver_web" else fetch_daum_news
-        with PORTAL_LIMIT[kind]:
-            return fetch(source["terms"], source["context"])
+    if kind == "naver_web":
+        return fetch_naver_news(source["term"])
     url = source["url"]
     try:
         resp = requests.get(url, headers=HEADERS, timeout=REQUEST_TIMEOUT)
