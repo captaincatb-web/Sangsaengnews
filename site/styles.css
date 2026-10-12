@@ -233,6 +233,10 @@ h1 { margin: 0; font-weight: 760; letter-spacing: -0.03em; line-height: 1.25; te
 .pf-bullets { list-style: none; display: grid; gap: 4px; margin: 8px 0 0 1.45em; padding: 0; font-size: 15px; color: var(--text-2); }
 .pf-bullets li { position: relative; padding-left: 14px; }
 .pf-bullets li::before { content: "-"; position: absolute; left: 0; color: var(--text-3); }
+.pf-bullets .pf-sub { display: block; margin-top: 2px; font-size: 14px; color: var(--text-3); }
+.pf-bullets a { color: inherit; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; }
+.pf-bullets a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.pf-src { font-size: 13px; color: var(--text-3); white-space: nowrap; }
 
 .pf-part { margin: 48px 0 0; padding-top: 22px; border-top: 1px solid var(--line); font-size: 1.25rem; letter-spacing: -0.02em; line-height: 1.3; }
 

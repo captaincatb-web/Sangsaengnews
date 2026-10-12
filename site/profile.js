@@ -42,22 +42,24 @@
   })();
 
   // 공시로 확인할 수 없어 표시하지 않는 항목. 회사마다 비어 있는 항목이 뒤에 더해진다.
-  const missing = new Set(["기업규모", "연혁", "주요 제품", "제조거점", "거래금액·비중", "신용등급", "업종평균"]);
+  const missing = new Set(["기업규모", "주요 제품", "거래금액·비중", "신용등급", "업종평균"]);
 
-  // □ 항목 한 줄. 값이 없으면 그리지 않고 '표시하지 않은 항목'에 올린다.
-  const line = (label, value, notes = []) => {
+  // □ 항목 한 줄(+ 아래 설명, 목록). 값이 없으면 그리지 않고 '표시하지 않은 항목'에 올린다.
+  const line = (label, value, notes = [], extra = "") => {
     if (value == null || value === "") {
       missing.add(label);
       return "";
     }
     return `<div class="pf-item"><p class="pf-line"><span class="sq">□</span> <strong>${label}</strong> : ${value}</p>`
-      + notes.filter(Boolean).map((n) => `<p class="pf-note">${n}</p>`).join("") + "</div>";
+      + notes.filter(Boolean).map((n) => `<p class="pf-note">${n}</p>`).join("") + extra + "</div>";
   };
   // □ 항목 + 표·글머리 목록. 본문이 없으면 그리지 않는다.
   const block = (label, tag, body) => (body
     ? `<div class="pf-item"><p class="pf-line"><span class="sq">□</span> <strong>${label}</strong>${tag ? ` <span class="pf-tag">* ${tag}</span>` : ""}</p>${body}</div>`
     : "");
-  const bullets = (lines) => (lines && lines.length ? `<ul class="pf-bullets">${lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>` : "");
+  const list = (items) => (items && items.length ? `<ul class="pf-bullets">${items.map((l) => `<li>${l}</li>`).join("")}</ul>` : "");
+  const bullets = (lines) => list((lines || []).map(esc));
+  const shortDate = (d) => (/^\d{4}-\d{2}-\d{2}$/.test(d || "") ? `'${d.slice(2, 4)}.${Number(d.slice(5, 7))}.${Number(d.slice(8))}` : "");
 
   // 표. groupCol 이면 첫 열의 같은 구분(재무·손익, 안정성 등)을 세로로 합친다. textCols 는 왼쪽 정렬할 열.
   function table(head, rows, { caption = "", cls = "", groupCol = false, textCols = [] } = {}) {
@@ -89,22 +91,41 @@
 
   // ---------- 1면: 개요 ----------
   const holders = p.shareholders && p.shareholders.top ? p.shareholders.top : [];
-  // 각자대표·공동대표는 사람별로 나눠 출생연도와 경력을 따로 보여 준다
+  // 각자대표·공동대표는 사람별로 나눠 출생연도, 최대주주와의 관계, 경력을 따로 보여 준다
   const execs0 = p.executives || [];
-  const ceoNames = String(p.ceo_nm || "").replace(/\([^)]*\)/g, "").split(/[,/·]|\s{2,}/).map((n) => n.trim()).filter(Boolean);
+  const same = (a, b) => String(a || "").replace(/\s/g, "") === String(b || "").replace(/\s/g, "");
+  const ceoRaw = String(p.ceo_nm || "");
+  const ceoNames = [...new Set(ceoRaw.replace(/\([^)]*\)/g, " ")
+    .replace(/(?:각자|공동)?\s*대표\s*(?:이사)?/g, " ").replace(/외\s*\d+\s*(?:인|명)/g, " ")
+    .split(/[,/·;]/).flatMap((part) => {
+      const t = part.trim().split(/\s+/).filter(Boolean);
+      return t.length > 1 && t.every((x) => /^[가-힣]{2,4}$/.test(x)) ? t : [t.join(" ")]; // '이경일 하형찬' 처럼 띄어 쓴 경우
+    }).filter((n) => n.length >= 2))];
   const multiCeo = ceoNames.length > 1;
+  const FAMILY = /배우자|자녀|아들|딸|장남|차남|삼남|장녀|차녀|형제|자매|부친|모친|친인척|친족|인척|사위|며느리|손자|손녀|조카|동생|처남|남편|부인/;
+  const ceoTag = (name, e) => {
+    const rel = String((e && e.relate) || "").replace(/^최대주주(?:의|와의)?\s*/, "").trim();
+    const h = holders.find((x) => same(x.name, name));
+    if (/본인/.test(rel) || (holders[0] && same(holders[0].name, name))) return "최대주주";
+    if (FAMILY.test(rel)) return `최대주주의 ${rel}`;
+    if (h && FAMILY.test(h.relation || "")) return `최대주주의 ${h.relation}`;
+    if (h && /본인|최대주주/.test(h.relation || "")) return "최대주주";
+    return e ? "전문경영인" : "";
+  };
   const ceoPeople = ceoNames.map((name, i) => {
-    const e = execs0.find((x) => x.name && x.name.replace(/\s/g, "") === name.replace(/\s/g, ""));
+    const e = execs0.find((x) => same(x.name, name));
     const birth = e && e.birth_year ? e.birth_year : (i === 0 && p.ceo ? p.ceo.birth_year : null);
     const career = e && e.career && e.career.length ? e.career : (i === 0 && p.ceo && p.ceo.career ? p.ceo.career : []);
-    return { name, birth, career, holder: holders[0] && holders[0].name === name };
+    return { name, birth, career, tag: ceoTag(name, e) };
   });
-  const ceo = ceoPeople.length
-    ? ceoPeople.map((c) => `${esc(c.name)}${c.birth ? `(${yy(c.birth)}생)` : ""}${c.holder ? " * 최대주주" : ""}`).join(", ")
-      + (multiCeo ? (/공동/.test(p.ceo_nm) ? " (공동대표)" : " (각자대표)") : "")
-    : "";
-  const career = ceoPeople.flatMap((c) => c.career.map((line, i) =>
-    `${i ? "&nbsp;&nbsp;" + (multiCeo ? "&nbsp;".repeat(c.name.length * 2 + 2) : "") : `* ${multiCeo ? `<strong>${esc(c.name)}</strong> : ` : ""}`}${esc(line)}`));
+  const person = (c) => `${esc(c.name)}${c.birth ? `(${yy(c.birth)}생)` : ""}${c.tag ? ` <span class="pf-tag">* ${esc(c.tag)}</span>` : ""}`;
+  const careerText = (c) => c.career.map(esc).join(", ");
+  const ceoKind = /공동/.test(ceoRaw) ? "공동대표" : /각자/.test(ceoRaw) ? "각자대표" : `대표이사 ${ceoNames.length}인`;
+  // 한 명이면 이름 줄 아래에 경력, 여러 명이면 사람마다 이름과 경력을 묶어 보여 준다
+  const ceoItem = !ceoPeople.length ? line("대표이사", "")
+    : !multiCeo ? line("대표이사", person(ceoPeople[0]), [ceoPeople[0].career.length ? `* ${careerText(ceoPeople[0])}` : ""])
+      : line("대표이사", `${ceoNames.map(esc).join(", ")} (${ceoKind})`, [],
+        list(ceoPeople.map((c) => `${person(c)}${c.career.length ? `<span class="pf-sub">${careerText(c)}</span>` : ""}`)));
 
   const emp = p.employees || {};
   const empNote = [emp.avg_tenure ? `평균 근속 ${emp.avg_tenure}년` : "", emp.avg_salary_man ? `1인 평균 급여 ${num(emp.avg_salary_man)}만원` : ""]
@@ -113,35 +134,95 @@
   const mk = p.market;
   const mkDate = mk && mk.date ? `'${mk.date.slice(2, 4)}.${Number(mk.date.slice(5, 7))}.${Number(mk.date.slice(8))}` : "";
 
-  const as = p.assets || {};
   const shareholders = holders.length
     ? `${holders.slice(0, 3).map((h) => `${esc(h.name)} ${esc(h.ratio)}%`).join(", ")}${p.shareholders.total ? ` 등 (특수관계인 합계 ${esc(p.shareholders.total)}%)` : ""}`
     : "";
 
+  // 경영 실적(최근 3년 + 올해 누적)과 재무 정보(최근 3년 + 최근 분기 말)
   const perf = p.performance;
+  const fin = p.financials;
+  const q = p.quarter;
+  const r = p.ratios;
+  const QN = { "1분기": "1Q", "반기": "2Q", "3분기": "3Q" };
+  const qLabel = q ? `'${String(q.years[1]).slice(2)}.${QN[q.label] || esc(q.label)}` : "";
+  const qv = (k) => (q && q.rows[k] ? q.rows[k][1] : null);
+  const pctText = (v) => (v == null ? "-" : `${v.toFixed(1)}%`);
+  const ratio = (a, b) => (a != null && b ? Math.round((a / b) * 1000) / 10 : null);
+  const caption = `(단위: 억원)${accNote}`;
+
   let perfTable = "";
-  if (perf) {
-    const cols = perf.years.map((_, i) => i).filter((i) => perf["매출액"][i] != null || perf["영업이익"][i] != null);
-    if (cols.length) {
-      perfTable = table(["구분", ...cols.map((i) => yy(perf.years[i]))], [
-        ["매출액", ...cols.map((i) => num(perf["매출액"][i]))],
-        ["영업이익", ...cols.map((i) => num(perf["영업이익"][i]))],
-        ["영업이익률", ...cols.map((i) => (perf["영업이익률"][i] == null ? "-" : `${perf["영업이익률"][i].toFixed(1)}%`))],
-      ], { caption: `(단위: 억원)${accNote}` });
+  {
+    const cols = perf ? perf.years.map((_, i) => i).filter((i) => perf["매출액"][i] != null || perf["영업이익"][i] != null).slice(-3) : [];
+    const withQ = qv("매출액") != null || qv("영업이익") != null;
+    if (cols.length || withQ) {
+      const qCell = (v) => (withQ ? [v] : []);
+      perfTable = table(["구분", ...cols.map((i) => yy(perf.years[i])), ...qCell(`~${qLabel}`)], [
+        ["매출액", ...cols.map((i) => num(perf["매출액"][i])), ...qCell(num(qv("매출액")))],
+        ["영업이익", ...cols.map((i) => num(perf["영업이익"][i])), ...qCell(num(qv("영업이익")))],
+        ["영업이익률", ...cols.map((i) => pctText(perf["영업이익률"][i])), ...qCell(pctText(ratio(qv("영업이익"), qv("매출액"))))],
+      ], { caption });
     }
   }
-  const SOURCE = { annual: "개별기준", audit: "개별기준, 감사보고서에서 자동 추출" };
+
+  let bsTable = "";
+  {
+    const cols = fin ? fin.years.map((_, i) => i).filter((i) => fin.rows["총자산"][i] != null) : [];
+    const withQ = qv("총자산") != null;
+    if (cols.length || withQ) {
+      const qCell = (v) => (withQ ? [v] : []);
+      const debtRatio = (i) => (r && r.values["부채비율"] && r.values["부채비율"][i] != null
+        ? r.values["부채비율"][i] : ratio(fin.rows["부채총계"][i], fin.rows["자본총계"][i]));
+      const qDebt = q && q.debt_ratio && q.debt_ratio[1] != null ? q.debt_ratio[1] : ratio(qv("부채총계"), qv("자본총계"));
+      const row = (label, k) => [label, ...cols.map((i) => num(fin.rows[k][i])), ...qCell(num(qv(k)))];
+      bsTable = table(["구분", ...cols.map((i) => yy(fin.years[i])), ...qCell(qLabel)], [
+        row("자산총계", "총자산"), row("부채총계", "부채총계"), row("자본총계", "자본총계"),
+        ["부채비율", ...cols.map((i) => pctText(debtRatio(i))), ...qCell(pctText(qDebt))],
+      ], { caption });
+    }
+  }
+  const basis = `개별기준${p.standard ? `(${esc(p.standard)})` : ""}${p.fin_source === "audit" ? ", 감사보고서에서 자동 추출" : ""}`;
+
+  // ---------- 설립 및 이력 ----------
+  const est = /^\d{8}$/.test(p.est_dt || "") ? Number(p.est_dt.slice(0, 4)) : null;
+  const events = (p.history || []).filter((h) => h.text).map((h) => ({ year: h.year || null, text: h.text }));
+  if (est && events.length && !events.some((h) => h.year === est || (!h.year && /설립/.test(h.text)))) {
+    events.push({ year: est, text: "법인 설립" });
+  }
+  events.sort((a, b) => (a.year || 9999) - (b.year || 9999));
+  if (!events.length) missing.add("연혁");
+  const historyItem = events.length
+    ? block("설립 및 이력", "", list(events.map((h) => `${h.year && !/^(19|20)\d{2}년/.test(h.text) ? `${yy(h.year)} ` : ""}${esc(h.text)}`)))
+    : line("설립", est ? `${yy(est)} 설립` : "");
+
+  // ---------- 본사 및 제조거점 ----------
+  const sites = (p.sites || []).filter((x) => x.location && x.roles && x.roles.length);
+  const roleSet = new Set(sites.flatMap((x) => x.roles));
+  const hasPlant = roleSet.has("제조") || roleSet.has("사업장");
+  if (!hasPlant) missing.add("제조거점");
+  const siteLabel = hasPlant ? "본사 및 제조거점" : [...roleSet].some((x) => x !== "본사") ? "본사 및 사업장" : "본사";
+  const address = p.adres ? esc(p.adres.replace(/\s*-\s*$/, "")) : "";
+  const siteItem = sites.length
+    ? line(siteLabel, sites.map((x) => `${esc(x.location)}(${x.roles.map(esc).join(", ")})`).join(", "), [address ? `* 본사 주소: ${address}` : ""])
+    : line("본사", address);
+
+  // ---------- 주요 특징 ----------
+  const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? esc(u) : "");
+  const highlightList = list((p.highlights || []).filter((h) => h.title).map((h) => {
+    const title = safeUrl(h.url) ? `<a href="${safeUrl(h.url)}" target="_blank" rel="noopener">${esc(h.title)}</a>` : esc(h.title);
+    const src = [shortDate(h.date), h.kind === "공시" ? "공시" : h.source].filter(Boolean).map(esc).join(", ");
+    return `${title}${src ? ` <span class="pf-src">(${src})</span>` : ""}`;
+  }));
 
   const overview = [
-    line("설립", /^\d{8}$/.test(p.est_dt || "") ? `${yy(p.est_dt.slice(0, 4))} 설립` : ""),
-    line("대표이사", ceo, career),
+    historyItem,
+    ceoItem,
     line("인력", emp.count ? `${num(emp.count)}명 (${esc(emp.as_of)} 기준)` : "", [empNote ? `* ${empNote}` : ""]),
     listed ? line("시가총액", mk ? `${eokText(mk.cap)}원 (주가 ${num(mk.price)}원)` : "", [mkDate ? `* ${mkDate} 종가 기준` : ""]) : "",
-    line("자산", as.total != null ? `${eokText(as.total)} (부채 ${eokText(as.debt)} / 자본 ${eokText(as.equity)})` : "",
-      [as.debt_ratio != null ? `* 부채비율 ${Math.round(as.debt_ratio)}%` : ""]),
     line("주주", shareholders),
-    block("경영 현황", SOURCE[p.fin_source], perfTable),
-    line("본사", p.adres ? esc(p.adres.replace(/\s*-\s*$/, "")) : ""),
+    block("경영 실적", basis, perfTable),
+    block("재무 정보", basis, bsTable),
+    siteItem,
+    block("주요 특징", "최근 4개월 공시·뉴스에서 자동 선정", highlightList),
   ].join("");
 
   // ---------- 2면: 재무현황 분석 ----------
@@ -155,9 +236,6 @@
       { groupCol: true, caption: `(단위: 억원)${accNote}` });
   }
 
-  const fin = p.financials;
-  const q = p.quarter;
-  const r = p.ratios;
   if (!perfTable && !fin && !q) missing.add("재무제표");
 
   const RATIO = [
@@ -175,7 +253,7 @@
   }
 
   const analysis = [
-    fin ? block("재무정보", "", bullets(fin.text) + finTable(fin, fin.years.map(yy), "전년 대비")) : "",
+    fin ? block("재무 분석", "", bullets(fin.text) + finTable(fin, fin.years.map(yy), "전년 대비")) : "",
     q ? block(`${yy(q.years[1])} ${esc(q.label)} 실적 동향`, "",
       bullets(q.text) + finTable(q, [`${yy(q.years[0])} ${esc(q.label)}`, `${yy(q.years[1])} ${esc(q.label)}`], "전년 동기 대비")) : "",
     ratioTable ? block("재무비율 분석", "", bullets(r.text) + ratioTable) : "",

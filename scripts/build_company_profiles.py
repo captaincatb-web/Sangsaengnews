@@ -7,6 +7,8 @@
   2. 감사보고서 원문에서 재무제표 표를 읽어 추출 (외부감사 대상 비상장사)
   3. 분기·반기보고서 재무제표 API (최근 분기 실적)
 
+연혁·사업장·회계기준은 사업보고서(없으면 감사보고서) 원문에서, 주요 특징은 최근 공시·뉴스에서 고른다.
+
 - 재무는 개별(별도) 기준이 기본이다.
 - 신용등급·업종평균·거래금액·거래비중처럼 외부에서 알 수 없는 값은 만들지 않는다(화면에서 확인필요/XXX로 표시).
 """
@@ -24,6 +26,9 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
+
+from company_highlights import collect_highlights
+from dart_documents import audit_overview, business_overview, merge_sites, shorten_address
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 COMPANIES_PATH = ROOT_DIR / "site" / "data" / "companies.js"
@@ -310,7 +315,7 @@ def fetch_document_text(api_key: str, rcept_no: str) -> str:
                         continue
             return "\n".join(parts)
     except zipfile.BadZipFile:
-        print(f"[audit] {rcept_no} 원문을 열 수 없습니다: {resp.text[:120]}")
+        print(f"[document] {rcept_no} 원문을 열 수 없습니다: {resp.text[:120]}")
         return ""
 
 
@@ -321,8 +326,8 @@ def list_filings(api_key: str, corp_code: str, years_back: int, **params) -> lis
     return (data or {}).get("list", [])
 
 
-def audit_financials(api_key: str, corp_code: str) -> tuple[dict, list]:
-    """최근 감사보고서(개별) 최대 3건에서 연도별 재무를 만든다. 감사인 목록도 함께 돌려준다."""
+def audit_financials(api_key: str, corp_code: str) -> tuple[dict, list, dict]:
+    """최근 감사보고서(개별) 최대 3건에서 연도별 재무를 만든다. 감사인 목록과 최근 보고서의 회사 개요도 돌려준다."""
     filings = list_filings(api_key, corp_code, 5, pblntf_ty="F")
     by_year = {}
     for f in filings:  # 최신 접수순이므로 연도별 첫 건(정정 포함 최신)을 쓴다
@@ -332,16 +337,36 @@ def audit_financials(api_key: str, corp_code: str) -> tuple[dict, list]:
             # 사업연도는 시작한 해로 부른다: 12월 결산이 아니면 (2026.03) 은 '25.4~'26.3 이므로 2025년
             year = int(m.group(1)) - (0 if m.group(2) == "12" else 1)
             by_year.setdefault(year, f)
-    fy, auditors = {}, []
+    fy, auditors, overview = {}, [], {}
     for year in sorted(by_year, reverse=True)[:3]:
         f = by_year[year]
         auditors.append({"year": year, "auditor": f.get("flr_nm", ""), "rcept_no": f.get("rcept_no")})
-        cur, prev = parse_audit_statements(fetch_document_text(api_key, f["rcept_no"]))
+        doc = fetch_document_text(api_key, f["rcept_no"])
+        if doc and not overview:
+            overview = read_overview(audit_overview, doc, f["rcept_no"])
+        cur, prev = parse_audit_statements(doc)
         if cur:
             fy.setdefault(year, cur)
         if prev:
             fy.setdefault(year - 1, prev)
-    return fy, auditors
+    return fy, auditors, overview
+
+
+def read_overview(parse, doc: str, rcept_no: str) -> dict:
+    """원문 형식이 예상과 달라 읽다가 오류가 나도 그 항목만 비우고 나머지 수집은 계속한다."""
+    try:
+        return parse(doc) if doc else {}
+    except Exception as e:  # 회사마다 원문 형식이 달라 어떤 오류가 날지 미리 알 수 없다
+        print(f"[document] {rcept_no} 개요를 읽지 못함: {e}")
+        return {}
+
+
+def business_report_overview(api_key: str, corp_code: str) -> dict:
+    """가장 최근 사업보고서 원문에서 연혁·사업장·회계기준을 읽는다."""
+    for f in list_filings(api_key, corp_code, 2, pblntf_ty="A"):
+        if "사업보고서" in f.get("report_nm", ""):
+            return read_overview(business_overview, fetch_document_text(api_key, f["rcept_no"]), f["rcept_no"])
+    return {}
 
 
 # ---------- 계산·서술 ----------
@@ -492,7 +517,8 @@ def fetch_executives(api_key, corp_code, year) -> list:
         career = [c.strip(" -·") for c in re.split(r"[\n\r]+|<br\s*/?>", r.get("main_career") or "") if c.strip(" -·")]
         out.append({"name": (r.get("nm") or "").strip(), "birth_year": int(m.group(1)) if m else None,
                     "position": r.get("ofcps", ""), "registered": r.get("rgist_exctv_at", ""),
-                    "fulltime": r.get("fte_at", ""), "duty": r.get("chrg_job", ""), "career": career[:5]})
+                    "fulltime": r.get("fte_at", ""), "duty": r.get("chrg_job", ""), "career": career[:6],
+                    "relate": (r.get("mxmm_shrholdr_relate") or "").strip()})
     return out
 
 
@@ -589,10 +615,10 @@ def fetch_price(stock_code: str, corp_cls: str) -> dict | None:
     return {"price": round(float(hist["Close"].iloc[-1])), "date": hist.index[-1].strftime("%Y-%m-%d")}
 
 
-def recent_filings(api_key, corp_code) -> list:
+def recent_filings(filings: list) -> list:
     return [{"date": f.get("rcept_dt", ""), "title": re.sub(r"\s+", " ", f.get("report_nm", "")).strip(),
              "filer": f.get("flr_nm", ""), "rcept_no": f.get("rcept_no", "")}
-            for f in list_filings(api_key, corp_code, 1)[:10]]
+            for f in filings[:10]]
 
 
 # ---------- 조립 ----------
@@ -621,7 +647,7 @@ def financial_sections(p: dict, fy: dict, y: int):
     p["ratios"] = {"years": fin_years, "values": values, "status": status, "text": ratio_text(values, status, y)}
 
 
-def build_profile(api_key: str, corp_code: str) -> dict | None:
+def build_profile(api_key: str, corp_code: str, names: list = ()) -> dict | None:
     company = call(api_key, "company", corp_code=corp_code)
     if not company:
         return None
@@ -631,7 +657,7 @@ def build_profile(api_key: str, corp_code: str) -> dict | None:
     this_year = datetime.now().year
 
     # 1) 사업보고서
-    fy, report_year = {}, None
+    fy, report_year, overview = {}, None, {}
     for year in (this_year - 1, this_year - 2):
         rows = statement_rows(api_key, corp_code, year, ANNUAL)
         if rows:
@@ -656,9 +682,10 @@ def build_profile(api_key: str, corp_code: str) -> dict | None:
         shares = fetch_shares(api_key, corp_code, y)
         if price and shares:
             p["market"] = {**price, "cap": eok(price["price"] * shares), "shares": shares}
+        overview = business_report_overview(api_key, corp_code)
     else:
         # 2) 감사보고서 원문 (외부감사 대상 비상장사)
-        audit_fy, auditors = audit_financials(api_key, corp_code)
+        audit_fy, auditors, overview = audit_financials(api_key, corp_code)
         if auditors:
             p["audit"] = [{"period": f"{a['year']}년", "auditor": a["auditor"], "opinion": "",
                            "rcept_no": a["rcept_no"]} for a in auditors]
@@ -671,6 +698,12 @@ def build_profile(api_key: str, corp_code: str) -> dict | None:
         p["report_year"] = report_year
         financial_sections(p, fy, report_year)
 
+    # 연혁·사업장·회계기준: 본사는 회사 개황 주소를 기준으로 하고 원문의 사업장을 더한다
+    p["history"] = overview.get("history", [])
+    home = [(shorten_address(p["adres"]), "본사")] if p["adres"] else []
+    p["sites"] = merge_sites(home + overview.get("sites", []))
+    p["standard"] = overview.get("standard") or ("K-IFRS" if p.get("fin_source") == "annual" else "")
+
     # 3) 최근 분기·반기 실적: 올해 가장 최근 보고서와 작년 같은 보고서를 비교
     for code, label in QUARTERLY:
         cur_rows = statement_rows(api_key, corp_code, this_year, code)
@@ -682,18 +715,35 @@ def build_profile(api_key: str, corp_code: str) -> dict | None:
                 "label": label, "years": [this_year - 1, this_year],
                 "rows": {k: [eok(prev.get(k)), eok(cur.get(k))] for k in FIN_ITEMS},
                 "yoy": {k: growth(cur.get(k), prev.get(k)) for k in FIN_ITEMS},
+                "debt_ratio": [pct(v.get("부채총계"), v.get("자본총계")) for v in (prev, cur)],
                 "text": quarter_text(cur, prev, label, this_year),
             }
             p.setdefault("fin_source", "quarter")
         break
 
-    p["filings"] = recent_filings(api_key, corp_code)
+    filings = list_filings(api_key, corp_code, 1)
+    p["filings"] = recent_filings(filings)
+
+    # 4) 주요 특징: 최근 공시·뉴스에서 2~3건
+    corp = re.sub(r"\(주\)|㈜|주식회사", "", p["corp_name"]).strip()
+    try:
+        p["highlights"] = collect_highlights([*names, p["stock_name"], corp], filings,
+                                             lambda no: fetch_document_text(api_key, no))
+    except DartUnreachable:
+        raise
+    except Exception as e:  # 뉴스·원문 형식이 예상과 달라도 프로필은 저장한다
+        print(f"[highlights] {corp_code} 주요 특징을 만들지 못함: {e}")
     return p
 
 
-def load_corp_codes() -> list:
-    # companies.js 의 ["회사명", "고유번호", ...] 줄에서 8자리 고유번호만 뽑는다
-    return re.findall(r'\[\s*"[^"]+",\s*"(\d{8})"', COMPANIES_PATH.read_text(encoding="utf-8"))
+def load_companies() -> dict:
+    """companies.js 의 ["회사명", "고유번호", "종목코드", "비고"] 줄을 {고유번호: [뉴스 검색에 쓸 이름들]} 로 읽는다."""
+    out = {}
+    pattern = r'\[\s*"([^"]+)",\s*"(\d{8})",\s*"\d*"(?:,\s*"([^"]*)")?\s*\]'
+    for name, corp_code, note in re.findall(pattern, COMPANIES_PATH.read_text(encoding="utf-8")):
+        alias = re.match(r"DART 법인명\s+(.+)", note or "")  # 예: 글로벌스탠다드테크놀로지 → GST
+        out[corp_code] = [name] + ([alias.group(1).strip()] if alias else [])
+    return out
 
 
 def main() -> int:
@@ -703,7 +753,8 @@ def main() -> int:
         print("DART_API_KEY 환경변수가 없습니다.")
         return 1
 
-    corp_codes = load_corp_codes()
+    companies = load_companies()
+    corp_codes = list(companies)
     profiles, started, done = {}, time.monotonic(), [0]
     lock = threading.Lock()
     stop = threading.Event()
@@ -712,7 +763,7 @@ def main() -> int:
         if stop.is_set() or time.monotonic() - started > TIME_BUDGET_SECONDS:
             return
         try:
-            profile = build_profile(api_key, corp_code)
+            profile = build_profile(api_key, corp_code, companies[corp_code])
         except DartUnreachable as e:
             if not stop.is_set():
                 print(f"OpenDART 에 접속할 수 없어 중단합니다: {e}")
