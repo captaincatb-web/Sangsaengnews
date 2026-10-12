@@ -706,6 +706,8 @@ def build_profile(api_key: str, corp_code: str, names: list = ()) -> dict | None
 
     # 연혁·사업장·회계기준: 본사는 회사 개황 주소를 기준으로 하고 원문의 사업장을 더한다
     p["history"] = overview.get("history", [])
+    if overview.get("shareholders") and not p.get("shareholders"):  # 비상장사: 감사보고서 주주 현황
+        p["shareholders"] = {"top": overview["shareholders"], "total": None, "source": "감사보고서"}
     home = [(shorten_address(p["adres"]), "본사")] if p["adres"] else []
     p["sites"] = merge_sites(home + overview.get("sites", []))
     p["standard"] = overview.get("standard") or ("K-IFRS" if p.get("fin_source") == "annual" else "")

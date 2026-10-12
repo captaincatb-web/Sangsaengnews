@@ -224,7 +224,7 @@
     ceoItem,
     line("인력", emp.count ? `${num(emp.count)}명 (${esc(emp.as_of)} 기준)` : "", [empNote ? `* ${empNote}` : ""]),
     listed ? line("시가총액", mk ? `${eokText(mk.cap)}원 (주가 ${num(mk.price)}원)` : "", [mkDate ? `* ${mkDate} 종가 기준` : ""]) : "",
-    line("주주", shareholders),
+    line("주주", shareholders, [p.shareholders && p.shareholders.source ? `* ${esc(p.shareholders.source)} 기준` : ""]),
     block("경영 실적", basis, perfTable),
     block("재무 정보", basis, bsTable),
     siteItem,
