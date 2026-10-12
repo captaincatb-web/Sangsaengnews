@@ -66,6 +66,7 @@ FALSE_POSITIVE_PATTERNS = {
     "티에스이": r"엘디티",
     "디엔에프": r"서경디엔에프|서경dnf",
     "에바라": r"jitsugyo|에바라실업",
+    "KLA": r"코소보|kosovo|해방군|liberation army|전쟁\s*범죄|헤이그",
 }
 FALSE_POSITIVE_RE = {k: re.compile(v) for k, v in FALSE_POSITIVE_PATTERNS.items()}
 
