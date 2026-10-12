@@ -133,6 +133,11 @@ def parse_history(doc: str) -> list:
             continue
         seen.add(key)
         picked.append({"year": year, "month": month, "text": event, "rank": _rank(event)})
+    # 날짜 조각('01)을 통해 …')은 버리고, 짧은 연혁 항목이 있으면 '…되었습니다' 같은 설명 문장은 뺀다
+    picked = [e for e in picked if not re.match(r"[\d)(.,~]", e["text"])]
+    prose = re.compile(r"습니다|었으며|되었|하였|이며,")
+    if any(not prose.search(e["text"]) for e in picked):
+        picked = [e for e in picked if not prose.search(e["text"])]
     # 순위가 높은 사건 5개를 골라 날짜순으로 보여 준다 (가장 이른 회사 설립이 맨 앞 순위)
     chosen = sorted(picked, key=lambda e: (e["rank"], e["year"]))[:5]
     return [{"year": e["year"], "month": e["month"], "text": e["text"]}
