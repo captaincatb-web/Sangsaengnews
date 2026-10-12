@@ -56,7 +56,7 @@ def _section(doc: str, title_pattern: str, limit: int = 150000) -> str:
 def _clean_event(text: str) -> str:
     t = re.sub(r"^[\s\-·ㆍ•▶○●□■*]+", "", text)
     t = re.sub(r"\s+", " ", t).strip(" .")
-    return t[:70] + ("…" if len(t) > 70 else "")
+    return t if len(t) <= 160 else t[:160].rsplit(" ", 1)[0] + "…"
 
 
 def _rank(event: str) -> int:
@@ -267,7 +267,7 @@ def sentence_sites(text: str, own_only: bool = False) -> list:
     own_only 이면 '당사'·'회사' 가 주어인 문장만 본다 (고객사 공장 위치 등을 거르기 위해)."""
     pairs = []
     for s in re.split(r"(?<=다\.)\s+|\n", text):
-        if not re.search(r"소재|위치", s) or (own_only and not re.search(r"당사|회사의|회사는|본사", s)):
+        if not re.search(r"소재|위치|두고", s) or (own_only and not re.search(r"당사|회사의|회사는|본사", s)):
             continue
         for addr in ADDRESS_RE.findall(s):
             before = s[: s.find(addr)][-25:]
@@ -292,15 +292,12 @@ def business_overview(doc: str) -> dict:
 # ---------- 감사보고서 주석 '회사의 개요' ----------
 
 def _history_sentence(s: str) -> dict:
-    """'주식회사 OO(이하 "회사")는 1995년 7월 1일에 ... 설립된 ...으로서, ...' → 설립 부분까지 줄인 한 문장."""
+    """'주식회사 OO(이하 "회사")는 1995년 7월 1일에 ... 설립된 ...' → 주어와 상법 문구를 뗀 한 문장(끝까지)."""
     s = re.sub(r"^.{0,60}?\(이하[^)]*\)\s*(?:은|는)\s*", "", s)  # '주식회사 OO(이하 "회사")는' 떼기
     s = re.sub(r"(?:대한민국\s*)?상법(?:의\s*규정)?에\s*(?:준거|의거|따라)하?여\s*", "", s)
-    m = re.search(r"설립|합병|분할|상장", s)
-    if m and len(s) > 80:
-        cut = re.search(r"(?:으로서|으며|이며|하였고|되었고|하고),", s[m.end():])
-        if cut:
-            s = s[: m.end() + cut.start()].rstrip(" ,") + "…"
-    s = s if len(s) <= 120 else s[:120] + "…"
+    s = re.sub(r"\s+", " ", s).strip()
+    if len(s) > 220:  # 아주 긴 문장만 마지막 쉼표·어절에서 끊는다
+        s = s[:220].rsplit(",", 1)[0].rsplit(" ", 1)[0] + "…"
     year = re.search(r"((?:19|20)\d{2})\s*년", s)
     return {"year": int(year.group(1)) if year else None, "text": s}
 
@@ -310,10 +307,15 @@ def audit_overview(doc: str) -> dict:
     text = strip_tags(doc)
     out = {"history": [], "sites": [], "standard": detect_standard(text)}
 
-    m = re.search(r"1\s*\.\s*(?:일반\s*사항|일반적인?\s*사항|회사의\s*개요|회사\s*개요)", text)
-    if not m:
-        return out
-    chunk = text[m.end(): m.end() + 1500]
+    m = re.search(r"1\s*[.)]\s*(?:일반\s*사항|일반적인?\s*사항|(?:회사|당사)의?\s*개요|보고\s*기업|일반\s*정보)", text)
+    if not m:  # 제목이 다르면 '…설립되었' 문장이 처음 나오는 곳을 쓴다
+        m = re.search(r"[^.]{0,120}(?:에|일)\s*설립되", text)
+        if not m:
+            return out
+        start = m.start()
+    else:
+        start = m.end()
+    chunk = text[start: start + 1500]
     sentences = [s.strip() for s in re.split(r"(?<=다\.)\s+", chunk) if s.strip()][:6]
     for s in sentences:
         if (re.search(r"설립|합병|분할|상호|사명|상장|인수", s)
@@ -321,4 +323,32 @@ def audit_overview(doc: str) -> dict:
             out["history"].append(_history_sentence(s))
         out["sites"] += sentence_sites(s)
     out["history"] = out["history"][:3]
+    out["shareholders"] = audit_shareholders(doc)
     return out
+
+
+def audit_shareholders(doc: str) -> list:
+    """감사보고서 주석의 주주 현황 표(주주명 | 주식수 | 지분율)에서 지분율 상위 주주를 읽는다."""
+    for table in TABLE_RE.findall(doc):
+        rows = table_rows(table)
+        if len(rows) < 2:
+            continue
+        head = [re.sub(r"\s", "", h) for h in rows[0]]
+        name_i = next((i for i, h in enumerate(head) if re.search(r"주주|성명|회사명", h)), None)
+        ratio_i = next((i for i, h in enumerate(head) if re.search(r"지분율|소유비율|비율|지분\(%\)", h)), None)
+        if name_i is None or ratio_i is None or name_i == ratio_i:
+            continue
+        holders = []
+        for row in rows[1:]:
+            if len(row) <= max(name_i, ratio_i):
+                continue
+            name = row[name_i].strip()
+            ratio = re.search(r"\d+(?:\.\d+)?", row[ratio_i].replace(",", ""))
+            if not name or re.fullmatch(r"(?:합\s*계|계|소\s*계|기\s*타|-)", name) or not ratio:
+                continue
+            if 0 < float(ratio.group()) <= 100:
+                holders.append({"name": name, "relation": "", "ratio": ratio.group()})
+        if holders:
+            holders.sort(key=lambda h: float(h["ratio"]), reverse=True)
+            return holders[:5]
+    return []
