@@ -328,8 +328,10 @@ def audit_financials(api_key: str, corp_code: str) -> tuple[dict, list]:
     for f in filings:  # 최신 접수순이므로 연도별 첫 건(정정 포함 최신)을 쓴다
         name = f.get("report_nm", "")
         m = re.search(r"\((\d{4})\.(\d{2})\)", name)
-        if "감사보고서" in name and "연결" not in name and m and int(m.group(1)) not in by_year:
-            by_year[int(m.group(1))] = f
+        if "감사보고서" in name and "연결" not in name and m:
+            # 사업연도는 시작한 해로 부른다: 12월 결산이 아니면 (2026.03) 은 '25.4~'26.3 이므로 2025년
+            year = int(m.group(1)) - (0 if m.group(2) == "12" else 1)
+            by_year.setdefault(year, f)
     fy, auditors = {}, []
     for year in sorted(by_year, reverse=True)[:3]:
         f = by_year[year]

@@ -21,6 +21,12 @@
     { key: "cap", label: "시가총액", word: "시가총액(억원)" },
   ];
 
+  // 사업연도(시작한 해)와 결산월로 끝나는 연·월을 만든다. 예: 3월 결산 2025년 → '26.03
+  const fiscalEnd = (year, accMt) => {
+    const m = Number(accMt || 12);
+    return `'${String(m === 12 ? year : year + 1).slice(2)}.${String(m).padStart(2, "0")}`;
+  };
+
   // 프로필 데이터에서 최근 결산 연도의 주요 숫자를 뽑는다
   function metrics(p) {
     const fin = p && p.financials;
@@ -29,7 +35,7 @@
     const sales = pick("매출액"), op = pick("영업이익");
     const ratio = p && p.ratios && p.ratios.values ? p.ratios.values["부채비율"] : null;
     return {
-      period: fin && p.report_year ? `'${String(p.report_year).slice(2)}.${String(p.acc_mt || 12).padStart(2, "0")}` : "",
+      period: fin && p.report_year ? fiscalEnd(p.report_year, p.acc_mt) : "",
       sales, op, margin: pct(op, sales), net: pick("당기순이익"),
       debtRatio: ratio ? ratio[last] : pct(pick("부채총계"), pick("자본총계")),
       price: p && p.market ? p.market.price : null,
