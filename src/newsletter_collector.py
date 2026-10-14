@@ -37,14 +37,14 @@ PHOTO_CAPTION_RE = re.compile(r"[\(\[〈][^\)\]〉]*사진[^\)\]〉]*[\)\]〉]\s
 PHOTO_TAG_RE = re.compile(r"^\s*[\(\[〈]\s*포토\s*[\)\]〉]")
 
 STOCK_NOISE_RE = re.compile(
-    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목|애프터마켓|프리마켓|상승폭|하락폭|장\s*마감|마감\s*시황|매수세|매도세|주요\s*공시|경제\s*일정|주간\s*일정|(?:상승|하락)\s*vi\b|\d+만\s*\d*\s*원(?:대|으로|에|선)|%\s*대\s*(?:상승|하락|강세|약세)|가격\s*내역|과거\s*데이터|tokenized|xstock)"
+    r"(특징주|테마주|수혜주|관련주|주도주|대장주|고래사냥|내일장|주식민원|투자전략|테마\s*상승|투자분석|주달|52주|신고가|신저가|외국인\s*대량|순매도|순매수|코스닥|코스피|급등|급락|상한가|하한가|증시일정|리포트|총정리|상승여력|목표가|올릴\s*종목|폭등|반도체주|장비주|동반\s*상승|동반\s*폭등|주목을|방긋|초고수|사고.*팔았다|질주|가격\s*부담|상쇄|자신감|헬로스톡|주목할\s*종목|싸다|증권|실적\s*감안|기대감도|차익실현|매수\s*추천|칩칩폭폭|딸깍|전량매도|전량매수|매수일지|투자일지|매매일기|매매복기|추천부터|손절|존버|물타기|줍줍|영끌|풀매수|풀매도|시선강탈|공략법|불타오르네|%\s*[↑↓]|장중|현재가|원선에서|만원대\s*(상승|하락)|%\s*(올라|뛰어|내려|빠져|하락에)|기술적\s*분석|지지선|저항선|움직였습니다|주식\s*\d선|기판주|소재주|부품주|장비주|강세|약세|최선호주|선호주|탑픽|애널리스트|투자\s*포인트|저평가|고평가|증시|투자\s*캘린더|프리뷰|체크포인트|월가|株|재주목|애프터마켓|프리마켓|상승폭|하락폭|장\s*마감|마감\s*시황|매수세|매도세|주요\s*공시|경제\s*일정|주간\s*일정|(?:상승|하락)\s*vi\b|\d+만\s*\d*\s*원(?:대|으로|에|선)|%\s*대\s*(?:상승|하락|강세|약세)|가격\s*내역|과거\s*데이터|tokenized|xstock|마감\s*분석|기업\s*주식\s*정보|원\s*마감(?!재))"
 )
 STOCK_BRACKET_RE = re.compile(r"\[.*(강세|약세|특징|종목|테마|토픽|시황|고래|주식|베스트).*\].*")
 BROKER_RE = re.compile(
     r"(한국투자|nh투자|kb증권|삼성증권|미래에셋|대신증권|키움증권|신한투자|하나증권|메리츠증권|유안타|리서치센터|목표주가|투자의견|상승 마감|하락 마감|주가\s*전망|주가\s*추이|주가)"
 )
 ENGLISH_STOCK_RE = re.compile(
-    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors|initiated at|initiates|reiterat|outperform|underperform|overweight|underweight|rating|margin trading|earnings preview|wall street|better buy|\bvs\.?\s|\betf\b|research reports?|(?:loses|gains|rises|falls|drops|jumps|climbs|slides)\s+\d+(?:\.\d+)?\s*(?:percent|%)|pre-?market|after-hours)"
+    r"(stock|shares|nasdaq|nyse|tse:|price target|buy rating|sell rating|hold rating|downgrade|upgrade|analyst|earnings per share|\beps\b|dividend|market cap|short interest|hedge fund|institutional invest|results beat|p/e ratio|valuation|trading at|52-week|moving average|zacks|motley fool|seeking alpha|why .* stock|should you buy|undervalued|overvalued|fair value|intrinsic value|narrative\?|investors|initiated at|initiates|reiterat|outperform|underperform|overweight|underweight|rating|margin trading|earnings preview|wall street|better buy|\bvs\.?\s|\betf\b|research reports?|market is going to|market size|cagr|(?:loses|gains|rises|falls|drops|jumps|climbs|slides)\s+\d+(?:\.\d+)?\s*(?:percent|%)|pre-?market|after-hours)"
 )
 
 # 회사별 오탐 필터 (제목을 소문자로 바꾼 뒤 검사)
@@ -57,9 +57,9 @@ FALSE_POSITIVE_PATTERNS = {
     "에스티아이": r"여론조사|지지|응답|복당|대통령|정당|찬성|반대|국힘|민주당|후보",
     "테스": r"테스터|미용|의료기기|강소기업|바이오|두산테스나|비공개|베타|스트레스|게임|nasa|나사|망원경|테스\W*형|필라테스|요가|골대체재|드퓨신테스|시지바이오|노보시스|테스토닉|사이테스|cites|야생동물|멸종위기|파충류|희귀동물|밀수|밀매|테스티파이|테스토스|테스코|t\.e\.s\.s|아크리테스|테스라|넥슨|마비노기|테스트|신테스|tplo|정형외과|동물병원|수의|cbt|obt|biff|영화|배우|감독|바르텔레미|드라마|테스나",
     "후성": r"후성유전|유전체|유전학|유전 편집|에피크리스퍼|심포지엄",
-    "제이티": r"저축은행|캐피탈|jtbc|제이티비씨|jt방송|jt비씨|제이티시스템|제이티넷|제이티이엔지|제이티전자",
+    "제이티": r"걸그룹|아이돌|데뷔|엔터|제이티\s*코리아|저축은행|캐피탈|jtbc|제이티비씨|jt방송|jt비씨|제이티시스템|제이티넷|제이티이엔지|제이티전자",
     "ASML": r"니콘|캐논|재도전장|도전장|장악한",
-    "케이씨": r"케이씨지|kcg|케이씨씨|kcc|케이씨에스|케이씨티|선박|방식|방오|조선|^pkc|\bpkc\b|케이씨피드|hkc|케이씨텍|제이케이씨",
+    "케이씨": r"kc\s*인증|kc\s*마크|[가-힣]케이씨|케이씨지|kcg|케이씨씨|kcc|케이씨에스|케이씨티|선박|방식|방오|조선|^pkc|\bpkc\b|케이씨피드|hkc|케이씨텍|제이케이씨",
     "디아이": r"어드밴텍|advantech|디아이에프엠|difm|디아이동일|디아이씨|adi|아나로그디바이스|sdi|배터리|holding|asml|디바인|divine|변동 원인|주식 마감|nvidia|슈퍼마이크로|3di|도쿄일렉트론|디아이랩|디아이파워|디아이건설|엑스디아이",
     "솔브레인": r"솔브레인홀딩스|홀딩스",
     "피에스케이": r"피에스케이홀딩스|홀딩스",
@@ -73,10 +73,10 @@ FALSE_POSITIVE_RE = {k: re.compile(v) for k, v in FALSE_POSITIVE_PATTERNS.items(
 ASCII_ALIAS_RE = re.compile(r"^[a-z0-9.&\- ]+$")
 
 # 회사와 무관한 스팸·채용 공고
-GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입|공채|경력직|뽑는다")
+GENERAL_NOISE_RE = re.compile(r"토토|카지노|바카라|슬롯|채용|인턴|신입|공채|경력직|뽑는다|일자리\s*박람회|취업\s*박람회|현장\s*면접")
 # 투자의견·주가 분석 위주 매체 (언론사명 기준)
 BLOCKED_SOURCE_RE = re.compile(
-    r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan|smartkarma|ad hoc news|tradingview|moomoo|coinmarketcap",
+    r"seeking alpha|simply wall|marketbeat|zacks|tipranks|motley fool|benzinga|gurufocus|stocktitan|smartkarma|ad hoc news|tradingview|moomoo|coinmarketcap|openpr",
     re.I,
 )
 # 사진/이미지 페이지, 주가 분석 사이트
@@ -120,7 +120,7 @@ def is_english_stock_news(clean_title: str) -> bool:
     if len(re.findall(r"[가-힣]", clean_title)) > 3:
         return False  # 한글 위주 제목은 한글 필터가 처리
     # "Entegris (ENTG)" 처럼 티커를 괄호로 단 영문 제목은 대부분 주가·밸류에이션 기사
-    if re.search(r"\((?:NASDAQ|NYSE)?:?\s?[A-Z]{2,5}\)", clean_title):
+    if re.search(r"\((?:NASDAQ|NYSE)?:?\s?[A-Z]{2,5}\)|\([A-Z0-9]{2,6}\.[A-Z]{1,3}\)", clean_title):
         return True
     return bool(ENGLISH_STOCK_RE.search(clean_title.lower()))
 
@@ -163,7 +163,7 @@ PERSON_CAPTION_RE = re.compile(r"^\S+\s+\S+\s+(팀장|대표|사장|부장|상�
 
 
 # "OOO 대표(앞줄 왼쪽부터)와 ... 기념촬영 했다" 같은 단체사진 캡션
-GROUP_CAPTION_RE = re.compile(r"기념촬영|앞줄|뒷줄|왼쪽부터|오른쪽부터|를 비롯해|하고 있다\.?$")
+GROUP_CAPTION_RE = re.compile(r"기념촬영|앞줄|뒷줄|왼쪽부터|오른쪽부터|를 비롯해|하고 있다\.?$|(?:전시|공개|소개)된\s+\S+(?:\s+\S+){0,2}$")
 
 
 def is_photo_caption(title: str) -> bool:
@@ -437,7 +437,9 @@ def _drop_reason(clean_title: str, link: str, src_name: str) -> str:
     if is_photo_caption(clean_title):
         return "사진 캡션"
     # 네이버 프리미엄콘텐츠(유료 구독형)·블로그 차단
-    if "contents.premium.naver.com" in link or "blog.naver.com" in link or "네이버 블로그" in clean_title:
+    if re.search(r"contents\.premium\.naver\.com|blog\.naver\.com|tistory\.com|brunch\.co\.kr", link) or "네이버 블로그" in clean_title:
+        return "블로그·유료"
+    if re.search(r"티스토리|tistory|브런치", src_name, re.IGNORECASE):
         return "블로그·유료"
     if re.search(r"네이버\s*프리미엄|프리미엄콘텐츠|premium\s*contents", src_name, re.IGNORECASE):
         return "블로그·유료"
