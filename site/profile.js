@@ -87,7 +87,7 @@
     `DART ${esc(code)}`,
     updated ? `${esc(updated)} 갱신` : "",
   ].filter(Boolean).map((m) => `<li>${m}</li>`).join("")
-    + (company.stockCode ? `<li data-nocopy><a href="https://finance.naver.com/item/main.naver?code=${esc(company.stockCode)}" title="${esc(p.stock_name || company.name)} 네이버 증권" target="_blank" rel="noopener">네이버 증권<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li>` : "")
+    + (company.stockCode ? `<li data-nocopy><a href="https://search.naver.com/search.naver?query=${encodeURIComponent(`${p.stock_name || company.name} 주가`)}" target="_blank" rel="noopener">네이버 증권<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li>` : "")
     + `<li data-nocopy><a href="https://dart.fss.or.kr/dsab001/main.do?autoSearch=Y&textCrpCik=${esc(code)}&textCrpNm=${encodeURIComponent(p.stock_name || company.name)}" target="_blank" rel="noopener">DART 공시<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li>`;
 
   // ---------- 1면: 개요 ----------
