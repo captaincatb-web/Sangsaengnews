@@ -1,0 +1,67 @@
+name: Add company from issue
+
+# 사이트의 '기업 추가'가 미리 채워 여는 이슈('기업 추가: 회사명')를 저장소 관리자가 등록하면
+# DART 에서 회사를 찾아 site/data/companies.js 에 더하고 사이트를 다시 만든다. 결과는 이슈 댓글로 알린다.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: add-company
+  cancel-in-progress: false
+
+jobs:
+  add:
+    # 아무나 이슈를 열어 목록을 바꾸지 못하도록 저장소 관리자(소유자·멤버·협업자)가 연 이슈만 처리한다
+    if: >-
+      startsWith(github.event.issue.title, '기업 추가') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.issue.author_association)
+    runs-on: ubuntu-latest
+    env:
+      DART_API_KEY: ${{ secrets.DART_API_KEY }}
+      ISSUE_TITLE: ${{ github.event.issue.title }}
+      ISSUE_BODY: ${{ github.event.issue.body }}
+      ISSUE: ${{ github.event.issue.number }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install requests
+
+      - id: add
+        run: python scripts/add_company.py
+
+      - name: Commit company list
+        if: steps.add.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/data/companies.js
+          git commit -m "Add company from issue #$ISSUE"
+          git push origin "HEAD:$DEFAULT_BRANCH"
+
+      # Actions 토큰으로 올린 커밋은 다른 워크플로를 깨우지 않으므로 사이트 빌드를 직접 실행한다
+      - name: Rebuild site
+        if: steps.add.outputs.changed == 'true'
+        run: gh workflow run pages.yml --ref "$DEFAULT_BRANCH"
+
+      - name: Reply on issue
+        if: always()
+        env:
+          MESSAGE: ${{ steps.add.outputs.message || '처리 중 오류가 났습니다. Actions 로그를 확인해 주세요.' }}
+          DONE: ${{ steps.add.outputs.changed == 'true' || steps.add.outputs.exists == 'true' }}
+        run: |
+          gh issue comment "$ISSUE" --body "$MESSAGE"
+          if [ "$DONE" = "true" ]; then gh issue close "$ISSUE"; fi
