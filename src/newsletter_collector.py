@@ -336,8 +336,26 @@ def _search_terms(company: str) -> list:
     return terms[:2]
 
 
-def build_sources() -> list:
-    """수집 소스 목록 (company 가 있으면 해당 회사로 직접 귀속되는 DART 피드)"""
+def _range_url(query: str, start: datetime, end: datetime, lang: str = "ko") -> str:
+    """과거 시점 수집용 구글뉴스 검색 (after:/before: 날짜 범위)"""
+    q = f"{query} after:{start:%Y-%m-%d} before:{end:%Y-%m-%d}"
+    hl = "hl=en-US&gl=US&ceid=US:en" if lang == "en" else "hl=ko&gl=KR&ceid=KR:ko"
+    return f"https://news.google.com/rss/search?q={quote(q)}&{hl}"
+
+
+def build_sources(asof: datetime | None = None) -> list:
+    """수집 소스 목록 (company 가 있으면 해당 회사로 직접 귀속되는 DART 피드).
+    asof 를 주면 그 시점까지의 과거 주차 수집용으로, 날짜 범위를 줄 수 있는 구글뉴스 검색만 쓴다."""
+    if asof:
+        sources = []
+        start, end = asof - timedelta(days=MAX_AGE_DAYS), asof + timedelta(days=1)
+        for company in all_company_names():
+            q = " OR ".join(f'"{t}"' for t in _search_terms(company))
+            sources.append({"kind": "google", "url": _range_url(q, start, end), "company": ""})
+            if company in ENGLISH_SEARCH_TERMS:
+                q_en = " OR ".join(f'"{t}"' for t in ENGLISH_SEARCH_TERMS[company])
+                sources.append({"kind": "google_en", "url": _range_url(q_en, asof - timedelta(days=14), end, "en"), "company": ""})
+        return sources
     sources = []
     for company, code in DART_CORP_CODES.items():
         if code:
@@ -459,15 +477,15 @@ def _news_drop_reason(clean_title: str, link: str, src_name: str) -> str:
     return ""
 
 
-def collect_articles() -> dict:
+def collect_articles(asof: datetime | None = None) -> dict:
     """DART + RSS + 구글뉴스 + 포털 뉴스검색 수집 → {회사명: [article, ...]} (회사별 최신순 상위 N건)"""
     alias_map = build_alias_map()
-    sources = build_sources()
+    sources = build_sources(asof)
 
     with ThreadPoolExecutor(max_workers=16) as pool:
         feeds = list(pool.map(_fetch_feed, sources))
 
-    now = datetime.now(timezone.utc)
+    now = asof.astimezone(timezone.utc) if asof else datetime.now(timezone.utc)
     cutoff = now - timedelta(days=MAX_AGE_DAYS)
     fresh_cutoff = now - timedelta(days=FRESH_DAYS)
     raw, kept, reasons = Counter(), Counter(), Counter()
@@ -479,7 +497,7 @@ def collect_articles() -> dict:
         raw[kind] += len(items)
         for item in items:
             title, link, pub_date = item["title"], item["link"], item["pub_date"]
-            if not title or not link or not pub_date or pub_date < cutoff:
+            if not title or not link or not pub_date or pub_date < cutoff or pub_date > now:
                 continue
 
             # 포털 검색 제목에는 '- 언론사' 꼬리가 없어 그대로 쓴다
@@ -564,7 +582,8 @@ def collect_articles() -> dict:
     print("소스별 채택 건수:", dict(kept))
     print("제외 사유:", dict(reasons))
     print(f"수집 완료: {len(valid_articles)}건 / 기사 있는 회사 {covered}/{len(by_company)} (최근 {FRESH_DAYS}일 {fresh_covered}곳)")
-    _write_collect_report(raw, kept, reasons, dropped, by_company, fresh_cutoff)
+    if not asof:
+        _write_collect_report(raw, kept, reasons, dropped, by_company, fresh_cutoff)
     return by_company
 
 

@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime
 
-from src import email_sender, gnews_decoder
+from src import email_sender, gnews_decoder, site
 from src.history import KST
 from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar, is_stale
 from src.newsletter_config import OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
@@ -65,6 +65,7 @@ def main() -> None:
     out_path.write_text(html_body, encoding="utf-8")
     (OUTPUT_DIR / "subject.txt").write_text(subject, encoding="utf-8")
     print(f"HTML 저장: {out_path} ({len(html_body.encode()) // 1024}KB) / 제목: {subject}")
+    site.publish_week(now, html_body, build_stats(grouped, now, len(companies)), highlights)
 
     if args.dry_run:
         return
