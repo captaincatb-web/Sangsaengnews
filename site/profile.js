@@ -336,7 +336,22 @@
       ["활동성", "매입채무회전율", "매입액(매출원가로 대신함) ÷ 평균 매입채무"],
     ], { groupCol: true, cls: "text" })}</details>` : "";
 
-  root.innerHTML = `<header class="pf-head"><h1>${esc(company.name)} 프로필</h1><ul class="meta">${meta}</ul></header>`
+  // 맨 위 핵심 숫자 (화면용. Word 복사에는 넣지 않는다)
+  const lastIdx = perf ? perf.years.map((_, i) => i).filter((i) => perf["매출액"][i] != null).pop() : undefined;
+  const sg = (v) => (v == null ? "" : `<span class="${v >= 0 ? "up" : "down"}">전년 대비 ${rate(v)}</span>`);
+  const kpiList = [];
+  if (lastIdx != null) {
+    const y = yy(perf.years[lastIdx]);
+    kpiList.push(["매출액", `${eokText(perf["매출액"][lastIdx])}원`, `${y} ${sg(fin && fin.yoy ? fin.yoy["매출액"] : null)}`]);
+    kpiList.push(["영업이익", `${eokText(perf["영업이익"][lastIdx])}원`, `영업이익률 ${pctText(perf["영업이익률"][lastIdx])}`]);
+  }
+  const debtVal = r && r.values["부채비율"] && r.values["부채비율"].filter((v) => v != null).pop();
+  if (debtVal != null) kpiList.push(["부채비율", pctText(debtVal), debtVal <= 200 ? "200% 이하 양호" : "200% 초과"]);
+  if (listed && mk) kpiList.push(["시가총액", `${eokText(mk.cap)}원`, `주가 ${num(mk.price)}원`]);
+  else if (emp.count) kpiList.push(["인력", `${num(emp.count)}명`, esc(emp.as_of || "")]);
+  const kpis = kpiList.length ? `<dl class="pf-kpis" data-nocopy>${kpiList.map(([k, v, s]) => `<div class="pf-kpi"><dt>${k}</dt><dd>${v}</dd><small>${s}</small></div>`).join("")}</dl>` : "";
+
+  root.innerHTML = `<header class="pf-head"><h1>${esc(company.name)} 프로필</h1><ul class="meta">${meta}</ul>${kpis}</header>`
     + `<div class="pf-items" id="pf-overview">${overview}</div>`
     + (analysis ? `<h2 class="pf-part" id="pf-analysis">재무현황 분석</h2><div class="pf-items">${analysis}</div>` : "")
     + (extra ? `<h2 class="pf-part" id="pf-extra">추가 정보</h2><div class="pf-items">${extra}</div>` : "")

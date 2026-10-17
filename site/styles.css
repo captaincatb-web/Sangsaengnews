@@ -20,31 +20,32 @@
 
 :root {
   /* KRDS 기본(밝은) 화면 */
-  --bg: #ffffff;
+  --bg: #f3f4f8;
   --surface: #ffffff;
-  --subtle: #f4f5f6;          /* background-gray-subtler */
+  --subtle: #eeeff6;          /* background-gray-subtler */
   --subtle-2: #e6e8ea;        /* background-gray-subtle */
   --text: #1e2124;            /* text-basic */
   --text-strong: #131416;     /* text-bolder */
   --text-2: #464c53;          /* text-subtle */
   --text-3: #58616a;          /* gray-60: 보조 설명 */
   --placeholder: #8a949e;     /* text-disabled */
-  --line: #cdd1d5;            /* border-gray-light */
+  --line: #e3e5ee;            /* border-gray-light */
   --line-2: #b1b8be;          /* border-gray */
   --input-line: #58616a;      /* input-border */
-  --primary: #256ef4;         /* primary-50: 버튼·링크·초점 */
-  --primary-hover: #0b50d0;
-  --primary-pressed: #083891;
-  --primary-text: #0b50d0;    /* text-primary */
-  --primary-5: #ecf2fe;
-  --primary-10: #d8e5fd;
-  --primary-20: #b1cefb;
-  --selected: #063a74;        /* secondary-70: 선택된 메뉴·탭 */
-  --selected-text: #052b57;   /* text-secondary */
-  --nav-hover: #eef2f7;       /* secondary-5 */
-  --nav-pressed: #d6e0eb;     /* secondary-10 */
-  --thead: #eef2f7;
-  --thead-line: #d6e0eb;
+  --primary: #5b4bdb;         /* 포인트(보라): 버튼·링크·초점 */
+  --primary-hover: #4a3bc4;
+  --primary-pressed: #3b2ea3;
+  --primary-text: #4a3bc4;
+  --primary-5: #f1f0fc;
+  --primary-10: #e3e0f9;
+  --primary-20: #c9c3f3;
+  --selected: #4a3bc4;        /* 선택된 메뉴·탭 */
+  --selected-text: #3b2ea3;
+  --nav-hover: #ebeaf9;
+  --nav-pressed: #dcd9f4;
+  --thead: #ffffff;
+  --thead-line: #e3e5ee;
+  --card-shadow: 0 1px 2px rgb(20 20 60 / .05), 0 8px 24px rgb(20 20 60 / .05);
   --switch-off: #6d7882;
   --toast: #1e2124;
   --toast-text: #ffffff;
@@ -68,16 +69,20 @@
     --line: #33363d;
     --line-2: #464c53;
     --input-line: #8a949e;
-    --primary-text: #b1cefb;
-    --primary-5: #020f27;
+    --primary-text: #cbc5ff;
+    --primary-5: #14102e;
     --primary-10: #03163a;
     --primary-20: #052561;
-    --selected: #3d9fb8;
-    --selected-text: #abd8e3;
-    --nav-hover: #091f25;
-    --nav-pressed: #0e3139;
-    --thead: #091f25;
-    --thead-line: #0e3139;
+    --nav-hover: #1c1840;
+    --nav-pressed: #2a2560;
+    --thead: #131416;
+    --thead-line: #33363d;
+    --primary: #9b8fff;
+    --primary-hover: #b4abff;
+    --primary-pressed: #cbc5ff;
+    --selected: #9b8fff;
+    --selected-text: #cbc5ff;
+    --card-shadow: none;
     --switch-off: #8a949e;
     --toast: #e6e8ea;
     --toast-text: #131416;
@@ -98,16 +103,20 @@
   --line: #33363d;
   --line-2: #464c53;
   --input-line: #8a949e;
-  --primary-text: #b1cefb;
-  --primary-5: #020f27;
+  --primary-text: #cbc5ff;
+  --primary-5: #14102e;
   --primary-10: #03163a;
   --primary-20: #052561;
-  --selected: #3d9fb8;
-  --selected-text: #abd8e3;
-  --nav-hover: #091f25;
-  --nav-pressed: #0e3139;
-  --thead: #091f25;
-  --thead-line: #0e3139;
+  --nav-hover: #1c1840;
+  --nav-pressed: #2a2560;
+  --thead: #131416;
+  --thead-line: #33363d;
+  --primary: #9b8fff;
+  --primary-hover: #b4abff;
+  --primary-pressed: #cbc5ff;
+  --selected: #9b8fff;
+  --selected-text: #cbc5ff;
+  --card-shadow: none;
   --switch-off: #8a949e;
   --toast: #e6e8ea;
   --toast-text: #131416;
@@ -459,6 +468,45 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .pf-ref[open] summary .ph { transform: rotate(90deg); }
 .pf-ref h3 { margin: 16px 0 0; font-size: 19px; }
 
+/* ---------- 디자인 B: 대시보드형 (회색 바탕 위 흰 카드) ---------- */
+.krds-header { background: var(--surface); box-shadow: 0 1px 0 var(--line); }
+.krds-header .gnb { background: var(--surface); border: 0; }
+.utility { display: none; }
+.brand-mark { border-radius: 12px; background: linear-gradient(135deg, var(--primary), #8a7bff); }
+.page-head { padding-block: 28px 20px; }
+.page-head h1, .pf-head h1 { font-size: 34px; letter-spacing: -.02em; }
+.sch-input input { border-radius: 12px; border-color: var(--line-2); }
+.krds-tabs button { border-radius: 999px; }
+.krds-tabs button::after { display: none; }
+.krds-tabs button[aria-checked="true"] { background: var(--nav-hover); color: var(--selected-text); }
+.table-wrap, .sheet { background-color: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--card-shadow); }
+.table-wrap { padding: 8px 8px 16px; }
+.data thead th { background: var(--surface); color: var(--text-3); font-size: 14px; border-bottom: 1px solid var(--line); }
+.data tbody tr[data-href] > *, .data tbody th[scope="row"] { background: var(--surface); }
+.data .grp-row th { background: var(--subtle); border-radius: 8px; }
+.data tbody + tbody .grp-row th { border-top-color: var(--surface); }
+.guide-list > div { border-radius: 16px; box-shadow: var(--card-shadow); }
+.pf-nav { background: var(--bg); }
+.pf-nav a[aria-current] { background: var(--selected); color: #fff; }
+.pf-table thead th { background: var(--subtle); border-bottom-color: var(--line); }
+.pf-table th.grp { background: var(--subtle); }
+.pf-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 24px 0 0; }
+.pf-kpi { padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--subtle); }
+.pf-kpi dt { font-size: 14px; font-weight: 700; color: var(--text-3); }
+.pf-kpi dd { margin: 4px 0 0; font-size: 22px; font-weight: 700; color: var(--text-strong); font-variant-numeric: tabular-nums; }
+.pf-kpi small { display: block; margin-top: 2px; font-size: 13px; font-weight: 400; color: var(--text-3); }
+.pf-kpi .up { color: #0e7a43; }
+.pf-kpi .down { color: #c2362b; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .pf-nav a[aria-current] { color: #131416; }
+  :root:not([data-theme="light"]) .pf-kpi .up { color: #5fd49a; }
+  :root:not([data-theme="light"]) .pf-kpi .down { color: #ff8c82; }
+}
+:root[data-theme="dark"] .pf-nav a[aria-current] { color: #131416; }
+:root[data-theme="dark"] .pf-kpi .up { color: #5fd49a; }
+:root[data-theme="dark"] .pf-kpi .down { color: #ff8c82; }
+@media (max-width: 767px) { .pf-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pf-kpi dd { font-size: 19px; } }
+
 /* ---------- 화면 폭별 배치 (KRDS: 1024 미만 태블릿, 767 이하 모바일) ---------- */
 @media (max-width: 1100px) {
   /* 표가 화면보다 넓으면 표만 가로로 밀고, 기업명 열은 왼쪽에 고정한다 */
@@ -466,7 +514,7 @@ h2 { font-size: 32px; letter-spacing: 1px; }
   .data thead th { position: static; }
   .data thead th:first-child, .data tbody th[scope="row"] { position: sticky; left: 0; z-index: 1; box-shadow: 1px 0 0 var(--line); }
   .data thead th:first-child { background: var(--thead); }
-  .data tbody th[scope="row"] { background: var(--bg); }
+  .data tbody th[scope="row"] { background: var(--surface); }
   .data .grp-row span { position: sticky; left: 14px; }
 }
 
