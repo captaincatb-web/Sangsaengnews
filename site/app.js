@@ -67,11 +67,12 @@
   $("table-note").textContent = `금액 단위 억원, 주가 원. 재무는 개별기준 최근 결산${priceDate ? `, 주가와 시가총액은 ${priceDate} 종가 기준` : ""}입니다.`;
 
   // ---------- 필터·정렬 상태 ----------
-  const state = { query: "", group: "all", listedOnly: false, sortKey: null, sortDir: null };
+  const state = { query: "", group: "all", listedOnly: false, unlistedOnly: false, sortKey: null, sortDir: null };
   const tabs = [{ id: "all", label: "전체" }, ...groups.map((g) => ({ id: g.id, label: g.label }))];
 
   function matchesText(c) {
     if (state.listedOnly && !c.stockCode) return false;
+    if (state.unlistedOnly && c.stockCode) return false;
     const q = norm(state.query);
     return !q || [c.name, c.note, c.corpCode, c.stockCode, c.legal].some((v) => norm(v).includes(q));
   }
@@ -182,12 +183,24 @@
 
   // ---------- 검색·상장 필터·초기화 ----------
   $("search").addEventListener("input", (e) => { state.query = e.target.value; render(); });
-  $("listed-only").addEventListener("change", (e) => { state.listedOnly = e.target.checked; render(); });
+  // 상장사만·비상장사만은 함께 켤 수 없으므로 하나를 켜면 다른 하나는 끈다
+  $("listed-only").addEventListener("change", (e) => {
+    state.listedOnly = e.target.checked;
+    if (state.listedOnly) { state.unlistedOnly = false; $("unlisted-only").checked = false; }
+    render();
+  });
+  $("unlisted-only").addEventListener("change", (e) => {
+    state.unlistedOnly = e.target.checked;
+    if (state.unlistedOnly) { state.listedOnly = false; $("listed-only").checked = false; }
+    render();
+  });
   $("reset-filters").addEventListener("click", () => {
     state.query = "";
     $("search").value = "";
     state.listedOnly = false;
+    state.unlistedOnly = false;
     $("listed-only").checked = false;
+    $("unlisted-only").checked = false;
     setGroup("all");
     $("search").focus();
   });
@@ -204,14 +217,11 @@
     window.CopyKit.copyNode(box, "표를 복사했습니다. Word나 Excel에 붙여 넣으세요.");
   });
 
-  // ---------- 기업 추가 ----------
-  // 정적 사이트라 여기서 바로 목록을 바꿀 수 없다. 미리 채운 GitHub 이슈를 열고, 관리자가 등록하면
-  // .github/workflows/add-company.yml 이 DART 에서 회사를 찾아 목록에 넣고 사이트를 다시 만든다.
+  // ---------- 추가 요청 ----------
+  // 정적 사이트라 여기서 목록을 바꿀 수 없다. 회사명을 미리 채운 GitHub 이슈('추가 요청: 회사명')를 열어 요청을 저장만 한다.
+  // 목록에는 담당자가 이슈에 '추가승인' 라벨을 붙일 때만 들어간다 (.github/workflows/add-company.yml).
   const REPO = "captaincatb-web/Sangsaengnews";
-  const EXTRA_GROUP = "추가 기업";
   const addForm = $("add-form");
-  $("add-group").innerHTML = [...new Set([...groups.map((g) => g.label), EXTRA_GROUP])]
-    .map((label) => `<option${label === EXTRA_GROUP ? " selected" : ""}>${esc(label)}</option>`).join("");
   $("add-toggle").addEventListener("click", () => {
     addForm.hidden = !addForm.hidden;
     $("add-toggle").setAttribute("aria-expanded", String(!addForm.hidden));
@@ -230,11 +240,10 @@
       setGroup("all");
       return;
     }
-    const body = `그룹: ${$("add-group").value}\n\n`
-      + "이 이슈를 등록하면 DART에서 회사를 찾아 기업 목록에 자동으로 추가합니다. 결과는 댓글로 알려 드립니다.";
-    const url = `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(`기업 추가: ${q}`)}&body=${encodeURIComponent(body)}`;
+    const body = "기업 목록 추가를 요청합니다. 이 이슈는 요청만 저장하며, 담당자가 확인한 뒤 처리합니다.";
+    const url = `https://github.com/${REPO}/issues/new?title=${encodeURIComponent(`추가 요청: ${q}`)}&body=${encodeURIComponent(body)}`;
     window.open(url, "_blank", "noopener");
-    window.CopyKit.toast("GitHub 창에서 이슈를 등록하면 추가가 시작됩니다.");
+    window.CopyKit.toast("GitHub 창에서 Create를 누르면 요청이 저장됩니다.");
   });
 
   // 머리글의 '검색'(./#search)으로 오면 검색창에 바로 입력할 수 있게 한다
