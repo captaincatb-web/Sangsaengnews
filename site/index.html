@@ -63,27 +63,28 @@
           <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
           상장사만
         </label>
+        <label class="switch">
+          <input type="checkbox" id="unlisted-only">
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          비상장사만
+        </label>
         <button class="btn btn-tertiary" type="button" id="copy-table"><i class="ph ph-copy" aria-hidden="true"></i>표 복사</button>
       </div>
 
       <div class="tab-row">
         <div class="krds-tabs" role="radiogroup" aria-label="그룹" id="group-filter"></div>
-        <button class="btn btn-secondary btn-sm" type="button" id="add-toggle" aria-expanded="false" aria-controls="add-form"><i class="ph ph-plus" aria-hidden="true"></i>기업 추가</button>
+        <button class="btn btn-secondary btn-sm" type="button" id="add-toggle" aria-expanded="false" aria-controls="add-form"><i class="ph ph-plus" aria-hidden="true"></i>추가 요청</button>
       </div>
 
       <form class="add-panel" id="add-form" hidden>
         <div class="add-fields">
           <div class="field field-grow">
-            <label for="add-name">추가할 기업</label>
-            <input class="krds-input" id="add-name" type="text" required placeholder="회사명, 종목코드(6자리) 또는 DART 고유번호(8자리)" autocomplete="off" spellcheck="false">
+            <label for="add-name">추가를 요청할 회사명</label>
+            <input class="krds-input" id="add-name" type="text" required placeholder="예: 회사명 또는 종목코드" autocomplete="off" spellcheck="false">
           </div>
-          <div class="field">
-            <label for="add-group">넣을 그룹</label>
-            <select class="krds-select" id="add-group"></select>
-          </div>
-          <button class="btn btn-primary" type="submit">추가 요청</button>
+          <button class="btn btn-primary" type="submit">요청 저장</button>
         </div>
-        <p class="hint"><i class="ph ph-info" aria-hidden="true"></i><span>GitHub 이슈 화면이 새 창으로 열립니다. <strong>Create</strong>(이슈 등록)를 누르면 DART에서 회사를 찾아 목록에 넣고, 약 15분 뒤 이 표와 프로필에 나타납니다. 결과는 이슈 댓글로 알려 드리며, 저장소 관리자 계정으로 로그인해야 합니다.</span></p>
+        <p class="hint"><i class="ph ph-info" aria-hidden="true"></i><span>요청한 회사명이 GitHub 이슈로 저장됩니다. 새 창에서 <strong>Create</strong>(이슈 등록)를 눌러 주세요. 저장만 되고 목록에는 바로 들어가지 않으며, 담당자가 확인한 뒤 반영합니다.</span></p>
       </form>
 
       <p class="table-note" id="table-note"></p>
@@ -109,7 +110,7 @@
         <div><dt>자료 기준</dt><dd>재무는 개별(별도) 재무제표 기준입니다. 상장사는 사업보고서, 비상장사는 감사보고서에서 읽고, 최근 분기 실적을 함께 보여 줍니다. 주가와 시가총액은 전 거래일 종가입니다.</dd></div>
         <div><dt>갱신</dt><dd>매일 오전 7시 30분에 DART와 주가 자료를 다시 받아 자동으로 고칩니다.</dd></div>
         <div><dt>Word로 옮기기</dt><dd>표 위의 <strong>표 복사</strong>, 기업 프로필의 <strong>Word로 복사</strong>를 누른 뒤 Word에 붙여 넣으면 표와 서식이 그대로 들어갑니다.</dd></div>
-        <div><dt>기업 추가</dt><dd>그룹 탭 옆 <strong>기업 추가</strong>에 회사명이나 종목코드를 넣고 GitHub에서 이슈를 등록하면 자동으로 목록에 들어갑니다.</dd></div>
+        <div><dt>추가 요청</dt><dd>그룹 탭 옆 <strong>추가 요청</strong>에 회사명을 넣고 GitHub에서 이슈를 등록하면 요청이 저장되고, 담당자가 확인한 뒤 목록에 넣습니다.</dd></div>
       </dl>
     </section>
   </main>

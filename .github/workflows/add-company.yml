@@ -1,10 +1,11 @@
 name: Add company from issue
 
-# 사이트의 '기업 추가'가 미리 채워 여는 이슈('기업 추가: 회사명')를 저장소 관리자가 등록하면
-# DART 에서 회사를 찾아 site/data/companies.js 에 더하고 사이트를 다시 만든다. 결과는 이슈 댓글로 알린다.
+# 사이트의 '추가 요청'이 미리 채워 여는 이슈('추가 요청: 회사명')는 요청만 저장한다.
+# 담당자가 그 이슈에 '추가승인' 라벨을 붙이면 DART 에서 회사를 찾아 site/data/companies.js 에 더하고
+# 사이트를 다시 만든다. 결과는 이슈 댓글로 알린다.
 on:
   issues:
-    types: [opened]
+    types: [labeled]
 
 permissions:
   contents: write
@@ -17,10 +18,10 @@ concurrency:
 
 jobs:
   add:
-    # 아무나 이슈를 열어 목록을 바꾸지 못하도록 저장소 관리자(소유자·멤버·협업자)가 연 이슈만 처리한다
+    # 라벨은 쓰기 권한이 있는 담당자만 붙일 수 있으므로, '추가승인' 라벨이 붙은 '추가 요청' 이슈만 처리한다
     if: >-
-      startsWith(github.event.issue.title, '기업 추가') &&
-      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.issue.author_association)
+      github.event.label.name == '추가승인' &&
+      startsWith(github.event.issue.title, '추가 요청')
     runs-on: ubuntu-latest
     env:
       DART_API_KEY: ${{ secrets.DART_API_KEY }}

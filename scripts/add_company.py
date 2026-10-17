@@ -1,8 +1,9 @@
-"""GitHub 이슈 '기업 추가: 회사명' 으로 지정 기업 목록(site/data/companies.js)에 회사를 더한다.
+"""GitHub 이슈 '추가 요청: 회사명' 으로 지정 기업 목록(site/data/companies.js)에 회사를 더한다.
 
-사이트의 '기업 추가'가 이 이슈를 미리 채워 열어 주고, .github/workflows/add-company.yml 이 이 스크립트를 실행한다.
+사이트의 '추가 요청'이 이 이슈를 미리 채워 열어 주고(요청 저장), 담당자가 '추가승인' 라벨을 붙이면
+.github/workflows/add-company.yml 이 이 스크립트를 실행한다.
 입력(환경변수):
-  ISSUE_TITLE  '기업 추가: 피에스케이' (회사명, 종목코드 6자리, DART 고유번호 8자리 중 하나)
+  ISSUE_TITLE  '추가 요청: 피에스케이' (회사명, 종목코드 6자리, DART 고유번호 8자리 중 하나)
   ISSUE_BODY   '그룹: 2그룹' 줄이 있으면 그 그룹에, 없으면 '추가 기업' 그룹에 넣는다
   DART_API_KEY
 출력: GITHUB_OUTPUT 에 changed(true/false), exists(true/false), message(이슈에 남길 설명)
@@ -83,9 +84,9 @@ def write_output(**values):
 
 def main() -> int:
     title, body = os.environ.get("ISSUE_TITLE", ""), os.environ.get("ISSUE_BODY", "") or ""
-    query = re.sub(r"^\s*기업\s*추가\s*[:：]?\s*", "", title).strip()
+    query = re.sub(r"^\s*(?:추가\s*요청|기업\s*추가)\s*[:：]?\s*", "", title).strip()
     if not query:
-        write_output(changed="false", exists="false", message="이슈 제목에 회사 이름이 없습니다. `기업 추가: 회사명` 형식으로 다시 올려 주세요.")
+        write_output(changed="false", exists="false", message="이슈 제목에 회사 이름이 없습니다. `추가 요청: 회사명` 형식으로 다시 올려 주세요.")
         return 0
     api_key = os.environ.get("DART_API_KEY")
     if not api_key:
