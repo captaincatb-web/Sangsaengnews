@@ -12,6 +12,8 @@ from src.newsletter_config import (
     ROUTINE_CATEGORY,
 )
 
+AI_IMPORTANCE_STEP = 0.8  # AI가 매긴 중요도(1~5) 3을 기준으로 1점당 가산
+
 
 def age_days(now: datetime, article: dict) -> float:
     return (now - article["pub_date"]).total_seconds() / 86400
@@ -32,7 +34,8 @@ def score(article: dict, now: datetime) -> float:
     # 영문 기사(해외 기업)는 국문 기사가 없을 때 보완용
     foreign = 0 if HANGUL_RE.search(article["title"]) else -2
     opinion = -1 if article["cat3"] != "공시자료" and OPINION_RE.search(article["title"]) else 0
-    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed + foreign + opinion
+    ai = (article["ai"]["importance"] - 3) * AI_IMPORTANCE_STEP if article.get("ai") else 0
+    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed + foreign + opinion + ai
 
 
 def select_company(articles: list, now: datetime) -> dict:

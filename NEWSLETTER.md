@@ -55,3 +55,8 @@
 `src/newsletter_collector.py`의 `FALSE_POSITIVE_PATTERNS`(회사별), `STOCK_NOISE_RE`(주가),
 `GENERAL_NOISE_RE`(스팸·채용), `BLOCKED_SOURCE_RE`(매체)에 단어를 추가한다.
 회사·별칭·티커·DART 코드는 `src/newsletter_config.py`.
+
+## AI 분석 단계 (선택)
+
+`ANTHROPIC_API_KEY`(저장소 Secrets)가 있으면 `src/newsletter_ai.py`가 회사별 상위 기사(최대 240건)를 Claude에 보내 기사마다 ① 해당 회사 동향인지(거짓양성 제외) ② 중요도 1~5 ③ 분류를 판정합니다. 제외된 기사는 메일에서 빠지고, 중요도는 순위 점수에 반영됩니다(3 기준 ±0.8/점).
+키가 없거나 호출이 실패하면 이 단계만 건너뛰고 기존 규칙 기반 결과를 그대로 씁니다. 모델은 `ANTHROPIC_MODEL`로 바꿀 수 있습니다(기본 `claude-opus-5-5`).

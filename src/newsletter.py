@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from src import email_sender, gnews_decoder
 from src.config import ROOT_DIR
 from src.history import KST
+from src.newsletter_ai import apply_ai_analysis
 from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar, is_stale
 from src.newsletter_config import OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
 from src.newsletter_finance import Cache, build_fin_summary, build_price_cell, build_price_short, weekly_movers
@@ -37,6 +38,7 @@ def main() -> None:
     now = datetime.now(KST)
     grouped = group_similar(collect_articles())
     resolve_links(grouped, now)
+    apply_ai_analysis(grouped, now)
     selections = {company: select_company(articles, now) for company, articles in grouped.items()}
     highlights = pick_highlights(selections, now)
 

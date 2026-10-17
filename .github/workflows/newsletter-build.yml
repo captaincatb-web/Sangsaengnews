@@ -29,6 +29,7 @@ jobs:
           NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
           OPENDART_KEY: ${{ secrets.OPENDART_KEY }}
           GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python -m src.newsletter --dry-run
 
       - name: Commit HTML
