@@ -1,6 +1,6 @@
-소스별 원본 건수: google 2427, naver_web 1197, google_en 506, rss 410, dart 27
-소스별 채택 건수: google 325, google_en 102, naver_web 54, dart 21, rss 0
-제외 사유: 주가·증시 854, 영문 주가 349, 스팸·채용 95, 동명이인·오탐 49, 차단 매체 34, 옛 기사 18, 블로그·유료 16, 사진 캡션 7
+소스별 원본 건수: google 2427, naver_web 1197, google_en 504, rss 410, dart 27
+소스별 채택 건수: google 323, google_en 104, naver_web 50, dart 21, rss 0
+제외 사유: 주가·증시 869, 영문 주가 335, 스팸·채용 96, 동명이인·오탐 48, 차단 매체 35, 옛 기사 18, 블로그·유료 16, 사진 캡션 7
 
 [회사별 최근 7일 기사 수 · 처음 찾은 소스 기준]
 AP시스템: dart 1
@@ -12,18 +12,18 @@ AP시스템: dart 1
 에스티아이: -
 에이에스엠케이: -
 엘오티베큠: -
-원익IPS: naver_web 1
+원익IPS: -
 유니셈: google 2, dart 1
 유진테크: google 2, dart 1
 케이씨: naver_web 2, google 1
-테스: google 1
+테스: -
 테키스트: -
 피에스케이: -
 한국알박: -
 한양이엔지: -
 금강쿼츠: -
 뉴파워프라즈마: google 2, dart 1
-디아이: google 5, dart 2
+디아이: google 4, dart 2
 새솔다이아몬드공업: -
 신한다이아몬드공업: -
 싸이노스: -
@@ -42,7 +42,7 @@ AP시스템: dart 1
 프로텍: google 1
 피엠티: google 2
 하나머티리얼즈: dart 1
-대덕전자: google 5, naver_web 3, dart 2
+대덕전자: google 5, dart 2, naver_web 1
 동우화인켐: -
 동진쎄미켐: google 1
 디엔에프: -
@@ -51,7 +51,7 @@ AP시스템: dart 1
 삼영순화: -
 솔브레인: google 3, dart 2
 신성전자정밀: -
-심텍: google 6, naver_web 1, dart 1
+심텍: google 5, dart 1
 아데카코리아: -
 에어프로덕츠코리아: -
 에프에스티: google 1
@@ -69,7 +69,7 @@ AP시스템: dart 1
 후성: google 1
 ASML: google 23, naver_web 7, google_en 5
 어플라이드머티어리얼즈: google 17, google_en 5
-램리서치: google 4, naver_web 3, google_en 3
+램리서치: google_en 5, google 4, naver_web 3
 도쿄일렉트론: google 1, google_en 1
 KLA: google_en 1
 에바라: google 1
@@ -87,7 +87,6 @@ KLA: google_en 1
 동명이인·오탐 | 케이씨 | naver_web | 한국경제 | 트루블루에쿼티·엔베스터, 조선부품사 케이씨 인수 추진
 동명이인·오탐 | 테스 | google | 게임포커스 | AI 기반 QA 자동화 플랫폼 '베리젠' 개발사 테스티파이, '2026 경기 스타트업 서밋' 참가
 동명이인·오탐 | 테스 | google | 뉴시스 | 그 소녀의 기억으로 BIFF 찾은 테스 바르텔레미
-동명이인·오탐 | 테스 | google | 더구루 | 테라다인·폼팩터 'AI 반도체 테스트 동맹' 구축…삼성·SK 차세대 HBM 양산 '탄력'
 동명이인·오탐 | 테스 | google | 연합뉴스 | 부산영화제 찾은 테스 바르텔레미
 동명이인·오탐 | 테스 | google | 이투데이 | 팸텍, 반도체 유리기판용 테스트 장비 고객사에 공급…시범운영 돌입
 동명이인·오탐 | 테스 | google | 일간투데이 | 소부장 국산화의 핵심 인프라, 안성 반도체 장비 테스트베드 국산 반도체 장비의 실증·성능검증부터 인증까지… 산·학·연 협력으로 기술 자립의 기반 마련
@@ -118,7 +117,6 @@ KLA: google_en 1
 스팸·채용 | 테스 | google | Calgary Roughnecks | 버튼 색상이 바뀌는 순간을 이해하는 테스 바카라 대회
 스팸·채용 | 테스 | google | Calgary Roughnecks | 비주얼 중심으로 둘러보는 테스 바카라 대회 게임 디자인
 스팸·채용 | 테스 | google | Calgary Roughnecks | 처음 보는 결과 창을 해석하는 바카라 테스 형 정보 안내
-스팸·채용 | 테스 | google | Calgary Roughnecks | 화면 중앙에 집중해서 보는 바카라 테스 실시간 릴 영역
 스팸·채용 | 테스 | naver_web | 필드뉴스 | 이상일 용인시장, 일자리박람회에 '반도체 산업관' 첫선…테스·주성 등 11개사 현장면접
 영문 주가 | ASML | google | BigGo Finance | Nikkei falls for 5th straight day as semiconductor stocks plunge on ASML earnings
 영문 주가 | ASML | google | BigGo Finance | Nikkei falls for fifth straight day as ASML results trigger sharp selloff in semiconductor stocks; South Korea's KOSPI also slides for sixth session
@@ -204,6 +202,7 @@ KLA: google_en 1
 영문 주가 | 도쿄일렉트론 | google_en | Yahoo Finance | Tokyo Electron Ltd. R (TKY0.HM) Q4 FY2026 earnings call transcript
 영문 주가 | 도쿄일렉트론 | google_en | Yahoo Finance Singapore | Tokyo Electron Limited (8035.T) stock price, news, quote and history
 영문 주가 | 도쿄일렉트론 | google_en | Yahoo! Finance Canada | Tokyo Electron Limited (8035N.MX) Analyst Insights, Price Targets & Recommendations - Yahoo Finance
+영문 주가 | 도쿄일렉트론 | google_en | Yahoo! Finance Canada | Tokyo Electron Limited (TELWY) Recent Insider Transactions
 영문 주가 | 도쿄일렉트론 | google_en | Zacks Investment Research | Dividend History - Tokyo Electron (TELWY)
 영문 주가 | 도쿄일렉트론 | google_en | Zacks Investment Research | What date does Tokyo Electron's (TELWY) report Earnings - Earnings Calendar & Announcement
 영문 주가 | 도쿄일렉트론 | google_en | ad-hoc-news.de | Analysts set JPY 15,310.91 average target for Tokyo Electron stock
@@ -217,19 +216,19 @@ KLA: google_en 1
 영문 주가 | 도쿄일렉트론 | google_en | ad-hoc-news.de | Tokyo Electron stock pre-market at EUR 60.00 on October 16, 2026
 영문 주가 | 도쿄일렉트론 | google_en | ad-hoc-news.de | Tokyo Electron stock pre-market at EUR 69.84 on October 12, 2026
 영문 주가 | 도쿄일렉트론 | google_en | ad-hoc-news.de | Tokyo Electron stock: Analyst target reaches JPY 15,310.91 for Tokyo Electron stock
-영문 주가 | 램리서치 | google_en | Barron's | Tesla, SpaceX, CoreWeave, Lam Research, Netflix, Strategy, and More Stocks That Explain Today’s Market
-영문 주가 | 램리서치 | google_en | Benzinga | If You Invested $1000 In Lam Research Stock 10 Years Ago, You Would Have This Much Today
 영문 주가 | 램리서치 | google_en | Benzinga | Lam Research Stock Hits Longest Losing Streak Ever: Are There Buyers Around?
-영문 주가 | 램리서치 | google_en | ChartMill | Lam Research (NASDAQ:LRCX) Offers Dividend Investors Strong Payout Quality and Growth Potential
 영문 주가 | 램리서치 | google_en | ChartMill | Lam Research (NASDAQ:LRCX): A Quality Investing Standout With High ROIC and Low Debt
 영문 주가 | 램리서치 | google_en | GuruFocus | Lam Research (LRCX) Set for Strong Q3 Results Amid Rising AI-Dri
 영문 주가 | 램리서치 | google_en | GuruFocus | Lam Research (LRCX) Shares Dip After Seven-Day Slide Amid Strong Long-Term Momentum
+영문 주가 | 램리서치 | google_en | GuruFocus | Lam Research Corp (LRCX) Shares Fall 4.7% -- What GF Score of 87 Tells Investors
+영문 주가 | 램리서치 | google_en | Investing.com South Africa | Lam Research stock may move 4.5% on Oct. 21 earnings report By Investing.com
 영문 주가 | 램리서치 | google_en | MarketBeat | 3,523 Lam Research Corporation $LRCX Shares Purchased by NorthCrest Asset Manangement LLC
+영문 주가 | 램리서치 | google_en | MarketBeat | 4,527 Shares in Lam Research Corporation $LRCX Bought by B.A. Schrock Wealth Management Inc.
+영문 주가 | 램리서치 | google_en | MarketBeat | 42,420 Shares in Lam Research Corporation $LRCX Acquired by Sanders Morris Harris LLC
 영문 주가 | 램리서치 | google_en | MarketBeat | AdvisorNet Financial Inc Acquires 4,514 Shares of Lam Research Corporation $LRCX
 영문 주가 | 램리서치 | google_en | MarketBeat | Analysts Issue Forecasts for Lam Research FY2027 Earnings
 영문 주가 | 램리서치 | google_en | MarketBeat | Annex Advisory Services LLC Acquires 112,156 Shares of Lam Research Corporation $LRCX
 영문 주가 | 램리서치 | google_en | MarketBeat | Assenagon Asset Management S.A. Purchases 451,269 Shares of Lam Research Corporation $LRCX
-영문 주가 | 램리서치 | google_en | MarketBeat | Curated Wealth Partners LLC Sells 68,693 Shares of Lam Research Corporation $LRCX
 영문 주가 | 램리서치 | google_en | MarketBeat | Franchise GP Ltd Acquires 7,310 Shares of Lam Research Corporation $LRCX
 영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research (LRCX) Expected to Post Earnings on Wednesday
 영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research (NASDAQ:LRCX) Stock Falls 4.7% - Here's What Happened
@@ -240,35 +239,40 @@ KLA: google_en 1
 영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Shares Newly Bought by Gunderson Capital Management LLC
 영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock Acquired by Sax Wealth Advisors LLC
 영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock Bought by N10 Wealth LLC
-영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock Position Decreased by Montrusco Bolton Investments Inc.
-영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock Sold by Guyasuta Investment Advisors Inc.
-영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock Sold by State of Alaska Department of Revenue
 영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock: Krilogy Financial LLC Boosts Stake
-영문 주가 | 램리서치 | google_en | MarketBeat | Lam Research Corporation $LRCX Stock: Triasima Portfolio Management inc. Reduces Position
-영문 주가 | 램리서치 | google_en | MarketBeat | Ninety One UK Ltd Sells 37,071 Shares of Lam Research Corporation $LRCX
-영문 주가 | 램리서치 | google_en | MarketWatch | Lam Research Corp. stock underperforms Monday when compared to competitors
-영문 주가 | 램리서치 | google_en | MarketWatch | Lam Research Corp. stock underperforms Thursday when compared to competitors
-영문 주가 | 램리서치 | google_en | MarketWatch | Lam Research Corp. stock underperforms Tuesday when compared to competitors
+영문 주가 | 램리서치 | google_en | Quiver Quantitative | Why Lam Research (LRCX) Stock Is Down Today
 영문 주가 | 램리서치 | google_en | Seeking Alpha | Lam Research, TI and Western Digital are likely to post strong results, guidance: UBS (LRCX:NASDAQ)
 영문 주가 | 램리서치 | google_en | Simply Wall Street | Lam Research (LRCX) Stock May Be Fully Valued After Fresh AI Demand News
+영문 주가 | 램리서치 | google_en | TOKENPOST | Lam Research Shares Fall 4.4% in Seventh Straight Session
+영문 주가 | 램리서치 | google_en | TipRanks | Lam Research Slides As China Fears Rattle Chip Investors
+영문 주가 | 램리서치 | google_en | TipRanks | Lam Research Slumps As China Fears Rattle Investors
+영문 주가 | 램리서치 | google_en | TradingKey | Lam Research Corp Stock (LRCX) Moved Down by 3.34% on Oct 14: Key Drivers Unveiled
+영문 주가 | 램리서치 | google_en | TradingKey | Lam Research Corp Stock (LRCX) Moved Down by 3.38% on Oct 13: A Full Analysis
+영문 주가 | 램리서치 | google_en | TradingKey | Lam Research Corp Stock (LRCX) Moved Down by 3.63% on Oct 16: Facts Behind the Movement
 영문 주가 | 램리서치 | google_en | TradingKey | Lam Research Corp Stock (LRCX) Moved Down by 6.54% on Oct 15: A Full Analysis
 영문 주가 | 램리서치 | google_en | TradingView | Lam Research shares tumbled for seven consecutive sessions
 영문 주가 | 램리서치 | google_en | Trefis | 9 Red Days In A Row: Lam Research Stock Is Down 20%
 영문 주가 | 램리서치 | google_en | Trefis | Lam Research Stock Extends A 10-Day Losing Streak To A 24% Loss
 영문 주가 | 램리서치 | google_en | Trefis | Lam Research Stock Slides 17% Over 8 Straight Down Days
 영문 주가 | 램리서치 | google_en | Trefis | Lam Research Stock: 6 Straight Red Days, Down 11%
-영문 주가 | 램리서치 | google_en | Yahoo Finance | 24 ETFs Add to Lam Research (LRCX) Holdings on Oct. 13
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Brokers Suggest Investing in Lam Research (LRCX): Read This Before Placing a Bet
-영문 주가 | 램리서치 | google_en | Yahoo Finance | ETFs Are Net Sellers of Lam Research (LRCX) on Oct. 14
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Intel, Lam Research, Amkor, and Kulicke and Soffa Shares Are Falling, What You Need To Know
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Lam Research (LRCX) Dips More Than Broader Market: What You Should Know
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Lam Research (LRCX) Q1 Earnings Preview: What You Should Know Beyond the Headline Estimates
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Lam Research (LRCX) Ties AI Fab Push To Faster SEMulator3D Modeling
-영문 주가 | 램리서치 | google_en | Yahoo Finance | Lam Research Corp (1LRCXM.XD) Company Profile & Facts
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Lam Research Earnings Preview: What to Expect
 영문 주가 | 램리서치 | google_en | Yahoo Finance | Wall Street Analysts See a 25.6% Upside in Lam Research (LRCX): Can the Stock Really Move This High?
-영문 주가 | 램리서치 | google_en | investing.com | Arista, Lam Research among market cap stock movers on Thursday
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | B. Riley raises target for Lam Research stock to USD 390
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | DBS Bank lifts target to USD 416 for Lam Research stock
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | Lam Research records nine-session slide: October 21 tests Lam Research stock
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | Lam Research schedules earnings call as Lam Research stock awaits results
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | Lam Research stock trades at EUR 248.98 ahead of October 21 results
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | Lam Research stock trades at EUR 280.03 with USD 390.0 billion market cap
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | Morgan Stanley lifts target for Lam Research stock to USD 385.00
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | UBS keeps USD 425.00 target for Lam Research stock
+영문 주가 | 램리서치 | google_en | ad-hoc-news.de | UBS keeps a USD 425.00 target for Lam Research stock
 영문 주가 | 램리서치 | google_en | investing.com | Lam Research stock may move 4.5% on Oct. 21 earnings report
+영문 주가 | 램리서치 | google_en | scanx.trade | Lam Research stock falls for nine straight sessions, down 21.7%
 영문 주가 | 램리서치,인테그리스 | google | Yahoo Finance | Lam Research, Lattice Semiconductor, Amkor, Entegris, and MACOM Stocks Trade Down, What You Need To Know
 영문 주가 | 램리서치,인테그리스,KLA | google | Yahoo Finance | Entegris, Intel, KLA Corporation, Lam Research, and Microchip Technology Shares Are Falling, What You Need To Know
 영문 주가 | 레이저텍 | google | Simply Wall Street | Lasertec And 2 Other High Growth Insider Stocks To Own
@@ -298,14 +302,12 @@ KLA: google_en 1
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Trefis | Applied Materials Stock: 9 Straight Red Days, Down 25%
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Trefis | Has Buying Applied Materials Stock’s Dips Paid Off?
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Trefis | What Are Applied Materials Investors Betting On?
-영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | 31 ETFs Add to Applied Materials (AMAT) on Oct. 13
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Applied Materials (AMAT) Backs AI Physics Modeling Push For Faster Chip R And D
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Applied Materials (AMAT) Opened Its $5 Billion EPIC Center
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Applied Materials (AMAT) Trades at 39.66 Times Earnings. Can 2027 Growth Carry It?
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Applied Materials Stocks Fall 4.3% as Evercore Cuts Target After AI Growth Plan
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Applied Materials Stocks Slip 1.5% as Intel Partnership Targets Manufacturing Payoff
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Applied Materials shares slide as chip equipment outlook remains uncertain
-영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | ETFs Are Net Sellers of Applied Materials (AMAT) on Oct. 14
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | FormFactor, Teradyne, Applied Materials, AMD, and Intel Shares Plummet, What You Need To Know
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Intel and Applied Materials Just Deepened Their AI Partnership. Which Stock Looks Better Positioned?
 영문 주가 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | Is Applied Materials (AMAT) A Bargain Following Its EPIC Center Launch?
@@ -320,6 +322,7 @@ KLA: google_en 1
 영문 주가 | 어플라이드머티어리얼즈,램리서치,KLA | google_en | 24/7 Wall St. | Semiconductor Equipment Stocks Slide as Investors Take Profits on a Huge Year: Applied Materials Sinks 7%, Lam Research and KLA Drop 4%
 영문 주가 | 에바라 | google | ad-hoc-news.de | Ebara stock falls 8.26 percent to EUR 23.54 at JPY 1.9 trillion value
 영문 주가 | 에바라 | google_en | marketscreener.com | Ebara Jitsugyo Co.,Ltd.: Dividend historical data and projections
+영문 주가 | 이비덴 | google_en | Moomoo | $IHI (7013.JP)$ $Ibiden (4062.JP)$$Taiyo Yuden (6976.JP)$
 영문 주가 | 이비덴 | google_en | Seeking Alpha | Ibiden: Advanced Packaging Is The Growth Driver, But It Needs Perfect Execution (IBIDY)
 영문 주가 | 이비덴 | google_en | ad-hoc-news.de | J.P. Morgan sets JPY 14,350 target for Ibiden stock
 영문 주가 | 인테그리스 | google | Business Wire | Entegris Declares Quarterly Cash Dividend
@@ -360,6 +363,7 @@ KLA: google_en 1
 주가·증시 | ASML | google | Simply Wall Street | AI 반도체 장비주에서 ASML 주식을 다시 볼 이유
 주가·증시 | ASML | google | TradingKey | ASML 3분기 실적 전망: 매출 전년 동기 대비 55% 증가 가능성, 월가 최고 2,866달러 전망
 주가·증시 | ASML | google | TradingKey | ASML Holding NV (ASML) 주식 움직였습니다 하락 3.09%에 10월13일: 투자자가 알아야 할 정보
+주가·증시 | ASML | google | TradingKey | SK하이닉스 주가 전망: ASML 부품 가격 10% 인상 속 HBM 성장이 비용 압박을 상쇄할 수 있을까?
 주가·증시 | ASML | google | 뉴스1 | 기대에 못 미친 ASML 실적, 코스피 상승폭 축소…SK하닉 하락 전환
 주가·증시 | ASML | google | 뉴스1 | 장 막판 ASML이 찬물…6일째 내린 코스피, 6000 겨우 지켰다 [시황종합]
 주가·증시 | ASML | google | 뉴스1 | 코스피, 또 6000선 붕괴…ASML 실망감에 반도체주 급락(상보)
@@ -377,6 +381,7 @@ KLA: google_en 1
 주가·증시 | ASML | google | 이데일리 | [개장전특징주]세일즈포스, ASML, 엔비디아
 주가·증시 | ASML | google | 전자신문 | ASML, 3분기 매출 117억유로…“전년 동기 대비 55% ↑”
 주가·증시 | ASML | google | 한국경제 | 코스피, ASML 실적 우려에 반등 실패…6일 간 1000p '털썩'
+주가·증시 | ASML | google_en | Yahoo Finance | ETFs Are Net Sellers of ASML (ASML) on Oct. 14
 주가·증시 | ASML | naver_web | 생생비즈플러스 | AI 주가 급락에 빛바랜 '어닝 서프라이즈'...TSMC·ASML 실적, 기술주 투심 되살릴까
 주가·증시 | KLA | google | CryptoRank | KLA Corporation xStock 오늘 Japanese Yen 가격 | 실시간 KLACX - JPY 변환기 및 환율
 주가·증시 | KLA | google | Investing.com 한국어 | KLA 주가, 오늘 하락하는 이유는?
@@ -403,6 +408,8 @@ KLA: google_en 1
 주가·증시 | 대덕전자 | google | 톱스타뉴스 | 대덕전자 주가, 10월 15일 장중 127,600원 12.00% 하락
 주가·증시 | 대덕전자 | google | 톱스타뉴스 | 대덕전자 주가, 10월 16일 애프터마켓 131,700원 1.70% 상승
 주가·증시 | 대덕전자 | naver_web | 잡포스트 | 대덕전자 10.07% 급락…고사양 기판 수율이 관건
+주가·증시 | 대덕전자 | naver_web | 잡포스트 | 대덕전자 13만2600원…고사양 반도체 기판 성장축
+주가·증시 | 대덕전자 | naver_web | 잡포스트 | 대덕전자 14만4100원…FC-BGA 제품 믹스에 시선
 주가·증시 | 대덕전자 | naver_web | 중앙이코노미뉴스 | 10월 2주차 대덕전자 주가 11.52% 하락 12만원대 마감
 주가·증시 | 대덕전자 | naver_web | 중앙이코노미뉴스 | 대덕전자 주가, 10월 14일 장중 146,400원 0.34% 하락
 주가·증시 | 대덕전자 | naver_web | 중앙이코노미뉴스 | 대덕전자 주가, 10월 15일 장중 127,400원 12.14% 하락
@@ -428,6 +435,10 @@ KLA: google_en 1
 주가·증시 | 램리서치 | google | TradingKey | Lam Research Corp (LRCX) 주식 움직였습니다 하락 3.38%에 10월13일: 핵심 원인 공개
 주가·증시 | 램리서치 | google | TradingKey | Lam Research Corp (LRCX) 주식 움직였습니다 하락 3.63%에 10월16일: 변동 원인
 주가·증시 | 램리서치 | google | TradingKey | Lam Research Corp (LRCX) 주식 움직였습니다 하락 6.54%에 10월15일: 투자자가 알아야 할 정보
+주가·증시 | 램리서치 | google_en | Barron's | Tesla, SpaceX, CoreWeave, Lam Research, Netflix, Strategy, and More Stocks That Explain Today’s Market
+주가·증시 | 램리서치 | google_en | Moomoo | Tesla, SpaceX, CoreWeave, Lam Research, Netflix, Strategy, and More Stocks That Explain Today's Market -- Barrons.com
+주가·증시 | 램리서치 | google_en | Yahoo Finance | 24 ETFs Add to Lam Research (LRCX) Holdings on Oct. 13
+주가·증시 | 램리서치 | google_en | Yahoo Finance | ETFs Are Net Sellers of Lam Research (LRCX) on Oct. 14
 주가·증시 | 솔브레인 | google | 뉴스핌 | [리포트 브리핑]솔브레인, 'Price, Quantity, Inorganic Growth' 목표가 580,000원 - 삼성증권
 주가·증시 | 솔브레인 | google | 뉴스핌 | [리포트 브리핑]솔브레인, '높은 반도체 비중, 웨이퍼 증가 직접 수혜' 목표가 540,000원 - 상상인증권
 주가·증시 | 솔브레인 | google | 뉴스핌 | [모닝 리포트] "솔브레인, 환율 역풍에도 물량 성장"
@@ -457,6 +468,7 @@ KLA: google_en 1
 주가·증시 | 심텍 | google | 톱스타뉴스 | 심텍 주가, 10월 14일 장중 141,300원 6.11% 하락
 주가·증시 | 심텍 | google | 톱스타뉴스 | 심텍 주가, 10월 15일 장중 124,000원 12.06% 하락
 주가·증시 | 심텍 | google | 톱스타뉴스 | 심텍 주가, 10월 16일 장중 124,900원 0.56% 상승
+주가·증시 | 심텍 | naver_web | 잡포스트 | 심텍 12만7400원…고사양 반도체 기판 수요 주목
 주가·증시 | 심텍 | naver_web | 중앙이코노미뉴스 | 심텍 주가, 10월 15일 장중 124,100원 11.99% 하락
 주가·증시 | 심텍 | naver_web | 중앙이코노미뉴스 | 최근 5거래일 심텍 주가 하락 후 반등
 주가·증시 | 어플라이드머티어리얼즈 | google | Benzinga | 어플라이드 머티어리얼즈 주가 6거래일 연속 하락···캔터는 85% 상승 여력 전망
@@ -465,6 +477,8 @@ KLA: google_en 1
 주가·증시 | 어플라이드머티어리얼즈 | google | Investing.com 한국어 | 어플라이드 머티어리얼즈 주가, 오늘 하락하는 이유는?
 주가·증시 | 어플라이드머티어리얼즈 | google | Simply Wall Street | 어플라이드 머티어리얼즈(AMAT), EPIC 센터 공개 이후 다시 보는 저평가 시각
 주가·증시 | 어플라이드머티어리얼즈 | google | 이데일리 | [美특징주]어플라이드머티어리얼즈, 반도체 장비시장 전망치 제시 불발에 주가 7%↓
+주가·증시 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | 31 ETFs Add to Applied Materials (AMAT) on Oct. 13
+주가·증시 | 어플라이드머티어리얼즈 | google_en | Yahoo Finance | ETFs Are Net Sellers of Applied Materials (AMAT) on Oct. 14
 주가·증시 | 에스티아이 | google | 매일경제 | 초고수 순매수 종목 1위는 시총 4000억 ‘에스티아이’ [주식 초고수는 지금]
 주가·증시 | 에스티아이 | google | 머니투데이 | [여의도 투자본부 2부] 이수스페셜티케미컬 vs RF머트리얼즈 vs 안랩 vs 에스티아이, 공략법은? - 머니투데이
 주가·증시 | 에스티아이 | google | 톱스타뉴스 | 에스티아이 주가, 10월 13일 애프터마켓 27,850원 11.85% 상승
@@ -494,6 +508,7 @@ KLA: google_en 1
 주가·증시 | 원익IPS | google | 톱스타뉴스 | 원익IPS 주가, 10월 15일 장중 106,600원 12.26% 하락
 주가·증시 | 원익IPS | google | 한국경제 | "원익IPS, 2028년까지 실적 가시성 높아…목표가↑"-메리츠
 주가·증시 | 원익IPS | naver_web | 이코노뉴스 | 코스닥, 7%대 낙폭에 760선 위태...원익IPS, 주성엔지니어링, 삼천당제약 등 하락
+주가·증시 | 원익IPS | naver_web | 잡포스트 | 원익IPS 11만100원…반도체 장비 발주 회복 주목
 주가·증시 | 원익IPS | naver_web | 잡포스트 | 원익IPS 5.14% 내려 12만3700원…장비 발주 회복 시점 주시
 주가·증시 | 원익IPS | naver_web | 중앙이코노미뉴스 | 원익IPS 주가, 10월 14일 장중 121,900원 6.52% 하락
 주가·증시 | 원익IPS | naver_web | 중앙이코노미뉴스 | 원익IPS 주가, 10월 15일 장중 106,700원 12.18% 하락
@@ -547,6 +562,7 @@ KLA: google_en 1
 주가·증시 | 테스 | google | 씽크풀 AI | 테스(095610)
 주가·증시 | 테스 | google | 톱스타뉴스 | 테스 주가, 10월 12일 장중 161,000원 1.95% 하락
 주가·증시 | 테스 | naver_web | 중앙이코노미뉴스 | 테스 주가, 10월 12일 장중 162,300원 1.16% 하락
+주가·증시 | 테스,심텍 | google | 한국경제 | 삼성전기·테스·심텍 골라 담는다…반도체 소부장 ETF 출격
 주가·증시 | 티에스이 | google | ThinkPool | 투신, 코스닥 시장에서 티에스이 1,267.55억원 순매수
 주가·증시 | 티에스이 | google | 주달 | 티에스이 투자분석 2026. 10. 15
 주가·증시 | 티에스이,심텍 | google | 핀포인트뉴스 | [주간 코스닥 기관] 순매수 1위 티에스이…심텍·브이엠·주성엔지니어링 매도 집중
@@ -589,6 +605,7 @@ KLA: google_en 1
 주가·증시 | 하나머티리얼즈 | naver_web | 중앙이코노미뉴스 | 하나머티리얼즈 주가, 10월 16일 장중 53,700원 3.67% 상승
 주가·증시 | 한솔케미칼 | google | 뉴스핌 | [리포트 브리핑]한솔케미칼, '과산화수소가 채운 프리커서의 빈자리' 목표가 380,000원 - 상상인증권
 주가·증시 | 한솔케미칼 | google | 재경일보 | [마감분석] 한솔케미칼, 특별한 공시 없이 23만2500원 소폭 상승 마감 : 기업주식정보
+주가·증시 | 한솔케미칼 | google | 재경일보 | [특징주] 한솔케미칼, 장중 1%대 약세…22만7500원선 기록 : 기업주식정보
 주가·증시 | 한솔케미칼 | google | 재경일보 | [특징주] 한솔케미칼, 장중 5% 넘게 하락하며 23만원대 기록 : 기업주식정보
 주가·증시 | 후성 | google | 톱스타뉴스 | 후성 주가, 10월 14일 장중 14,260원 1.93% 상승
 주가·증시 | 후성 | google | 톱스타뉴스 | 후성 주가, 10월 15일 애프터마켓 12,140원 13.66% 하락
@@ -608,5 +625,6 @@ KLA: google_en 1
 차단 매체 | 어플라이드머티어리얼즈 | google_en | Seeking Alpha | Applied Materials unveils $5B EPIC center to speed up AI chip R&D
 차단 매체 | 어플라이드머티어리얼즈 | google_en | The Motley Fool | Why Applied Materials Sank Today
 차단 매체 | 어플라이드머티어리얼즈 | google_en | TradingView | Applied Materials Unveils $5 Billion Epic Center In Silicon Valley To Accelerate Semiconductor Innovation For Ai Era
+차단 매체 | 이비덴 | google_en | MarketBeat | Ibiden Co.,Ltd. Earnings Date and Estimates
 차단 매체 | 인테그리스 | google | Simply Wall Street | The Call Entegris Bulls Got Right
 차단 매체 | 인테그리스 | google_en | Seeking Alpha | Entegris: The Recovery Is Real, But The Price Needs It To Last
