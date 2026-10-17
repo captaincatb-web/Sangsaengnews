@@ -203,10 +203,9 @@
     const biz = (t.match(/설립되(?:어|었으며|었고)?[,\s]*(.+?)(?:을|를)\s*(?:주요\s*|주된\s*)?(?:사업으로|목적으로)/)
       || t.match(/^(.+?)(?:을|를)\s*목적으로/) || [])[1];
     if (biz) {
-      biz.replace(/^[,\s]+/, "").trim().split(/(?<=(?:판매|제조|생산|공급|개발))(?:와|과),\s*/).forEach((x, i) => {
-        const s = x.trim().replace(/(?:을|를)$/, "");
-        out.push({ year, bare: true, text: `${i ? "" : "주요 사업: "}${/(함|됨|음|임)$/.test(s) ? s : `${s}함`}` });
-      });
+      // 품목이 여럿이면 한 줄로 이어 쓰고 맨 끝만 ~함으로 맺는다
+      const items = biz.replace(/^[,\s]+/, "").trim().split(/(?<=(?:판매|제조|생산|공급|개발))(?:와|과),\s*/).map((x) => x.trim().replace(/(?:을|를)$/, ""));
+      out.push({ year, bare: true, text: `주요 사업: ${items.join(", ")}${/(함|됨|음|임)$/.test(items[items.length - 1]) ? "" : "함"}` });
     }
     const pl = t.match(PLACE);
     if (pl) out.push({ year, bare: true, text: `${pl[1].trim()} ${pl[2]}` });
@@ -227,10 +226,10 @@
   }
   const note = (window.COMPANY_NOTES || {})[code];
   if (note && note.business && note.business.length) {
-    const kept = events.filter((h) => !/^주요 사업:/.test(h.text) && !(h.bare && /함$/.test(h.text) && !/설립|본사|제조시설/.test(h.text)));
+    const kept = events.filter((h) => !/^주요 사업:/.test(h.text));
     const at = Math.max(0, kept.findIndex((h) => /설립/.test(h.text)) + 1);
     const yr = (kept[at - 1] && kept[at - 1].year) || est;
-    kept.splice(at, 0, ...note.business.map((t, i) => ({ year: yr, bare: true, text: `${i ? "" : "주요 사업: "}${t}` })));
+    kept.splice(at, 0, { year: yr, bare: true, text: `주요 사업: ${note.business.join(", ")}함` });
     events.splice(0, events.length, ...kept);
   }
   events.sort((a, b) => (a.year || 9999) - (b.year || 9999));
