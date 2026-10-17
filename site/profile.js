@@ -228,6 +228,8 @@
     events.push({ year: est, text: "법인 설립" });
   }
   const note = (window.COMPANY_NOTES || {})[code];
+  // 직접 확인한 이력이 있으면 자동으로 읽은 줄글 대신 쓴다
+  if (note && note.history && note.history.length) events.splice(0, events.length, ...note.history.map((h) => ({ year: h.year, text: h.text, bare: false })));
   if (note && note.business && note.business.length) {
     const kept = events.filter((h) => !/^주요 사업:/.test(h.text));
     if (est && !kept.some((h) => h.year === est || /설립/.test(h.text))) {
