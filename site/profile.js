@@ -230,6 +230,10 @@
   const note = (window.COMPANY_NOTES || {})[code];
   if (note && note.business && note.business.length) {
     const kept = events.filter((h) => !/^주요 사업:/.test(h.text));
+    if (est && !kept.some((h) => h.year === est || /설립/.test(h.text))) {
+      const m = Number(p.est_dt.slice(4, 6));
+      kept.unshift({ year: est, text: `${m ? `${m}월 ` : ""}법인 설립` });
+    }
     const at = Math.max(0, kept.findIndex((h) => /설립/.test(h.text)) + 1);
     const yr = (kept[at - 1] && kept[at - 1].year) || est;
     kept.splice(at, 0, { year: yr, bare: true, text: `주요 사업: ${note.business.join(", ")}함` });
