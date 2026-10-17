@@ -224,19 +224,22 @@
     .flatMap((h) => (isProse(h.text) ? terse(h) : [{ year: h.year || null, text: h.text }]))
     .map((h) => ({ year: h.year || null, text: h.text, bare: !!h.bare }));
   // 설립 줄이 이미 있으면(연도가 달라도) 한 번 더 넣지 않는다
-  if (est && events.length && !events.some((h) => h.year === est || /(?:^|\s)(?:법인\s*|회사\s*)?설립(?:\s|$)/.test(h.text))) {
-    events.push({ year: est, text: "법인 설립" });
+  // 회사 자신의 설립 줄이 있는지: 설립연도와 같은 해의 '설립' 문구이거나 '(월) (법인) 설립'으로 시작하는 줄
+  const isFounding = (h) => (h.year === est && /설립/.test(h.text)) || /^(?:\d+월\s*)?(?:법인\s*)?설립/.test(h.text);
+  if (est && events.length && !events.some(isFounding)) {
+    const em = Number(p.est_dt.slice(4, 6));
+    events.push({ year: est, text: `${em ? `${em}월 ` : ""}법인 설립` });
   }
   const note = (window.COMPANY_NOTES || {})[code];
   // 직접 확인한 이력이 있으면 자동으로 읽은 줄글 대신 쓴다
   if (note && note.history && note.history.length) events.splice(0, events.length, ...note.history.map((h) => ({ year: h.year, text: h.text, bare: false })));
   if (note && note.business && note.business.length) {
     const kept = events.filter((h) => !/^주요 사업:/.test(h.text));
-    if (est && !kept.some((h) => h.year === est || /설립/.test(h.text))) {
+    if (est && !kept.some(isFounding)) {
       const m = Number(p.est_dt.slice(4, 6));
       kept.unshift({ year: est, text: `${m ? `${m}월 ` : ""}법인 설립` });
     }
-    const at = Math.max(0, kept.findIndex((h) => /설립/.test(h.text)) + 1);
+    const at = Math.max(0, kept.findIndex(isFounding) + 1);
     const yr = (kept[at - 1] && kept[at - 1].year) || est;
     kept.splice(at, 0, { year: yr, bare: true, text: `주요 사업: ${note.business.join(", ")}함` });
     events.splice(0, events.length, ...kept);
