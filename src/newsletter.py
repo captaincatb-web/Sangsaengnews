@@ -144,7 +144,9 @@ def resolve_links(grouped: dict, now: datetime) -> None:
         for a in articles:
             if is_bad(a):
                 continue
-            a["similar_articles"] = [s for s in a["similar_articles"] if not is_bad(s)]
+            a["similar_articles"] = [
+                s for s in a["similar_articles"] if not is_bad(s) and "news.google.com/rss/articles" not in s["link"]
+            ]
             kept.append(a)
         grouped[company] = kept
 

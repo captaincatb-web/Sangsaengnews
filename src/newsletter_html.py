@@ -75,7 +75,7 @@ def _name_html(company: str) -> str:
 
 
 SITE_URL = "https://captaincatb-web.github.io/sobujang-news/"
-AMOUNT_RE = re.compile(r"\d[\d,.]*\s*(?:조|억|만)?\s*(?:원|달러|엔|위안)|\d[\d,.]*\s*(?:%|호기|대|건)")
+AMOUNT_RE = re.compile(r"\d[\d,.]*\s*(?:조|억)?\s*(?:\d[\d,.]*\s*만)?\s*(?:원|달러|엔|위안)|\d[\d,.]*\s*(?:%|호기|대|건)")
 
 
 def _delta(cur: int, prev) -> str:
