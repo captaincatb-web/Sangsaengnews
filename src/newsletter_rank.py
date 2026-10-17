@@ -7,6 +7,8 @@ from src.newsletter_config import (
     FRESH_DAYS,
     HIGHLIGHT_COUNT,
     HIGHLIGHT_MIN_WEIGHT,
+    LOW_VALUE_CATEGORIES,
+    OPINION_RE,
     ROUTINE_CATEGORY,
 )
 
@@ -29,7 +31,8 @@ def score(article: dict, now: datetime) -> float:
     filed = 1 if article["cat3"] != "공시자료" and any(m["cat3"] == "공시자료" for m in article["similar_articles"]) else 0
     # 영문 기사(해외 기업)는 국문 기사가 없을 때 보완용
     foreign = 0 if HANGUL_RE.search(article["title"]) else -2
-    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed + foreign
+    opinion = -1 if article["cat3"] != "공시자료" and OPINION_RE.search(article["title"]) else 0
+    return CATEGORY_WEIGHT.get(article["cat2"], 1) + recency + coverage + filed + foreign + opinion
 
 
 def select_company(articles: list, now: datetime) -> dict:
@@ -42,7 +45,15 @@ def select_company(articles: list, now: datetime) -> dict:
     fresh = [a for a in articles if age_days(now, a) <= FRESH_DAYS]
     main = sorted((a for a in fresh if not is_routine(a)), key=lambda a: score(a, now), reverse=True)
     routine = [a for a in fresh if is_routine(a)]
-    shown = main[:FIXED_COMPANY_LIMIT]
+    shown, low = [], 0
+    for a in main:
+        if a["cat2"] in LOW_VALUE_CATEGORIES:
+            if low >= 1:
+                continue  # 행사·기부·단순 동향은 회사당 1건까지
+            low += 1
+        shown.append(a)
+        if len(shown) >= FIXED_COMPANY_LIMIT:
+            break
 
     older = None
     if not shown:

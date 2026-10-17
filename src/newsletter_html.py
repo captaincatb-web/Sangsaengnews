@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from html import escape
 
@@ -73,15 +74,32 @@ def _name_html(company: str) -> str:
     return f"<b>{company}</b>" if disp == company else f'<b title="{company}">{disp}</b>'
 
 
+SITE_URL = "https://captaincatb-web.github.io/sobujang-news/"
+AMOUNT_RE = re.compile(r"\d[\d,.]*\s*(?:조|억|만)?\s*(?:원|달러|엔|위안)|\d[\d,.]*\s*(?:%|호기|대|건)")
+
+
+def _delta(cur: int, prev) -> str:
+    if prev is None or cur == prev:
+        return ""
+    color, arrow = ("#f04452", "▲") if cur > prev else ("#3182f6", "▼")
+    return f' <span style="color:{color}">{arrow}{abs(cur - prev)}</span>'
+
+
 def _header(now: datetime, stats: dict) -> str:
     start = now - timedelta(days=FRESH_DAYS)
+    prev = stats.get("prev") or {}
+    vs = ' <span style="color:#8b95a1">(지난주 대비)</span>' if prev else ""
     return (
         f'<h2 style="margin:0 0 4px">📬 소부장 파트너사 주간 동향</h2>'
         f'<div style="font-size:12px;color:#6b7684;margin-bottom:12px">'
         f'{now.year}.{now.month:02d}.{now.day:02d}({WEEKDAYS[now.weekday()]}) 발행 · '
         f"수집 기간 {start.month}/{start.day} ~ {now.month}/{now.day} · "
-        f'이번 주 새 소식 <b>{stats["fresh_news"]}건</b> (공시 {stats["fresh_dart"]}건) · '
-        f'소식 있는 회사 {stats["fresh_companies"]}/{stats["total_companies"]}곳</div>'
+        f'이번 주 새 소식 <b>{stats["fresh_news"]}건</b>{_delta(stats["fresh_news"], prev.get("fresh_news"))} '
+        f'(공시 {stats["fresh_dart"]}건) · '
+        f'소식 있는 회사 {stats["fresh_companies"]}/{stats["total_companies"]}곳'
+        f'{_delta(stats["fresh_companies"], prev.get("fresh_companies"))}'
+        f'{vs}'
+        f' · <a href="{SITE_URL}" style="color:#3182f6">전체 주차 보기</a></div>'
     )
 
 
@@ -90,10 +108,13 @@ def _highlights(highlights: list) -> str:
         return ""
     rows = []
     for company, a in highlights:
+        title = a["title"] if len(a["title"]) <= 42 else a["title"][:40].rstrip() + "…"
+        amount = AMOUNT_RE.search(a["title"])
+        chip = f' <b style="color:#3182f6">{escape(amount.group(0).strip())}</b>' if amount else ""
         rows.append(
             f'<div style="margin:0 0 7px">{_badge(a)} <b>{get_display_name(company)}</b> · '
-            f'<a href="{escape(a["link"])}" style="color:#191f28;text-decoration:none">{escape(a["title"])}</a> '
-            f'<span style="{META}">{_meta(a)}</span></div>'
+            f'<a href="{escape(a["link"])}" title="{escape(a["title"])}" style="color:#191f28;text-decoration:none">{escape(title)}</a>'
+            f'{chip} <span style="{META}">{_meta(a)}</span></div>'
         )
     return (
         '<div style="border:1px solid #d1d6db;border-radius:8px;padding:12px 14px;margin:0 0 12px;background:#fbfcfd">'

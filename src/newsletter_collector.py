@@ -557,6 +557,11 @@ def collect_articles(asof: datetime | None = None) -> dict:
                 reasons["동명이인·오탐"] += 1
                 if pub_date >= fresh_cutoff:
                     dropped.append(("동명이인·오탐", ",".join(names), kind, src_name, clean_title))
+            if not HANGUL_RE.search(clean_title):
+                # 영문 기사는 해외 기업 칸에만 (국내사 칸에 섞인 외신·광고성 기사 차단)
+                if any(c not in ENGLISH_SEARCH_TERMS for c in matched):
+                    reasons["영문 국내사"] += 1
+                matched = [c for c in matched if c in ENGLISH_SEARCH_TERMS]
             for company in matched:
                 valid_articles.append({**base, "company": company, "cat3": "기업동향"})
             kept[kind] += bool(matched)

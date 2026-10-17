@@ -1,9 +1,11 @@
 import argparse
+import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from src import email_sender, gnews_decoder
+from src.config import ROOT_DIR
 from src.history import KST
 from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar, is_stale
 from src.newsletter_config import OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
@@ -47,13 +49,16 @@ def main() -> None:
         price_short[company] = build_price_short(company)
     cache.save()
 
+    stats = build_stats(grouped, now, len(companies))
+    stats["prev"] = load_prev_stats(now)
+    save_stats(now, stats)
     html_body = build_newsletter_html(
         now=now,
         groups=TARGET_GROUPS,
         selections=selections,
         highlights=highlights,
         movers=weekly_movers(companies),
-        stats=build_stats(grouped, now, len(companies)),
+        stats=stats,
         fin_cells=fin_cells,
         price_cells=price_cells,
         price_short=price_short,
@@ -80,6 +85,34 @@ def main() -> None:
     print(f"메일 발송 완료 → {recipient}")
 
 
+HISTORY_PATH = ROOT_DIR / "data" / "newsletter_history.json"
+
+
+def _week_key(now: datetime) -> str:
+    """발행일이 속한 주의 목요일 (월~수에 미리 돌려도 같은 주로 묶는다)"""
+    return (now.date() + timedelta(days=(3 - now.weekday()) % 7)).isoformat()
+
+
+def load_prev_stats(now: datetime):
+    """지난 주 수치 (비교용). 이력이 없으면 None"""
+    try:
+        history = json.loads(HISTORY_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    earlier = [k for k in history if k < _week_key(now)]
+    return history[max(earlier)] if earlier else None
+
+
+def save_stats(now: datetime, stats: dict) -> None:
+    try:
+        history = json.loads(HISTORY_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        history = {}
+    history[_week_key(now)] = {k: stats[k] for k in ("fresh_news", "fresh_dart", "fresh_companies")}
+    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_PATH.write_text(json.dumps(history, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+
+
 def build_stats(grouped: dict, now: datetime, total_companies: int) -> dict:
     fresh = {c: [a for a in arts if age_days(now, a) <= FRESH_DAYS] for c, arts in grouped.items()}
     return {
@@ -101,8 +134,10 @@ def resolve_links(grouped: dict, now: datetime) -> None:
     for a in targets:
         a["link"] = mapping.get(a["link"], a["link"])
 
+    unresolved = {k for k, v in mapping.items() if k == v}  # 원문 주소로 바꾸지 못한 구글 링크
+
     def is_bad(a: dict) -> bool:
-        return bool(BLOCKED_LINK_RE.search(a["link"])) or is_stale(a["title"], a["link"], now)
+        return a["link"] in unresolved or bool(BLOCKED_LINK_RE.search(a["link"])) or is_stale(a["title"], a["link"], now)
 
     for company, articles in grouped.items():
         kept = []
