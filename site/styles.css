@@ -152,7 +152,7 @@ strong, b, th { font-weight: 700; }
 .skip:focus { top: 12px; }
 
 /* ---------- 머리글 (KRDS header: 유틸리티 → 로고 → 주 메뉴) ---------- */
-.krds-header { position: sticky; top: 0; z-index: 70; background: var(--bg); }
+.krds-header { position: relative; z-index: 70; background: var(--bg); }
 .head-inner { display: flex; flex-direction: column; gap: 4px; padding-block: 12px 16px; }
 
 .utility { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin: 0; padding: 0; list-style: none; font-size: 15px; }
@@ -381,6 +381,24 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .back { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px; margin-left: -6px; border-radius: 6px; font-size: 17px; font-weight: 700; color: var(--text-2); text-decoration: none; }
 .back:hover { background: var(--nav-hover); color: var(--text); }
 
+.pf-nav {
+  position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; margin: 0 0 16px; padding: 8px 0;
+  background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none;
+}
+.pf-nav a {
+  flex: none; padding: 8px 16px; border-radius: 999px; font-size: 17px; font-weight: 700; color: var(--text-2); text-decoration: none;
+  transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.pf-nav a:hover { background: var(--nav-hover); color: var(--text); }
+.pf-nav a[aria-current] { background: var(--selected, var(--primary)); color: #fff; }
+.pf-overview, #pf-overview, .pf-part { scroll-margin-top: 72px; }
+.to-top {
+  position: fixed; right: max(16px, calc((100vw - 1008px) / 2 - 8px)); bottom: 24px; z-index: 5;
+  display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: 1px solid var(--line-2); border-radius: 999px;
+  background: var(--surface); box-shadow: 0 4px 14px rgb(0 0 0 / .12); font-size: 15px; font-weight: 700; color: var(--text); text-decoration: none;
+}
+.to-top:hover { background: var(--nav-hover); }
+.to-top[hidden] { display: none; }
 .sheet { padding: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 .pf-head h1 { margin-bottom: 12px; }
 
@@ -401,7 +419,15 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 
 .pf-part { margin: 56px 0 0; padding-top: 32px; border-top: 1px solid var(--line); font-size: 24px; letter-spacing: 0; }
 
-.tbl-wrap { margin-top: 12px; overflow-x: auto; scrollbar-color: var(--line-2) transparent; }
+.tbl-wrap {
+  margin-top: 12px; overflow-x: auto; scrollbar-color: var(--line-2) transparent;
+  /* 가로로 더 밀 수 있는 쪽에 그림자를 보여 준다 */
+  background:
+    linear-gradient(to right, var(--surface) 30%, transparent) left center / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 30%, transparent) right center / 24px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / .16), transparent) left center / 10px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / .16), transparent) right center / 10px 100% no-repeat scroll;
+}
 .pf-table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
 .pf-table caption { caption-side: top; padding-bottom: 6px; text-align: right; font-size: 13px; color: var(--text-3); }
 .pf-table th, .pf-table td { padding: 10px 14px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); color: var(--text-2); }
@@ -484,6 +510,10 @@ h2 { font-size: 32px; letter-spacing: 1px; }
   .f-cnt { flex-direction: column; }
   .f-link { width: auto; }
   .sheet { padding: 24px 16px; border-radius: 10px; }
+  .pf-table th, .pf-table td { padding: 10px; }
+  .pf-table tbody th[scope="row"] { position: sticky; left: 0; background: var(--surface); box-shadow: 1px 0 0 var(--line); }
+  .pf-nav a { padding: 8px 14px; font-size: 15px; }
+  .to-top { right: 16px; bottom: 16px; }
   .pf-kv { grid-template-columns: 1fr; }
 }
 

@@ -337,10 +337,36 @@
     ], { groupCol: true, cls: "text" })}</details>` : "";
 
   root.innerHTML = `<header class="pf-head"><h1>${esc(company.name)} 프로필</h1><ul class="meta">${meta}</ul></header>`
-    + `<div class="pf-items">${overview}</div>`
-    + (analysis ? `<h2 class="pf-part">재무현황 분석</h2><div class="pf-items">${analysis}</div>` : "")
-    + (extra ? `<h2 class="pf-part">추가 정보</h2><div class="pf-items">${extra}</div>` : "")
+    + `<div class="pf-items" id="pf-overview">${overview}</div>`
+    + (analysis ? `<h2 class="pf-part" id="pf-analysis">재무현황 분석</h2><div class="pf-items">${analysis}</div>` : "")
+    + (extra ? `<h2 class="pf-part" id="pf-extra">추가 정보</h2><div class="pf-items">${extra}</div>` : "")
     + missingNote + ref;
+
+  // 긴 프로필에서 구역을 바로 오가는 메뉴 (복사 대상인 #profile 밖에 둔다)
+  const nav = document.getElementById("pf-nav");
+  const parts = [["pf-overview", "개요"], analysis && ["pf-analysis", "재무현황 분석"], extra && ["pf-extra", "추가 정보"]].filter(Boolean);
+  if (parts.length > 1) {
+    nav.innerHTML = parts.map(([id, label], i) => `<a href="#${id}"${i === 0 ? ' aria-current="true"' : ""}>${label}</a>`).join("");
+    nav.hidden = false;
+    nav.addEventListener("click", (e) => {
+      const a = e.target.closest("a");
+      if (!a) return;
+      e.preventDefault();
+      history.replaceState(null, "", location.pathname + location.search + location.hash); // 기업 주소(#고유번호)는 그대로 둔다
+      document.getElementById(a.getAttribute("href").slice(1)).scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    const spy = new IntersectionObserver((entries) => {
+      entries.filter((en) => en.isIntersecting).forEach((en) => {
+        nav.querySelectorAll("a").forEach((a) => a.toggleAttribute("aria-current", a.getAttribute("href") === `#${en.target.id}`));
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    parts.forEach(([id]) => spy.observe(document.getElementById(id)));
+  }
+  const top = document.getElementById("to-top");
+  top.addEventListener("click", (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  const showTop = () => { top.hidden = window.scrollY < 900; };
+  window.addEventListener("scroll", showTop, { passive: true });
+  showTop();
 
   const copyBtn = document.getElementById("copy-profile");
   copyBtn.hidden = false;

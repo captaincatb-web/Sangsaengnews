@@ -9,16 +9,27 @@ on:
 jobs:
   send-briefing:
     runs-on: ubuntu-latest
+    env:
+      # 카카오 시크릿이 없으면 매일 실패하지 않고 건너뛴다 (Settings > Secrets 에 등록하면 다시 동작)
+      HAS_KAKAO: ${{ secrets.KAKAO_REST_API_KEY != '' && secrets.KAKAO_REFRESH_TOKEN != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Skip notice
+        if: ${{ env.HAS_KAKAO != 'true' }}
+        run: echo "::warning::KAKAO_REST_API_KEY / KAKAO_REFRESH_TOKEN 시크릿이 없어 건너뜁니다"
 
-      - uses: actions/setup-python@v5
+      - if: ${{ env.HAS_KAKAO == 'true' }}
+        uses: actions/checkout@v4
+
+      - if: ${{ env.HAS_KAKAO == 'true' }}
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - run: pip install -r requirements.txt
+      - if: ${{ env.HAS_KAKAO == 'true' }}
+        run: pip install -r requirements.txt
 
       - name: Fetch prices/news and send to Kakao
+        if: ${{ env.HAS_KAKAO == 'true' }}
         env:
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
