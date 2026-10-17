@@ -1,15 +1,14 @@
 import argparse
 import json
 import os
-import sys
 from datetime import datetime, timedelta
 
-from src import email_sender, gnews_decoder
+from src import gnews_decoder
 from src.config import ROOT_DIR
 from src.history import KST
 from src.newsletter_ai import apply_ai_analysis
 from src.newsletter_collector import BLOCKED_LINK_RE, FALSE_POSITIVE_CASES, collect_articles, group_similar, is_stale
-from src.newsletter_config import LEGACY_COMPANIES, OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
+from src.newsletter_config import LEGACY_COMPANIES, OUTPUT_DIR, TARGET_GROUPS, all_company_names
 from src.newsletter_finance import Cache, build_fin_summary, build_price_cell, build_price_short, weekly_movers
 from src.newsletter_html import build_newsletter_html
 from src.newsletter_rank import FRESH_DAYS, age_days, candidate_articles, is_routine, pick_highlights, select_company
@@ -20,20 +19,13 @@ def build_subject(now: datetime) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="소부장 파트너사 동향 뉴스레터")
-    parser.add_argument("--dry-run", action="store_true", help="메일을 보내지 않고 output/ 에 HTML만 저장")
-    args = parser.parse_args()
-
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_password = os.environ.get("SMTP_PASSWORD", "")
-    if not args.dry_run and not (smtp_user and smtp_password):
-        print("필수 환경 변수가 없습니다: SMTP_USER, SMTP_PASSWORD (또는 --dry-run 사용)")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="소부장 파트너사 동향 뉴스레터 (HTML 생성 전용, 메일은 보내지 않음)")
+    parser.add_argument("--dry-run", action="store_true", help="이전 버전과의 호환용 (항상 HTML만 저장)")
+    parser.parse_args()
 
     dart_key = os.environ.get("OPENDART_KEY", "")
     gemini_key = os.environ.get("GEMINI_KEY", "")
     gemini_model = os.environ.get("GEMINI_MODEL") or "gemini-2.0-flash"
-    recipient = os.environ.get("RECIPIENT_EMAIL") or RECIPIENT_EMAIL_DEFAULT
 
     now = datetime.now(KST)
     grouped = group_similar(collect_articles())
@@ -76,20 +68,7 @@ def main() -> None:
     (OUTPUT_DIR / "subject.txt").write_text(subject, encoding="utf-8")
     print(f"HTML 저장: {out_path} ({len(html_body.encode()) // 1024}KB) / 제목: {subject}")
     if len(html_body.encode()) > 100 * 1024:
-        print("[경고] HTML이 100KB를 넘어 Gmail이 본문 끝을 잘라 보여줄 수 있습니다 ('메시지 일부 표시됨').")
-
-    if args.dry_run:
-        return
-    email_sender.send_html(
-        os.environ.get("SMTP_HOST") or "smtp.gmail.com",
-        int(os.environ.get("SMTP_PORT") or 465),
-        smtp_user,
-        smtp_password,
-        recipient,
-        subject,
-        html_body,
-    )
-    print(f"메일 발송 완료 → {recipient}")
+        print("[경고] HTML이 100KB를 넘습니다 (메일로 보낼 경우 Gmail이 본문 끝을 자릅니다).")
 
 
 HISTORY_PATH = ROOT_DIR / "data" / "newsletter_history.json"
