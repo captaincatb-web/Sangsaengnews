@@ -768,6 +768,17 @@ def print_review(profiles: dict, companies: dict):
               f"| 분기 {'O' if p.get('quarter') else 'X'} | 특징 {len(p.get('highlights', []))} | 사업장 {sites} | 연혁: {hist}")
 
 
+def print_history_full(profiles: dict, companies: dict):
+    """비상장사의 연혁 원문 전체를 로그에 남긴다 (문장 형태를 점검하기 위해)."""
+    print("===== 비상장 연혁 전문 =====")
+    for code, p in profiles.items():
+        if p.get("stock_code"):
+            continue
+        print(f"[연혁전문] {companies.get(code, [code])[0]} | 설립 {p.get('est_dt', '')}")
+        for h in p.get("history", []):
+            print(f"    - {h.get('year') or ''} {h.get('text', '')}")
+
+
 def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)  # Actions 로그에 진행 상황이 바로 보이도록
     api_key = os.environ.get("DART_API_KEY")
@@ -811,6 +822,7 @@ def main() -> int:
 
     ordered = {c: profiles[c] for c in corp_codes if c in profiles}
     print_review(ordered, companies)
+    print_history_full(ordered, companies)
     updated = datetime.now().strftime("%Y-%m-%d")
     PROFILES_PATH.write_text(
         "// scripts/build_company_profiles.py 가 생성한 파일입니다. 직접 수정하지 마세요.\n"
