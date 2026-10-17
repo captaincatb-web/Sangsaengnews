@@ -1,3 +1,12 @@
 {
- "2026-10-08": {"fresh_companies": 17, "fresh_dart": 0, "fresh_news": 38}
+ "2026-10-08": {
+  "fresh_companies": 17,
+  "fresh_dart": 0,
+  "fresh_news": 38
+ },
+ "2026-10-22": {
+  "fresh_companies": 35,
+  "fresh_dart": 21,
+  "fresh_news": 90
+ }
 }
