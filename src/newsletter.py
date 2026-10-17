@@ -8,8 +8,8 @@ from src import email_sender, gnews_decoder
 from src.config import ROOT_DIR
 from src.history import KST
 from src.newsletter_ai import apply_ai_analysis
-from src.newsletter_collector import BLOCKED_LINK_RE, collect_articles, group_similar, is_stale
-from src.newsletter_config import OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
+from src.newsletter_collector import BLOCKED_LINK_RE, FALSE_POSITIVE_CASES, collect_articles, group_similar, is_stale
+from src.newsletter_config import LEGACY_COMPANIES, OUTPUT_DIR, RECIPIENT_EMAIL_DEFAULT, TARGET_GROUPS, all_company_names
 from src.newsletter_finance import Cache, build_fin_summary, build_price_cell, build_price_short, weekly_movers
 from src.newsletter_html import build_newsletter_html
 from src.newsletter_rank import FRESH_DAYS, age_days, candidate_articles, is_routine, pick_highlights, select_company
@@ -43,7 +43,7 @@ def main() -> None:
     highlights = pick_highlights(selections, now)
 
     cache = Cache()
-    companies = all_company_names()
+    companies = LEGACY_COMPANIES  # 재무·주가는 기존 73개사만 (추가 A~E그룹은 뉴스 전용)
     fin_cells, price_cells, price_short = {}, {}, {}
     for company in companies:
         fin_cells[company] = build_fin_summary(company, dart_key, now, cache, gemini_key, gemini_model)
@@ -51,7 +51,10 @@ def main() -> None:
         price_short[company] = build_price_short(company)
     cache.save()
 
-    stats = build_stats(grouped, now, len(companies))
+    stats = build_stats(grouped, now, len(companies), companies)
+    extra_names = [c for c in all_company_names() if c not in set(companies)]
+    stats["extra"] = build_stats(grouped, now, len(extra_names), extra_names)
+    stats["fp_cases"] = list(dict.fromkeys(FALSE_POSITIVE_CASES))
     stats["prev"] = load_prev_stats(now)
     save_stats(now, stats)
     html_body = build_newsletter_html(
@@ -72,6 +75,8 @@ def main() -> None:
     out_path.write_text(html_body, encoding="utf-8")
     (OUTPUT_DIR / "subject.txt").write_text(subject, encoding="utf-8")
     print(f"HTML 저장: {out_path} ({len(html_body.encode()) // 1024}KB) / 제목: {subject}")
+    if len(html_body.encode()) > 100 * 1024:
+        print("[경고] HTML이 100KB를 넘어 Gmail이 본문 끝을 잘라 보여줄 수 있습니다 ('메시지 일부 표시됨').")
 
     if args.dry_run:
         return
@@ -115,8 +120,8 @@ def save_stats(now: datetime, stats: dict) -> None:
     HISTORY_PATH.write_text(json.dumps(history, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
 
 
-def build_stats(grouped: dict, now: datetime, total_companies: int) -> dict:
-    fresh = {c: [a for a in arts if age_days(now, a) <= FRESH_DAYS] for c, arts in grouped.items()}
+def build_stats(grouped: dict, now: datetime, total_companies: int, names=None) -> dict:
+    fresh = {c: [a for a in arts if age_days(now, a) <= FRESH_DAYS] for c, arts in grouped.items() if names is None or c in names}
     return {
         "fresh_news": sum(1 for arts in fresh.values() for a in arts if a["cat3"] != "공시자료" and not is_routine(a)),
         # 공시는 관련 기사와 한 묶음이 된 경우(유사기사 쪽)도 센다
@@ -131,7 +136,8 @@ def build_stats(grouped: dict, now: datetime, total_companies: int) -> dict:
 def resolve_links(grouped: dict, now: datetime) -> None:
     """메일에 오를 수 있는 기사만 구글뉴스 링크를 원문 링크로 바꾸고,
     원문 주소가 드러난 뒤에야 알 수 있는 사진 페이지·주가 사이트·재게시 옛 기사를 제거한다"""
-    targets = [a for articles in grouped.values() for a in candidate_articles(articles, now)]
+    compact = {c for g in TARGET_GROUPS if g.get("compact") for c in g["companies"]}
+    targets = [a for company, articles in grouped.items() for a in candidate_articles(articles, now, company in compact)]
     mapping = gnews_decoder.decode_all(a["link"] for a in targets)
     for a in targets:
         a["link"] = mapping.get(a["link"], a["link"])

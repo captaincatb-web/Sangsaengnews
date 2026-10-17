@@ -179,18 +179,27 @@ def find_companies(clean_title: str, alias_map: dict) -> list:
     if "와이씨켐" in lower or "ycchem" in lower or "yc chem" in lower:
         return []
 
-    matched = {}
+    spans = []  # (시작, 끝, 회사)
     for alias in sorted(alias_map, key=len, reverse=True):
         if ASCII_ALIAS_RE.match(alias):
             # 순수 영문/숫자 alias는 단어 경계 매칭 (예: "di"가 "nvidia"에 걸리는 오탐 차단)
-            if re.search(r"(^|[^a-z0-9])" + re.escape(alias) + r"([^a-z0-9]|$)", lower):
-                matched[alias_map[alias]] = True
+            pattern = r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])"
         elif len(alias) <= 2:
             # '테스','후성' 같은 두 글자 이름은 '카르테스'처럼 다른 단어 안에 들어간 경우를 제외
-            if re.search(r"(^|[^가-힣\-])" + re.escape(alias), lower):
-                matched[alias_map[alias]] = True
-        elif alias in lower:
-            matched[alias_map[alias]] = True
+            pattern = r"(?<![가-힣\-])" + re.escape(alias)
+        else:
+            pattern = re.escape(alias)
+        for m in re.finditer(pattern, lower):
+            spans.append((m.start(), m.end(), alias_map[alias]))
+    # 더 긴 다른 회사명 안에 든 이름은 제외 (예: '디아이텍' 안의 '디아이', '피에스케이홀딩스' 안의 '피에스케이')
+    matched = {}
+    for start, end, company in spans:
+        inside_longer = any(
+            o_company != company and o_start <= start and end <= o_end and (o_end - o_start) > (end - start)
+            for o_start, o_end, o_company in spans
+        )
+        if not inside_longer:
+            matched[company] = True
     return list(matched)
 
 
@@ -477,10 +486,14 @@ def _news_drop_reason(clean_title: str, link: str, src_name: str) -> str:
     return ""
 
 
+FALSE_POSITIVE_CASES: list = []  # 이번 수집에서 동명이인·오탐으로 제외한 최근 기사 [(회사, 제목)] — 메일의 '오탐 제외 사례'용
+
+
 def collect_articles(asof: datetime | None = None) -> dict:
     """DART + RSS + 구글뉴스 + 포털 뉴스검색 수집 → {회사명: [article, ...]} (회사별 최신순 상위 N건)"""
     alias_map = build_alias_map()
     sources = build_sources(asof)
+    FALSE_POSITIVE_CASES.clear()
 
     with ThreadPoolExecutor(max_workers=16) as pool:
         feeds = list(pool.map(_fetch_feed, sources))
@@ -557,6 +570,7 @@ def collect_articles(asof: datetime | None = None) -> dict:
                 reasons["동명이인·오탐"] += 1
                 if pub_date >= fresh_cutoff:
                     dropped.append(("동명이인·오탐", ",".join(names), kind, src_name, clean_title))
+                    FALSE_POSITIVE_CASES.extend((c, clean_title) for c in names)
             if not HANGUL_RE.search(clean_title):
                 # 영문 기사는 해외 기업 칸에만 (국내사 칸에 섞인 외신·광고성 기사 차단)
                 if any(c not in ENGLISH_SEARCH_TERMS for c in matched):

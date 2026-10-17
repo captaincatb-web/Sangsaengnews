@@ -1,6 +1,7 @@
 import re
 
 from src.config import ROOT_DIR
+from src.newsletter_extra_groups import EXTRA_AMBIGUOUS, EXTRA_DUP_OF, EXTRA_RAW
 
 # ============================================================
 #  [뉴스레터 2호] 1~4그룹 소부장 파트너사 동향 (Google Apps Script 버전 이식)
@@ -213,6 +214,44 @@ COMPANY_ALIAS_RAW = {
     "램리서치": ["램리서치", "Lam Research"], "도쿄일렉트론": ["도쿄일렉트론", "TEL", "Tokyo Electron"], "KLA": ["KLA", "케이엘에이"],
     "에바라": ["에바라", "Ebara", "에바라제작소", "에바라 제작소", "에바라펌프", "에바라정밀"], "인테그리스": ["인테그리스", "엔테그리스", "Entegris"], "이비덴": ["이비덴", "Ibiden"], "레이저텍": ["레이저텍", "레이저테크", "Lasertec"],
 }
+
+EXTRA_GROUP_NAMES = {"A": "A그룹", "B": "B그룹", "C": "C그룹", "D": "D그룹", "E": "E그룹"}
+
+
+def _name_key(name: str) -> str:
+    """'코리아'·'한국' 표기 차이를 무시한 비교용 키 (어플라이드머티어리얼즈코리아 = 어플라이드머티어리얼즈)"""
+    return name.lower().replace("코리아", "").replace("한국", "").replace(" ", "")
+
+
+def build_extra_groups():
+    """추가 A~E그룹 구성 → (groups, 제외 내역). 기존 73개사와 중복되거나 이름이 모호한 회사는 뺀다."""
+    existing = {}
+    for company in [c for g in TARGET_GROUPS for c in g["companies"]]:
+        for alias in [company, *COMPANY_ALIAS_RAW.get(company, [])]:
+            existing[_name_key(alias)] = company
+    groups, skipped = [], {"기존 중복": [], "이름 모호": []}
+    seen = set()
+    for n, (letter, raw) in enumerate(EXTRA_RAW.items(), start=5):
+        companies = []
+        for name in (x.strip() for x in raw.split(",")):
+            key = _name_key(name)
+            if name in EXTRA_DUP_OF or key in existing or key in seen:
+                skipped["기존 중복"].append(name)
+            elif name in EXTRA_AMBIGUOUS or len(name) <= 2:
+                skipped["이름 모호"].append(name)
+            else:
+                seen.add(key)
+                companies.append(name)
+        groups.append({"group_id": n, "group_name": f"{EXTRA_GROUP_NAMES[letter]} (추가 {len(companies)}개사)", "companies": companies, "compact": True})
+    return groups, skipped
+
+
+EXTRA_GROUPS, EXTRA_SKIPPED = build_extra_groups()
+for _g in EXTRA_GROUPS:
+    for _c in _g["companies"]:
+        COMPANY_ALIAS_RAW.setdefault(_c, [_c])
+TARGET_GROUPS = TARGET_GROUPS + EXTRA_GROUPS
+LEGACY_COMPANIES = [c for g in TARGET_GROUPS if not g.get("compact") for c in g["companies"]]
 
 # 4그룹 해외 9개사 티커 (DART 데이터 없음)
 FOREIGN_TICKERS = {

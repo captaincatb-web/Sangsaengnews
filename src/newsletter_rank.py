@@ -85,10 +85,12 @@ def pick_highlights(selections: dict, now: datetime, count: int = HIGHLIGHT_COUN
     return picked
 
 
-def candidate_articles(articles: list, now: datetime) -> list:
+def candidate_articles(articles: list, now: datetime, compact: bool = False) -> list:
     """원문 링크 변환·검증 대상: 메일에 오를 가능성이 있는 기사와 그 유사기사"""
     fresh = [a for a in articles if age_days(now, a) <= FRESH_DAYS]
     main = sorted((a for a in fresh if not is_routine(a)), key=lambda a: score(a, now), reverse=True)
+    if compact:  # 추가 그룹은 대표 기사 1건만 보이므로 링크 변환 대상도 최소로
+        return main[:2]
     routine = [a for a in fresh if is_routine(a)]
     older = [a for a in articles if age_days(now, a) > FRESH_DAYS and not is_routine(a)]
     picked = main[: FIXED_COMPANY_LIMIT + 2] + routine[:2] + older[:2]

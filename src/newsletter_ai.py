@@ -7,6 +7,7 @@ import json
 import os
 from datetime import datetime
 
+from src.newsletter_collector import FALSE_POSITIVE_CASES
 from src.newsletter_config import CATEGORY_WEIGHT
 from src.newsletter_rank import age_days, is_routine, score
 
@@ -102,6 +103,7 @@ def apply_ai_analysis(grouped: dict, now: datetime, client=None) -> dict:
         if not r["relevant"]:
             drop.add(id(a))
             stats["dropped"] += 1
+            FALSE_POSITIVE_CASES.append((company, a["title"]))
             print(f"[ai] 제외: {company} | {a['title'][:50]}")
             continue
         a["ai"] = {"importance": max(1, min(5, r["importance"]))}
