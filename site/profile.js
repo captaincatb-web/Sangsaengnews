@@ -199,7 +199,9 @@
     const out = [];
     const d = t.match(/((?:19|20)\d{2})년\s*(\d{1,2})월(?:\s*(\d{1,2})일)?[^.,]*?설립/);
     const year = d ? Number(d[1]) : h.year;
-    if (d) out.push({ year, text: `${Number(d[2])}월 법인 설립` });
+    // 설립 월은 DART 기업개황의 설립일이 문장보다 정확하므로 같은 해이면 그 값을 쓴다
+    const estMonth = /^\d{8}$/.test(p.est_dt || "") && Number(p.est_dt.slice(0, 4)) === year ? Number(p.est_dt.slice(4, 6)) : null;
+    if (d) out.push({ year, text: `${estMonth || Number(d[2])}월 법인 설립` });
     const biz = (t.match(/설립되(?:어|었으며|었고)?[,\s]*(.+?)(?:을|를)\s*(?:주요\s*|주된\s*)?(?:사업으로|목적으로)/)
       || t.match(/^(.+?)(?:을|를)\s*목적으로/) || [])[1];
     if (biz) {
@@ -221,7 +223,8 @@
   const events = (p.history || []).filter((h) => h.text)
     .flatMap((h) => (isProse(h.text) ? terse(h) : [{ year: h.year || null, text: h.text }]))
     .map((h) => ({ year: h.year || null, text: h.text, bare: !!h.bare }));
-  if (est && events.length && !events.some((h) => h.year === est || (!h.year && /설립/.test(h.text)))) {
+  // 설립 줄이 이미 있으면(연도가 달라도) 한 번 더 넣지 않는다
+  if (est && events.length && !events.some((h) => h.year === est || /(?:^|\s)(?:법인\s*|회사\s*)?설립(?:\s|$)/.test(h.text))) {
     events.push({ year: est, text: "법인 설립" });
   }
   const note = (window.COMPANY_NOTES || {})[code];
