@@ -190,14 +190,55 @@
 
   // ---------- 설립 및 이력 ----------
   const est = /^\d{8}$/.test(p.est_dt || "") ? Number(p.est_dt.slice(0, 4)) : null;
-  const events = (p.history || []).filter((h) => h.text).map((h) => ({ year: h.year || null, text: h.text }));
-  if (est && events.length && !events.some((h) => h.year === est || (!h.year && /설립/.test(h.text)))) {
+  // 공시에 줄글 한 문장으로만 적힌 이력은 설립·사업·소재지로 나눠 한 줄씩 보여 준다
+  const PLACE = /((?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충청|충북|충남|전라|전북|전남|경상|경북|경남|제주)[가-힣]*\s+[가-힣0-9 ]{1,20}?)에\s*(본사|제조시설|생산시설|공장|연구소)/;
+  const END = [[/있습니다/g, "있음"], [/없습니다/g, "없음"], [/하였습니다|했습니다/g, "함"], [/되었습니다|됐습니다/g, "됨"], [/입니다/g, "임"]];
+  const isProse = (t) => /(습니다|입니다)\.?$/.test(t.trim()) || (t.length > 50 && /설립되(어|었)/.test(t));
+  function terse(h) {
+    const t = h.text.replace(/^['’]?\d{2}년\s*/, "").replace(/당사는\s*/g, "").trim();
+    const out = [];
+    const d = t.match(/((?:19|20)\d{2})년\s*(\d{1,2})월(?:\s*(\d{1,2})일)?[^.,]*?설립/);
+    const year = d ? Number(d[1]) : h.year;
+    // 설립 월은 DART 기업개황의 설립일이 문장보다 정확하므로 같은 해이면 그 값을 쓴다
+    const estMonth = /^\d{8}$/.test(p.est_dt || "") && Number(p.est_dt.slice(0, 4)) === year ? Number(p.est_dt.slice(4, 6)) : null;
+    if (d) out.push({ year, text: `${estMonth || Number(d[2])}월 법인 설립` });
+    const biz = (t.match(/설립되(?:어|었으며|었고)?[,\s]*(.+?)(?:을|를)\s*(?:주요\s*|주된\s*)?(?:사업으로|목적으로)/)
+      || t.match(/^(.+?)(?:을|를)\s*목적으로/) || [])[1];
+    if (biz) {
+      // 품목이 여럿이면 한 줄로 이어 쓰고 맨 끝만 ~함으로 맺는다
+      const items = biz.replace(/^[,\s]+/, "").trim().split(/(?<=(?:판매|제조|생산|공급|개발))(?:와|과),\s*/).map((x) => x.trim().replace(/(?:을|를)$/, ""));
+      out.push({ year, bare: true, text: `주요 사업: ${items.join(", ")}${/(함|됨|음|임)$/.test(items[items.length - 1]) ? "" : "함"}` });
+    }
+    const pl = t.match(PLACE);
+    if (pl) out.push({ year, bare: true, text: `${pl[1].trim()} ${pl[2]}` });
+    if (out.length) return out;
+    // 형식을 알 수 없는 문장은 연결어미에서 끊고 서술어를 명사형으로 줄인다
+    const parts = t.split(/(?<=(?:하였으며|되었으며|하였고|되었고|있으며|하며)),\s*/).map((s) => {
+      let x = s.replace(/\.$/, "");
+      END.forEach(([re, to]) => { x = x.replace(re, to); });
+      return x.replace(/(하였으며|되었으며|있으며)$/, (m) => ({ 하였으며: "함", 되었으며: "됨", 있으며: "있음" }[m]));
+    }).filter(Boolean);
+    return parts.map((x, i) => ({ year: h.year, bare: i > 0, text: x }));
+  }
+  const events = (p.history || []).filter((h) => h.text)
+    .flatMap((h) => (isProse(h.text) ? terse(h) : [{ year: h.year || null, text: h.text }]))
+    .map((h) => ({ year: h.year || null, text: h.text, bare: !!h.bare }));
+  // 설립 줄이 이미 있으면(연도가 달라도) 한 번 더 넣지 않는다
+  if (est && events.length && !events.some((h) => h.year === est || /(?:^|\s)(?:법인\s*|회사\s*)?설립(?:\s|$)/.test(h.text))) {
     events.push({ year: est, text: "법인 설립" });
+  }
+  const note = (window.COMPANY_NOTES || {})[code];
+  if (note && note.business && note.business.length) {
+    const kept = events.filter((h) => !/^주요 사업:/.test(h.text));
+    const at = Math.max(0, kept.findIndex((h) => /설립/.test(h.text)) + 1);
+    const yr = (kept[at - 1] && kept[at - 1].year) || est;
+    kept.splice(at, 0, { year: yr, bare: true, text: `주요 사업: ${note.business.join(", ")}함` });
+    events.splice(0, events.length, ...kept);
   }
   events.sort((a, b) => (a.year || 9999) - (b.year || 9999));
   if (!events.length) missing.add("연혁");
   const historyItem = events.length
-    ? block("설립 및 이력", "", list(events.map((h) => `${h.year && !/^(19|20)\d{2}년/.test(h.text) ? `${yy(h.year)} ` : ""}${esc(h.text)}`)))
+    ? block("설립 및 이력", "", list(events.map((h) => `${h.year && !h.bare && !/^(19|20)\d{2}년/.test(h.text) ? `${yy(h.year)} ` : ""}${esc(h.text)}`)))
     : line("설립", est ? `${yy(est)} 설립` : "");
 
   // ---------- 본사 및 제조거점 ----------
