@@ -386,6 +386,10 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 
 /* ---------- 프로필 ---------- */
 .pf-wrap { max-width: 1008px; }
+.pf-hero { margin: 24px 0 0; border-radius: 12px; overflow: hidden; background: #1c1633; aspect-ratio: 16 / 5; }
+.pf-hero video { display: block; width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 600px) { .pf-hero { aspect-ratio: 16 / 9; border-radius: 8px; } }
+@media (prefers-reduced-motion: reduce) { .pf-hero video { display: none; } .pf-hero { background: url("media/fab-hero.jpg") center / cover; } }
 .pf-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 24px 0 16px; }
 .back { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px; margin-left: -6px; border-radius: 6px; font-size: 17px; font-weight: 700; color: var(--text-2); text-decoration: none; }
 .back:hover { background: var(--nav-hover); color: var(--text); }
