@@ -1,0 +1,50 @@
+name: Weekly SME Partner Newsletter (Email)
+
+on:
+  schedule:
+    # 매주 목요일 06:00 KST = 수요일 21:00 UTC
+    - cron: "0 21 * * 3"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  send-newsletter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Collect news and send newsletter email
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          OPENDART_KEY: ${{ secrets.OPENDART_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+        run: python -m src.newsletter
+
+      - name: Upload newsletter HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newsletter-html
+          path: output/*.html
+          if-no-files-found: ignore
+
+      - name: Commit updated financial cache
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/newsletter_cache.json
+          git diff --cached --quiet || git commit -m "chore: update newsletter financial cache"
+          git pull --rebase
+          git push
