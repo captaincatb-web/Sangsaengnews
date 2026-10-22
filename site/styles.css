@@ -641,3 +641,8 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .an2-note { font-size: 14px; color: var(--text-3); margin: 0 0 24px; }
 @media (max-width: 900px) { .an2-layout, .an2-hero { grid-template-columns: 1fr; } .an2-side { position: static; } }
 .krds-tabs button[aria-selected="true"] { color: var(--selected-text); background: var(--nav-hover); }
+.an-chart .val.in { fill: #fff; font-weight: 700; }
+.an-chart .val.m { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.an-check { grid-column: 1 / -1; display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--text-2); line-height: 1.4; cursor: pointer; }
+.an-check input { margin-top: 2px; accent-color: var(--primary); }
+#c-region svg { max-width: 680px; margin-inline: auto; }

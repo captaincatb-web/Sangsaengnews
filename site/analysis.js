@@ -14,6 +14,8 @@
   const num = (v) => Number(v).toLocaleString("ko-KR");
   const pct1 = (v) => (v == null ? "-" : `${v > 0 ? "+" : ""}${v.toFixed(1)}%`);
   const rate = (v) => (v == null ? "-" : `${v.toFixed(1)}%`);
+  const big = (v) => (Math.abs(v) >= 10000 ? `${(v / 10000).toFixed(1)}조` : num(Math.round(v)));
+  const iga = (w) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? "이" : "가");
   const growth = (a, b) => (a != null && b ? ((a - b) / Math.abs(b)) * 100 : null);
 
   const SIDO = { 서울특별시: "서울", 부산광역시: "부산", 대구광역시: "대구", 인천광역시: "인천", 광주광역시: "광주", 대전광역시: "대전", 울산광역시: "울산", 세종특별자치시: "세종", 경기도: "경기", 강원도: "강원", 강원특별자치도: "강원", 충청북도: "충북", 충청남도: "충남", 전라북도: "전북", 전북특별자치도: "전북", 전라남도: "전남", 경상북도: "경북", 경상남도: "경남", 제주특별자치도: "제주" };
@@ -61,29 +63,31 @@
     { key: "city", label: "도시", get: (c) => (c.cities.length ? c.cities : [NA]) },
     { key: "accMt", label: "결산월", get: (c) => [c.accMt] },
   ];
-  const state = {};
+  const state = { demand: false };
+  const inScope = (c) => state.demand || c.kind !== "수요";
   FILTERS.forEach((f) => (state[f.key] = "all"));
   const ORDER = { 상장: 0, 비상장: 1, 소재: 0, 부품: 1, 장비: 2, 수요: 3, 대기업: 0, 중견: 1, 중소: 2, 서울: 0, 경기: 1, 충청: 2, 경상: 3, 전라: 4 };
   const sortOpt = (a, b) => (a === NA) - (b === NA) || (ORDER[a] ?? 9) - (ORDER[b] ?? 9) || a.localeCompare(b, "ko");
 
   function drawFilters() {
     $("filters").innerHTML = FILTERS.map((f) => {
-      const pool = all.filter((c) => FILTERS.every((g) => g.key === f.key || state[g.key] === "all" || g.get(c).includes(state[g.key])));
+      const pool = all.filter((c) => inScope(c) && FILTERS.every((g) => g.key === f.key || state[g.key] === "all" || g.get(c).includes(state[g.key])));
       const opts = [...new Set(pool.flatMap(f.get))].sort(sortOpt);
       const none = opts.length === 1 && opts[0] === NA;
       return `<div class="field"><label for="f-${f.key}">${f.label}</label>`
         + `<select class="krds-select" id="f-${f.key}" data-key="${f.key}"${none ? " disabled" : ""}><option value="all">전체</option>`
         + opts.map((o) => `<option value="${esc(o)}"${state[f.key] === o ? " selected" : ""}>${esc(o)}${o === NA && none ? " (입력 전)" : ""}</option>`).join("")
         + "</select></div>";
-    }).join("");
+    }).join("") + `<label class="an-check"><input type="checkbox" id="f-demand"${state.demand ? " checked" : ""}> 수요기업(삼성전자·SK하이닉스·현대차) 포함</label>`;
   }
   $("filters").addEventListener("change", (e) => {
+    if (e.target.id === "f-demand") { state.demand = e.target.checked; update(); return; }
     const k = e.target.dataset.key;
     if (!k) return;
     state[k] = e.target.value;
     update();
   });
-  $("reset").addEventListener("click", () => { FILTERS.forEach((f) => (state[f.key] = "all")); update(); });
+  $("reset").addEventListener("click", () => { FILTERS.forEach((f) => (state[f.key] = "all")); state.demand = false; update(); });
 
   // ---------- 집계 ----------
   const sum = (arr) => arr.reduce((s, v) => s + (v ?? 0), 0);
@@ -112,21 +116,21 @@
   const svg = (h, inner, label) => `<svg viewBox="0 0 ${W} ${h}" role="img" aria-label="${esc(label)}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
 
   function trendChart(a, years) {
-    const H = 250, L = 52, R = 44, T = 22, B = 34, pw = W - L - R, ph = H - T - B;
+    const H = 250, L = 56, R = 44, T = 22, B = 34, pw = W - L - R, ph = H - T - B;
     const max = Math.max(...a.s, 1);
     const mv = a.m.filter((v) => v != null), mmax = Math.max(...mv, 1), mmin = Math.min(0, ...mv);
     const bw = pw / years.length;
     let g = "";
     for (let i = 0; i <= 3; i++) {
       const y = T + ph - (ph * i) / 3;
-      g += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" class="grid"/><text x="${L - 6}" y="${y + 4}" class="ax" text-anchor="end">${num(Math.round((max * i) / 3))}</text>`;
+      g += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" class="grid"/><text x="${L - 6}" y="${y + 4}" class="ax" text-anchor="end">${big((max * i) / 3)}</text>`;
     }
     const pts = [];
     years.forEach((yr, i) => {
       const x = L + bw * i + bw / 2, h = (a.s[i] / max) * ph, w = Math.min(54, bw * 0.5);
-      g += `<rect x="${x - w / 2}" y="${T + ph - h}" width="${w}" height="${h}" rx="3" class="bar"><title>${yr}년 매출 ${num(a.s[i])}억원, 영업이익 ${num(a.o[i])}억원</title></rect>`;
+      g += `<rect x="${x - w / 2}" y="${T + ph - h}" width="${w}" height="${h}" rx="3" class="bar"><title>${yr}년 매출 ${num(Math.round(a.s[i]))}억원, 영업이익 ${num(Math.round(a.o[i]))}억원</title></rect>`;
       g += `<text x="${x}" y="${T + ph + 18}" class="ax" text-anchor="middle">'${String(yr).slice(2)}</text>`;
-      g += `<text x="${x}" y="${T + ph - h - 6}" class="val" text-anchor="middle">${num(Math.round(a.s[i]))}</text>`;
+      g += `<text x="${x}" y="${T + ph - h + 16}" class="val in" text-anchor="middle">${big(a.s[i])}</text>`;
       if (a.m[i] != null) pts.push([x, T + ph - ((a.m[i] - mmin) / (mmax - mmin || 1)) * ph * 0.9, a.m[i]]);
     });
     g += `<polyline class="line" points="${pts.map((p) => p.slice(0, 2).join(",")).join(" ")}"/>`;
@@ -194,7 +198,7 @@
     const dm = a.m[2] != null && a.m[1] != null ? a.m[2] - a.m[1] : null;
     if (dm != null) out.push(`영업이익률은 ${rate(a.m[1])}에서 ${rate(a.m[2])}로 <strong>${Math.abs(dm).toFixed(1)}%p ${dm >= 0 ? "개선" : "하락"}</strong>했습니다. ${a.g > 0 && dm < 0 ? "매출은 늘었지만 이익률은 낮아져 외형 성장이 수익성으로 이어지지 못했습니다." : a.g > 0 && dm >= 0 ? "매출 증가와 수익성 개선이 함께 나타났습니다." : a.g <= 0 && dm >= 0 ? "매출은 줄었지만 수익성은 방어했습니다." : "매출과 수익성이 함께 약해졌습니다."}`);
     const sg = Object.entries(by(p.rows, (r) => r.kind)).filter(([k]) => k !== NA && k !== "수요").map(([k, rs]) => ({ k, ...agg(rs) })).filter((x) => x.g != null).sort((x, z) => z.g - x.g);
-    if (sg.length >= 2) out.push(`구분별로는 <strong>${sg[0].k}</strong>(${pct1(sg[0].g)}, ${sg[0].n}곳)가 가장 빠르게 늘었고 <strong>${sg[sg.length - 1].k}</strong>(${pct1(sg[sg.length - 1].g)}, ${sg[sg.length - 1].n}곳)가 가장 더뎠습니다.`);
+    if (sg.length >= 2) out.push(`구분별로는 <strong>${sg[0].k}</strong>(${pct1(sg[0].g)}, ${sg[0].n}곳)${iga(sg[0].k)} 가장 빠르게 늘었고 <strong>${sg[sg.length - 1].k}</strong>(${pct1(sg[sg.length - 1].g)}, ${sg[sg.length - 1].n}곳)${iga(sg[sg.length - 1].k)} 가장 더뎠습니다.`);
     const L = agg(p.rows.filter((r) => r.listed)), U = agg(p.rows.filter((r) => !r.listed));
     if (L.n && U.n) out.push(`상장사(${L.n}곳)는 매출 ${pct1(L.g)}·영업이익률 ${rate(L.m[2])}, 비상장사(${U.n}곳)는 ${pct1(U.g)}·${rate(U.m[2])}입니다. ${Math.abs(L.g - U.g) < 3 ? "성장 속도 차이는 크지 않습니다." : `성장은 ${L.g > U.g ? "상장" : "비상장"}사가 ${Math.abs(L.g - U.g).toFixed(1)}%p 앞섭니다.`}`);
     const gs = p.rows.map((r) => ({ r, g: growth(r.s[2], r.s[1]) })).filter((x) => x.g != null).sort((x, z) => z.g - x.g);
@@ -251,7 +255,7 @@
   }
   function update() {
     drawFilters();
-    const list = withData.filter((c) => FILTERS.every((f) => state[f.key] === "all" || f.get(c).includes(state[f.key])));
+    const list = withData.filter((c) => inScope(c) && FILTERS.every((f) => state[f.key] === "all" || f.get(c).includes(state[f.key])));
     const p = panel(list), a = agg(p.rows);
     $("count").innerHTML = `선택 <strong>${list.length}</strong>곳 중 분석 포함 <strong>${p.rows.length}</strong>곳${list.length - p.rows.length ? ` (재무 3개년 미비 ${list.length - p.rows.length}곳 제외)` : ""}`;
     rankRows = p.rows;
