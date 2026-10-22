@@ -38,7 +38,25 @@ PLANT_SUFFIX = re.compile(r"(천안\d?공장|\S*공장|\S*사업장|\S*지점|�
 
 
 def norm(name: str) -> str:
-    return re.sub(r"\(주\)|㈜|주식회사|유한회사|\(유\)|[\s().,·\-]", "", name or "").lower()
+    s = re.sub(r"[(（][^)）]*[)）]", "", name or "")  # (주)·(유)·(천안2공장) 같은 괄호는 뗀다
+    return re.sub(r"㈜|주식회사|유한회사|[\s().,·\-（）]", "", s).lower()
+
+
+# 명단은 한글 표기, DART 는 영문 표기인 회사가 많아 앞부분을 바꿔 한 번 더 찾는다
+ENGLISH = [("에스케이", "SK"), ("엘지", "LG"), ("오씨아이", "OCI"), ("에이치디", "HD"), ("케이씨", "KC"), ("에이피", "AP"),
+           ("지에스", "GS"), ("케이피엑스", "KPX"), ("디엘", "DL"), ("에이치엘", "HL"), ("케이티", "KT"), ("씨제이", "CJ")]
+ALIAS = {"글로벌스탠다드테크놀로지": "GST", "원익IPS": "원익아이피에스"}
+
+
+def variants(name: str) -> list:
+    base = [name, PLANT_SUFFIX.sub("", name).strip()]
+    out = []
+    for b in base:
+        out.append(b)
+        for ko, en in ENGLISH:
+            if norm(b).startswith(ko):
+                out.append(en + norm(b)[len(ko):])
+    return [norm(v) for v in out if v]
 
 
 # ---------- 대상 기업 ----------
@@ -79,7 +97,7 @@ def resolve(entries: list, corps: list) -> tuple:
         by_name.setdefault(norm(c["name"]), []).append(c)
     found, missing, ambiguous = {}, [], []
     for name, key, _sites in entries:
-        hits = by_name.get(norm(name)) or by_name.get(norm(PLANT_SUFFIX.sub("", name).strip())) or []
+        hits = next((by_name[v] for v in variants(name) if v in by_name), [])
         listed = [c for c in hits if c["stock_code"]]
         if len(hits) > 1 and len(listed) == 1:
             hits = listed
@@ -175,11 +193,13 @@ def main() -> int:
     if not api_key:
         print("DART_API_KEY 환경변수가 없습니다.")
         return 1
-    targets = {code: (name, None) for code, name in base_companies().items()}
+    entries = universe_names()
+    key_of = {norm(e[0]): e[1] for e in entries}
+    targets = {code: (name, key_of.get(norm(ALIAS.get(name, name)))) for code, name in base_companies().items()}
     corps = load_corp_list(api_key)
-    found, missing, ambiguous = resolve(universe_names(), corps)
+    found, missing, ambiguous = resolve(entries, corps)
     for code, (name, key) in found.items():
-        targets[code] = (targets[code][0], key) if code in targets else (name, key)
+        targets[code] = (targets[code][0], targets[code][1] or key) if code in targets else (name, key)
     print(f"대상 {len(targets)}곳 (기존 1~3그룹 {len(base_companies())}곳, 명단에서 찾음 {len(found)}곳)")
     print(f"명단에서 못 찾음 {len(missing)}곳: {', '.join(missing)}")
     print(f"이름이 겹쳐 건너뜀 {len(ambiguous)}곳: {', '.join(ambiguous)}")
