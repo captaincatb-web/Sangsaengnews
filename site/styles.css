@@ -242,7 +242,7 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
 .btn-primary:active { background: var(--primary-pressed); border-color: var(--primary-pressed); }
 .btn-secondary { background: var(--primary-5); border-color: var(--primary); color: var(--primary-text); }
-.btn-secondary:hover { background: var(--primary-10); }
+.btn-secondary:hover { background: var(--nav-hover); }
 .btn-secondary:active { background: var(--primary-20); }
 .btn-tertiary { background: transparent; border-color: var(--input-line); color: var(--text); }
 .btn-tertiary:hover { background: var(--subtle); }
@@ -619,7 +619,25 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .an-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
 .an-legend .sw.c0 { background: var(--c0); } .an-legend .sw.c1 { background: var(--c1); } .an-legend .sw.c2 { background: var(--c2); } .an-legend .sw.c3 { background: var(--c3); }
 .an-legend .sw.ring { border: 2px solid var(--text-3); }
-.an-card .table-wrap { margin-top: 8px; }
+.an-card .table-wrap { margin-top: 8px; overflow-x: auto; box-shadow: none; border: 0; padding-inline: 0; margin-inline: 0; }
 @media (max-width: 900px) { .an-kpis { grid-template-columns: repeat(2, 1fr); } .an-grid { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .an-filters, .an-card { padding: 16px; border-radius: 14px; } .an-kpi-val { font-size: 24px; } }
 .an-more { margin: 12px 0 0; text-align: center; }
+
+/* ---------- 성장 분석 대시보드(2안) ---------- */
+.an2-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start; }
+.an2-side { position: sticky; top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--card-shadow); padding: 16px; }
+.an2-details summary { cursor: pointer; font-weight: 700; color: var(--text-strong); display: flex; flex-direction: column; gap: 2px; list-style: none; }
+.an2-details summary::-webkit-details-marker { display: none; }
+.an2-details .an-count { font-weight: 400; font-size: 14px; color: var(--text-3); }
+.an2-details .an-filter-grid { grid-template-columns: 1fr; margin: 14px 0; }
+.an2-body { min-width: 0; }
+.an2-hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+.an2-hero .an-card { margin-bottom: 0; }
+.an2-insight { background: var(--primary-5); border-color: var(--primary-10); }
+.an2-insight h2 i { color: var(--primary); margin-right: 6px; }
+.an2-insight .an-insights { font-size: 15px; }
+.an2-tabs { margin-bottom: 12px; }
+.an2-note { font-size: 14px; color: var(--text-3); margin: 0 0 24px; }
+@media (max-width: 900px) { .an2-layout, .an2-hero { grid-template-columns: 1fr; } .an2-side { position: static; } }
+.krds-tabs button[aria-selected="true"] { color: var(--selected-text); background: var(--nav-hover); }

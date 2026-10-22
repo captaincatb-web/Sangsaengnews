@@ -133,7 +133,7 @@
       g += `<text x="${L - 8}" y="${y + rowH / 2 + 4}" class="ax" text-anchor="end">${esc(it.label)}</text>`;
       g += `<rect x="${x}" y="${y + 6}" width="${Math.max(w, 1)}" height="${rowH - 12}" rx="3" class="bar c${it.c ?? 0}"><title>${esc(it.label)} ${it.v == null ? "-" : it.v.toFixed(1) + unit}${it.note ? " · " + esc(it.note) : ""}</title></rect>`;
       const right = (it.v ?? 0) >= 0;
-      g += `<text x="${right ? x + w + 6 : x - 6}" y="${y + rowH / 2 + 4}" class="val" text-anchor="${right ? "start" : "end"}">${it.v == null ? "-" : (unit === "%" && it.signed ? pct1(it.v) : rate(it.v))}</text>`;
+      g += `<text x="${right ? x + w + 6 : x0 + 6}" y="${y + rowH / 2 + 4}" class="val" text-anchor="start">${it.v == null ? "-" : (unit === "%" && it.signed ? pct1(it.v) : rate(it.v))}</text>`;
     });
     return svg(H, g, label);
   }
