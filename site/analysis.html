@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>성장 트렌드 분석 | 협력사 프로필</title>
+  <meta name="description" content="협력 기업의 매출·영업이익 성장 추이를 상장 여부, 업종, 지역별로 비교합니다.">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#content">본문 바로가기</a>
+
+  <header class="krds-header">
+    <div class="inner head-inner">
+      <ul class="utility" aria-label="관련 사이트">
+        <li><a href="https://dart.fss.or.kr" target="_blank" rel="noopener">DART 전자공시<i class="ph ph-arrow-square-out" aria-hidden="true"></i></a></li>
+        <li><a href="https://github.com/captaincatb-web/Sangsaengnews" target="_blank" rel="noopener">GitHub 저장소<i class="ph ph-arrow-square-out" aria-hidden="true"></i></a></li>
+      </ul>
+      <div class="branding">
+        <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">협</span><span class="brand-name">협력사 프로필<small>반도체 협력 기업 정보</small></span></a>
+        <div class="head-actions">
+          <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+        </div>
+      </div>
+    </div>
+    <nav class="gnb" aria-label="주 메뉴">
+      <div class="inner">
+        <ul>
+          <li><a href="./">기업 현황</a></li>
+          <li><a href="analysis.html" aria-current="page">성장 분석</a></li>
+          <li><a href="./#guide">이용 안내</a></li>
+        </ul>
+      </div>
+    </nav>
+  </header>
+
+    <main id="content" class="inner">
+    <nav class="breadcrumb" aria-label="현재 위치">
+      <ol>
+        <li><a href="./"><i class="ph ph-house" aria-hidden="true"></i>홈</a></li>
+        <li aria-current="page">성장 분석</li>
+      </ol>
+    </nav>
+
+    <section class="page-head" aria-labelledby="title">
+      <h1 id="title">성장 트렌드 분석</h1>
+      <p class="lead" id="lead"></p>
+      <ul class="meta" id="meta"></ul>
+    </section>
+
+    <section class="an-filters" aria-label="분석 대상 선택">
+      <div class="an-filter-grid" id="filters"></div>
+      <div class="an-filter-foot">
+        <p class="an-count" id="count" aria-live="polite"></p>
+        <button class="btn btn-tertiary btn-sm" type="button" id="reset"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>초기화</button>
+      </div>
+    </section>
+
+    <section class="an-kpis" id="kpis" aria-label="핵심 지표"></section>
+
+    <section class="an-card" aria-labelledby="h-insight">
+      <h2 id="h-insight">분석 요약</h2>
+      <ul class="an-insights" id="insights"></ul>
+    </section>
+
+    <div class="an-grid">
+      <section class="an-card" aria-labelledby="h-trend">
+        <h2 id="h-trend">매출·영업이익 추이</h2>
+        <p class="an-sub">막대는 매출액, 선은 영업이익률입니다. 단위 억원.</p>
+        <div class="an-chart" id="c-trend"></div>
+      </section>
+      <section class="an-card" aria-labelledby="h-seg">
+        <h2 id="h-seg">구분별 매출 성장률</h2>
+        <p class="an-sub" id="s-seg"></p>
+        <div class="an-chart" id="c-seg"></div>
+      </section>
+      <section class="an-card" aria-labelledby="h-list">
+        <h2 id="h-list">상장·비상장 비교</h2>
+        <p class="an-sub">매출 성장률과 영업이익률을 비교합니다.</p>
+        <div class="an-chart" id="c-list"></div>
+      </section>
+      <section class="an-card" aria-labelledby="h-sc">
+        <h2 id="h-sc">성장률과 수익성</h2>
+        <p class="an-sub">가로 매출 성장률, 세로 영업이익률. 점 하나가 기업 하나입니다.</p>
+        <div class="an-chart" id="c-sc"></div>
+      </section>
+    </div>
+
+    <section class="an-card" aria-labelledby="h-rank">
+      <h2 id="h-rank">기업별 성장 순위</h2>
+      <p class="an-sub" id="s-rank"></p>
+      <div class="table-wrap">
+        <table class="data" id="rank">
+          <caption class="sr-only">기업별 매출 성장률과 영업이익률</caption>
+          <thead><tr id="rank-head"></tr></thead>
+        </table>
+      </div>
+      <p class="an-more"><button class="btn btn-tertiary btn-sm" type="button" id="more" hidden></button></p>
+    </section>
+
+    <section class="guide" aria-labelledby="g-title">
+      <h2 id="g-title">분석 기준</h2>
+      <dl class="guide-list">
+        <div><dt>대상과 연도</dt><dd>같은 기간의 재무가 모두 있는 기업만 합산합니다. 결산월이 달라도 사업연도 기준으로 맞춥니다.</dd></div>
+        <div><dt>재무 기준</dt><dd>개별(별도) 재무제표 기준이라 연결 기준 수치와 다를 수 있습니다. 모회사와 자회사를 함께 선택하면 중복될 수 있습니다.</dd></div>
+        <div><dt>구분</dt><dd>소재·부품·장비는 주요 제품을 보고 직접 나눈 분류입니다. 삼성전자·SK하이닉스는 수요기업으로 따로 둡니다.</dd></div>
+        <div><dt>입력 대기</dt><dd>기업규모, 거래 관계, 반도체 매출 비중은 항목만 마련했고 내용이 들어오면 필터로 쓸 수 있습니다.</dd></div>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="krds-footer">
+    <div class="inner">
+      <p class="f-logo"><span class="brand-mark" aria-hidden="true">협</span>협력사 프로필</p>
+      <div class="f-cnt">
+        <div class="f-info">
+          <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 주가 Yahoo Finance</p>
+          <p><strong>매일 오전 7시 30분 자동 갱신</strong> · 공시 원문을 자동으로 정리한 참고 자료입니다.</p>
+        </div>
+        <ul class="f-link">
+          <li><a href="https://dart.fss.or.kr" target="_blank" rel="noopener">DART 전자공시<i class="ph ph-caret-right" aria-hidden="true"></i></a></li>
+          <li><a href="https://github.com/captaincatb-web/Sangsaengnews" target="_blank" rel="noopener">GitHub 저장소<i class="ph ph-caret-right" aria-hidden="true"></i></a></li>
+        </ul>
+      </div>
+      <div class="f-btm">
+        <p class="f-copy">© 2026 협력사 프로필</p>
+        <p class="f-credit">글꼴: Pretendard GOV (SIL OFL 1.1) · 아이콘: Phosphor Icons (MIT)</p>
+      </div>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data/companies.js"></script>
+  <script src="data/profiles.js"></script>
+  <script src="data/segments.js"></script>
+  <script src="data/attrs.js"></script>
+  <script src="analysis.js"></script>
+</body>
+</html>
