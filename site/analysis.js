@@ -4,6 +4,10 @@
   const profiles = window.COMPANY_PROFILES || {};
   const segs = window.COMPANY_SEGMENTS || {};
   const attrs = window.COMPANY_ATTRS || {};
+  const universe = window.COMPANY_UNIVERSE || [];
+  const alias = window.COMPANY_UNIVERSE_ALIAS || {};
+  const normName = (s) => String(s).replace(/주식회사|유한회사|\(주\)|㈜/g, "").replace(/[\s().,\-]/g, "");
+  const uniByKey = new Map(universe.map((u) => [u[1], u]));
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const NA = "미입력";
@@ -13,9 +17,18 @@
   const growth = (a, b) => (a != null && b ? ((a - b) / Math.abs(b)) * 100 : null);
 
   const SIDO = { 서울특별시: "서울", 부산광역시: "부산", 대구광역시: "대구", 인천광역시: "인천", 광주광역시: "광주", 대전광역시: "대전", 울산광역시: "울산", 세종특별자치시: "세종", 경기도: "경기", 강원도: "강원", 강원특별자치도: "강원", 충청북도: "충북", 충청남도: "충남", 전라북도: "전북", 전북특별자치도: "전북", 전라남도: "전남", 경상북도: "경북", 경상남도: "경남", 제주특별자치도: "제주" };
+  const AREA = { 서울: "서울", 경기: "경기", 인천: "경기", 충북: "충청", 충남: "충청", 대전: "충청", 세종: "충청", 경북: "경상", 경남: "경상", 부산: "경상", 울산: "경상", 대구: "경상", 전북: "전라", 전남: "전라", 광주: "전라" };
   const place = (adres) => {
     const [a, b] = String(adres || "").trim().split(/\s+/);
-    return { sido: SIDO[a] || (a ? a.slice(0, 2) : NA), city: b || "" };
+    const sido = SIDO[a] || (a ? a.slice(0, 2) : "");
+    return { area: AREA[sido] || NA, city: (b || "").replace(/^\d+\.\s*/, "") };
+  };
+  // 명단에 있으면 명단의 사업장 지역을, 없으면 본사 주소로 권역을 정한다
+  const sitesOf = (name, adres) => {
+    const u = uniByKey.get(normName(alias[name] || name));
+    if (u) return { sites: u[2], inList: true };
+    const l = place(adres);
+    return { sites: l.area === NA ? [] : [[l.area, l.city]], inList: false };
   };
 
   // ---------- 기업 목록 ----------
@@ -25,11 +38,11 @@
     const row = (k) => (fin && fin.rows[k]) || [];
     const [kind, sub] = segs[code] || [NA, NA];
     const at = attrs[code] || {};
-    const loc = place(p.adres);
+    const loc = sitesOf(name, p.adres);
     return {
       name, code, listed: !!stock, kind, sub,
       size: at.size || NA, trade: at.trade || NA, semi: at.semiShare ?? null,
-      accMt: p.acc_mt ? `${Number(p.acc_mt)}월` : NA, sido: loc.sido, city: loc.city,
+      accMt: p.acc_mt ? `${Number(p.acc_mt)}월` : NA, areas: [...new Set(loc.sites.map((s) => s[0]))], cities: [...new Set(loc.sites.map((s) => s[1]).filter(Boolean))], inList: loc.inList,
       emp: p.employees && p.employees.count != null ? p.employees.count : null,
       std: p.standard || "별도",
       years: fin ? fin.years : [], sales: row("매출액"), op: row("영업이익"), net: row("당기순이익"),
@@ -39,23 +52,24 @@
 
   // ---------- 필터 ----------
   const FILTERS = [
-    { key: "listed", label: "상장 여부", get: (c) => (c.listed ? "상장" : "비상장") },
-    { key: "kind", label: "소재·부품·장비", get: (c) => c.kind },
-    { key: "sub", label: "세부업종", get: (c) => c.sub },
-    { key: "size", label: "기업규모", get: (c) => c.size },
-    { key: "trade", label: "거래 관계", get: (c) => c.trade },
-    { key: "sido", label: "지역(시·도)", get: (c) => c.sido },
-    { key: "accMt", label: "결산월", get: (c) => c.accMt },
+    { key: "listed", label: "상장 여부", get: (c) => [c.listed ? "상장" : "비상장"] },
+    { key: "kind", label: "소재·부품·장비", get: (c) => [c.kind] },
+    { key: "sub", label: "세부업종", get: (c) => [c.sub] },
+    { key: "size", label: "기업규모", get: (c) => [c.size] },
+    { key: "trade", label: "거래 관계", get: (c) => [c.trade] },
+    { key: "area", label: "지역(권역)", get: (c) => (c.areas.length ? c.areas : [NA]) },
+    { key: "city", label: "도시", get: (c) => (c.cities.length ? c.cities : [NA]) },
+    { key: "accMt", label: "결산월", get: (c) => [c.accMt] },
   ];
   const state = {};
   FILTERS.forEach((f) => (state[f.key] = "all"));
-  const ORDER = { 상장: 0, 비상장: 1, 소재: 0, 부품: 1, 장비: 2, 수요: 3, 대기업: 0, 중견: 1, 중소: 2 };
+  const ORDER = { 상장: 0, 비상장: 1, 소재: 0, 부품: 1, 장비: 2, 수요: 3, 대기업: 0, 중견: 1, 중소: 2, 서울: 0, 경기: 1, 충청: 2, 경상: 3, 전라: 4 };
   const sortOpt = (a, b) => (a === NA) - (b === NA) || (ORDER[a] ?? 9) - (ORDER[b] ?? 9) || a.localeCompare(b, "ko");
 
   function drawFilters() {
     $("filters").innerHTML = FILTERS.map((f) => {
-      const pool = all.filter((c) => FILTERS.every((g) => g.key === f.key || state[g.key] === "all" || g.get(c) === state[g.key]));
-      const opts = [...new Set(pool.map(f.get))].sort(sortOpt);
+      const pool = all.filter((c) => FILTERS.every((g) => g.key === f.key || state[g.key] === "all" || g.get(c).includes(state[g.key])));
+      const opts = [...new Set(pool.flatMap(f.get))].sort(sortOpt);
       const none = opts.length === 1 && opts[0] === NA;
       return `<div class="field"><label for="f-${f.key}">${f.label}</label>`
         + `<select class="krds-select" id="f-${f.key}" data-key="${f.key}"${none ? " disabled" : ""}><option value="all">전체</option>`
@@ -121,7 +135,7 @@
   }
 
   // 가로 막대: 0을 기준으로 양수는 오른쪽, 음수는 왼쪽
-  function hbars(items, { unit = "%", label }) {
+  function hbars(items, { unit = "%", label, fmt }) {
     if (!items.length) return '<p class="an-empty">비교할 자료가 없습니다.</p>';
     const rowH = 34, T = 8, L = 96, R = 70, H = T * 2 + rowH * items.length;
     const vals = items.map((i) => i.v ?? 0);
@@ -131,9 +145,9 @@
     items.forEach((it, i) => {
       const y = T + i * rowH, w = (Math.abs(it.v ?? 0) / span) * (W - L - R), x = (it.v ?? 0) >= 0 ? x0 : x0 - w;
       g += `<text x="${L - 8}" y="${y + rowH / 2 + 4}" class="ax" text-anchor="end">${esc(it.label)}</text>`;
-      g += `<rect x="${x}" y="${y + 6}" width="${Math.max(w, 1)}" height="${rowH - 12}" rx="3" class="bar c${it.c ?? 0}"><title>${esc(it.label)} ${it.v == null ? "-" : it.v.toFixed(1) + unit}${it.note ? " · " + esc(it.note) : ""}</title></rect>`;
+      g += `<rect x="${x}" y="${y + 6}" width="${Math.max(w, 1)}" height="${rowH - 12}" rx="3" class="bar c${it.c ?? 0}"><title>${esc(it.label)} ${it.v == null ? "-" : fmt ? fmt(it.v) : it.v.toFixed(1) + unit}${it.note ? " · " + esc(it.note) : ""}</title></rect>`;
       const right = (it.v ?? 0) >= 0;
-      g += `<text x="${right ? x + w + 6 : x0 + 6}" y="${y + rowH / 2 + 4}" class="val" text-anchor="start">${it.v == null ? "-" : (unit === "%" && it.signed ? pct1(it.v) : rate(it.v))}</text>`;
+      g += `<text x="${right ? x + w + 6 : x0 + 6}" y="${y + rowH / 2 + 4}" class="val" text-anchor="start">${it.v == null ? "-" : fmt ? fmt(it.v) : unit === "%" && it.signed ? pct1(it.v) : rate(it.v)}</text>`;
     });
     return svg(H, g, label);
   }
@@ -153,6 +167,24 @@
     return svg(H, g, "기업별 매출 성장률과 영업이익률 분포");
   }
   const KIND_C = { 소재: 0, 부품: 1, 장비: 2, 수요: 3 };
+
+  // ---------- 지역 ----------
+  const AREAS = ["서울", "경기", "충청", "경상", "전라"];
+  const haveFin = new Set(withData.map((c) => normName(alias[c.name] || c.name)));
+  function regionHtml(p) {
+    const cnt = (n) => `${n}곳`;
+    const byArea = AREAS.map((r, i) => {
+      const us = universe.filter((u) => u[2].some((s) => s[0] === r));
+      return { label: r, v: us.length, c: i % 5, note: `재무 수집 ${us.filter((u) => haveFin.has(u[1])).length}곳` };
+    });
+    const cityN = {};
+    universe.forEach((u) => new Set(u[2].map((s) => s[1])).forEach((c) => (cityN[c] = (cityN[c] || 0) + 1)));
+    const top = Object.entries(cityN).sort((x, z) => z[1] - x[1]).slice(0, 10).map(([c, v]) => ({ label: c, v, c: 0 }));
+    const ga = AREAS.map((r, i) => { const rs = p.rows.filter((x) => x.areas[0] === r); return rs.length ? { label: `${r} ${rs.length}곳`, v: agg(rs).g, c: i % 5, signed: 1, note: `영업이익률 ${rate(agg(rs).m[2])}` } : null; }).filter(Boolean);
+    return `<p class="an-mini">권역별 협력사 수 (명단 ${universe.length}곳 기준, 사업장이 여러 권역이면 각각 셉니다)</p>` + hbars(byArea, { fmt: cnt, label: "권역별 협력사 수" })
+      + `<p class="an-mini">도시별 협력사 수 상위 10</p>` + hbars(top, { fmt: cnt, label: "도시별 협력사 수" })
+      + `<p class="an-mini">권역별 매출 성장률 (본사 권역 기준, 선택한 기업)</p>` + hbars(ga, { label: "권역별 매출 성장률" });
+  }
 
   // ---------- 분석 문장 ----------
   function insights(list, p, a) {
@@ -178,7 +210,7 @@
   // ---------- 표 ----------
   const COLS = [
     { k: "name", t: "기업", text: 1 }, { k: "kind", t: "구분", text: 1 }, { k: "sub", t: "세부업종", text: 1 }, { k: "listed", t: "상장", text: 1 },
-    { k: "sales", t: "매출액" }, { k: "g", t: "매출 성장률" }, { k: "m", t: "영업이익률" }, { k: "og", t: "영업이익 증감" }, { k: "emp", t: "종업원" }, { k: "sido", t: "지역", text: 1 },
+    { k: "sales", t: "매출액" }, { k: "g", t: "매출 성장률" }, { k: "m", t: "영업이익률" }, { k: "og", t: "영업이익 증감" }, { k: "emp", t: "종업원" }, { k: "area", t: "지역", text: 1 },
   ];
   let sortKey = "g", sortDir = -1, showAll = false;
   $("rank-head").innerHTML = COLS.map((c) => `<th scope="col"${c.text ? ' class="text"' : ""} aria-sort="none"><button type="button" class="sort" data-sort="${c.k}">${c.t}<span class="arrow" aria-hidden="true"></span></button></th>`).join("");
@@ -192,7 +224,7 @@
   let rankRows = [];
   $("more").addEventListener("click", () => { showAll = !showAll; drawRank(); });
   function drawRank() {
-    const rows = rankRows.map((r) => ({ ...r, sales: r.s[2], g: growth(r.s[2], r.s[1]), m: r.s[2] ? (r.o[2] / r.s[2]) * 100 : null, og: r.o[1] > 0 ? growth(r.o[2], r.o[1]) : null }));
+    const rows = rankRows.map((r) => ({ ...r, area: r.areas.join("·") || NA, sales: r.s[2], g: growth(r.s[2], r.s[1]), m: r.s[2] ? (r.o[2] / r.s[2]) * 100 : null, og: r.o[1] > 0 ? growth(r.o[2], r.o[1]) : null }));
     rows.sort((a, b) => {
       const x = a[sortKey], y = b[sortKey];
       if (x == null || x === NA) return 1;
@@ -207,7 +239,7 @@
     $("rank").insertAdjacentHTML("beforeend", "<tbody>" + rows.map((r) => `<tr><th scope="row" class="text"><a href="profile.html#${r.code}">${esc(r.name)}</a></th>`
       + `<td class="text">${esc(r.kind)}</td><td class="text">${esc(r.sub)}</td><td class="text">${r.listed ? "상장" : "비상장"}</td>`
       + `<td>${num(r.sales)}</td><td${cls(r.g)}>${pct1(r.g)}</td><td>${rate(r.m)}</td><td${cls(r.og)}>${pct1(r.og)}</td>`
-      + `<td>${r.emp == null ? "-" : num(r.emp)}</td><td class="text">${esc(r.sido)}${r.city ? " " + esc(r.city) : ""}</td></tr>`).join("") + "</tbody>");
+      + `<td>${r.emp == null ? "-" : num(r.emp)}</td><td class="text">${esc(r.areas.join("·") || NA)}${r.cities.length ? " " + esc(r.cities.join("·")) : ""}</td></tr>`).join("") + "</tbody>");
     const more = $("more");
     more.hidden = total <= 20;
     more.textContent = showAll ? "상위 20곳만 보기" : `전체 ${total}곳 보기`;
@@ -219,12 +251,12 @@
   }
   function update() {
     drawFilters();
-    const list = withData.filter((c) => FILTERS.every((f) => state[f.key] === "all" || f.get(c) === state[f.key]));
+    const list = withData.filter((c) => FILTERS.every((f) => state[f.key] === "all" || f.get(c).includes(state[f.key])));
     const p = panel(list), a = agg(p.rows);
     $("count").innerHTML = `선택 <strong>${list.length}</strong>곳 중 분석 포함 <strong>${p.rows.length}</strong>곳${list.length - p.rows.length ? ` (재무 3개년 미비 ${list.length - p.rows.length}곳 제외)` : ""}`;
     rankRows = p.rows;
     if (!p.rows.length) {
-      ["kpis", "insights", "c-trend", "c-seg", "c-list", "c-sc"].forEach((id) => ($(id).innerHTML = ""));
+      ["kpis", "insights", "c-trend", "c-seg", "c-list", "c-sc", "c-region"].forEach((id) => { if ($(id)) $(id).innerHTML = ""; });
       $("insights").innerHTML = "<li>조건에 맞는 기업이 없습니다. 필터를 줄여 보세요.</li>";
       $("rank").querySelector("tbody")?.remove();
       return;
@@ -244,6 +276,7 @@
     const lg = [["상장", (r) => r.listed], ["비상장", (r) => !r.listed]].map(([k, f]) => ({ k, a: agg(p.rows.filter(f)) })).filter((x) => x.a.n);
     $("c-list").innerHTML = `<p class="an-mini">매출 성장률</p>` + hbars(lg.map((x) => ({ label: `${x.k} ${x.a.n}곳`, v: x.a.g, c: 5, signed: 1 })), { label: "상장·비상장 매출 성장률" })
       + `<p class="an-mini">영업이익률</p>` + hbars(lg.map((x) => ({ label: `${x.k} ${x.a.n}곳`, v: x.a.m[2], c: 6 })), { label: "상장·비상장 영업이익률" });
+    if ($("c-region")) $("c-region").innerHTML = regionHtml(p);
     $("c-sc").innerHTML = scatter(p.rows) + `<ul class="an-legend">${["소재", "부품", "장비", "수요"].filter((k) => p.rows.some((r) => r.kind === k)).map((k) => `<li><i class="sw c${KIND_C[k]}"></i>${k}</li>`).join("")}<li><i class="sw ring"></i>속이 빈 점은 비상장</li></ul>`;
     $("s-rank").textContent = `'${String(y).slice(2)}년 기준. 열 머리글을 누르면 정렬됩니다. 영업이익 증감은 전년 영업이익이 흑자인 경우만 계산합니다.`;
     drawRank();
