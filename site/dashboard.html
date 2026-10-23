@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>소부장 분석 대시보드 | 협력사 프로필</title>
+  <meta name="description" content="반도체 소재·부품·장비 협력사의 매출·영업이익·성장성·수익성을 한 화면에서 봅니다.">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body class="db">
+  <a class="db-skip" href="#main">본문 바로가기</a>
+
+  <aside class="db-side" aria-label="대시보드 메뉴">
+    <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span>소부장<br>경영 분석</span></a>
+    <nav>
+      <ul class="db-nav">
+        <li><a href="#main" aria-current="true"><i class="ph ph-squares-four" aria-hidden="true"></i>개요</a></li>
+        <li><a href="#p-trend"><i class="ph ph-chart-line-up" aria-hidden="true"></i>실적 추이</a></li>
+        <li><a href="#p-region"><i class="ph ph-map-trifold" aria-hidden="true"></i>지역 분석</a></li>
+        <li><a href="#p-funnel"><i class="ph ph-funnel" aria-hidden="true"></i>경쟁력 단계</a></li>
+        <li><a href="#p-mix"><i class="ph ph-stack" aria-hidden="true"></i>업종 분석</a></li>
+        <li><a href="#p-top"><i class="ph ph-ranking" aria-hidden="true"></i>매출 상위</a></li>
+        <li><a href="#p-list"><i class="ph ph-list-magnifying-glass" aria-hidden="true"></i>기업 목록</a></li>
+        <li><a href="#p-insight"><i class="ph ph-lightbulb" aria-hidden="true"></i>인사이트</a></li>
+      </ul>
+      <p class="db-nav-title">다른 화면</p>
+      <ul class="db-nav sub">
+        <li><a href="report.html"><i class="ph ph-presentation-chart" aria-hidden="true"></i>경영 현황 보고</a></li>
+        <li><a href="analysis2.html"><i class="ph ph-chart-bar-horizontal" aria-hidden="true"></i>성장 분석</a></li>
+        <li><a href="./"><i class="ph ph-buildings" aria-hidden="true"></i>기업 현황</a></li>
+      </ul>
+    </nav>
+    <p class="db-refresh"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i><span>최근 갱신<br><b id="updated">-</b></span></p>
+  </aside>
+
+  <main class="db-main" id="main">
+    <header class="db-top">
+      <div>
+        <h1>소부장 협력사 경영 대시보드</h1>
+        <p id="sub">반도체 소재·부품·장비 협력사의 실적과 경쟁력</p>
+      </div>
+      <form class="db-filters" id="filters" aria-label="분석 조건">
+        <label class="db-sel"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>기준 연도</span><select id="f-fy"></select></label>
+        <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="f-kind"></select></label>
+        <label class="db-sel"><i class="ph ph-map-pin" aria-hidden="true"></i><span>지역</span><select id="f-area"></select></label>
+        <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>상장 여부</span><select id="f-listed"></select></label>
+        <button class="db-clear" type="reset" id="clear"><i class="ph ph-funnel-x" aria-hidden="true"></i>필터 초기화</button>
+      </form>
+    </header>
+
+    <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
+
+    <div class="db-grid r1">
+      <section class="db-card" id="p-trend" aria-labelledby="t-trend">
+        <div class="db-card-head"><h2 id="t-trend">분기 매출 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i style="background:var(--blue)"></i>매출</li><li><i class="dash"></i>전년 동기</li></ul></div>
+        <div class="db-chart" id="c-trend"></div>
+      </section>
+      <section class="db-card" id="p-region" aria-labelledby="t-region">
+        <div class="db-card-head"><h2 id="t-region">지역별 매출 <small>성장률</small></h2></div>
+        <div id="c-region"></div>
+      </section>
+      <section class="db-card" id="p-funnel" aria-labelledby="t-funnel">
+        <div class="db-card-head"><h2 id="t-funnel">경쟁력 단계</h2></div>
+        <div id="c-funnel"></div>
+      </section>
+    </div>
+
+    <div class="db-grid r2">
+      <section class="db-card" id="p-mix" aria-labelledby="t-mix">
+        <div class="db-card-head"><h2 id="t-mix">업종별 매출 비중</h2></div>
+        <div id="c-mix"></div>
+      </section>
+      <section class="db-card" id="p-top" aria-labelledby="t-top">
+        <div class="db-card-head"><h2 id="t-top">매출 상위 10개사</h2><ul class="db-legend"><li><i class="dash"></i>상위 10개사 평균</li></ul></div>
+        <div class="db-chart" id="c-top"></div>
+      </section>
+      <section class="db-card" id="p-summary" aria-labelledby="t-summary">
+        <div class="db-card-head"><h2 id="t-summary">업종별 요약</h2></div>
+        <div class="db-tbl-wrap"><table class="db-tbl" id="c-summary"></table></div>
+      </section>
+    </div>
+
+    <section class="db-card" id="p-list" aria-labelledby="t-list">
+      <div class="db-card-head"><h2 id="t-list">기업 목록 <small id="list-count"></small></h2>
+        <div class="db-list-tools">
+          <label class="db-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr-only">기업 검색</span><input id="q" type="search" placeholder="기업명 검색" autocomplete="off"></label>
+          <div class="db-chips" role="radiogroup" aria-label="상태" id="chips"></div>
+        </div>
+      </div>
+      <div class="db-tbl-wrap"><table class="db-tbl list" id="c-list"></table></div>
+      <p class="db-more"><button class="db-link" type="button" id="more" hidden></button></p>
+    </section>
+
+    <div class="db-grid r3">
+      <section class="db-card" id="p-gauge" aria-labelledby="t-gauge">
+        <div class="db-card-head"><h2 id="t-gauge">흑자 업체 비중</h2></div>
+        <div class="db-gauge" id="c-gauge"></div>
+      </section>
+      <section class="db-card" id="p-insight" aria-labelledby="t-insight">
+        <div class="db-card-head"><h2 id="t-insight">핵심 인사이트 <small>무엇을 봐야 하나</small></h2></div>
+        <ul class="db-insights" id="c-insight"></ul>
+      </section>
+      <section class="db-card db-cta" aria-labelledby="t-cta">
+        <i class="ph ph-presentation-chart" aria-hidden="true"></i>
+        <h2 id="t-cta">경영진 보고용 2장</h2>
+        <p>지금 조건과 같은 기준으로 산업 전체·업종 비교 보고서를 봅니다.</p>
+        <a class="db-btn" href="report.html">보고서 보기<i class="ph ph-arrow-right" aria-hidden="true"></i></a>
+        <button class="db-btn ghost" type="button" id="csv"><i class="ph ph-download-simple" aria-hidden="true"></i>실적 모판 내려받기(CSV)</button>
+      </section>
+    </div>
+
+    <p class="db-foot" id="foot"></p>
+  </main>
+
+  <div class="db-tip" id="tip" role="tooltip" hidden></div>
+
+  <script src="data/companies.js"></script>
+  <script src="data/segments.js"></script>
+  <script src="data/universe.js"></script>
+  <script src="data/attrs.js"></script>
+  <script src="data/financials.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

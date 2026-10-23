@@ -8,6 +8,7 @@ on:
     paths:
       - "site/**"
       - "scripts/build_company_profiles.py"
+      - "scripts/build_financials.py"
       - "scripts/dart_documents.py"
       - "scripts/company_highlights.py"
       - ".github/workflows/pages.yml"
@@ -49,6 +50,13 @@ jobs:
         continue-on-error: true
         timeout-minutes: 45
         run: python scripts/build_company_profiles.py
+
+      # 협력사 명단 전체의 연간·분기 실적 (성장 분석용). 실패해도 사이트는 배포한다
+      - name: Collect financials for analysis
+        if: ${{ env.DART_API_KEY != '' }}
+        continue-on-error: true
+        timeout-minutes: 45
+        run: python scripts/build_financials.py
 
       - uses: actions/configure-pages@v5
 
