@@ -235,6 +235,8 @@ def main() -> int:
         f"window.COMPANY_FINANCIALS_META = {json.dumps(meta, ensure_ascii=False, separators=(',', ':'))};\n",
         encoding="utf-8")
     print(f"{len(ordered)}개 기업을 저장했습니다: {OUT_PATH}")
+    # 화면 검증용: 배포 전 브랜치 빌드에서도 결과를 확인할 수 있도록 한 줄로 남긴다
+    print("[financials-json] " + json.dumps(ordered, ensure_ascii=False, separators=(",", ":")))
     return 0
 
 
