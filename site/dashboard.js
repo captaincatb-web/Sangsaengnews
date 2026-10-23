@@ -148,11 +148,11 @@
       ["매출 증가", rows.filter((r) => r.g > 0)],
       ["증가 + 흑자", rows.filter((r) => r.g > 0 && r.o1 > 0)],
       ["이익률 5%↑", rows.filter((r) => r.g > 0 && r.m >= 5)],
-      ["우량 성장", rows.filter((r) => r.g >= 10 && r.m >= 10)],
+      ["우량 성장", rows.filter((r) => r.type === TYPES[0])],
     ];
     const n0 = rows.length || 1;
     return `<ol class="db-funnel">${steps.map(([l, rs], i) => `<li data-tip="${l} ${rs.length}곳 (${pc(share(rs.length, n0), 0)})"><span>${l}</span><span class="bar"><span style="width:${Math.max(4, share(rs.length, n0))}%;opacity:${1 - i * 0.16}"></span></span><b>${rs.length}곳</b></li>`).join("")}</ol>
-      <p class="db-funnel-note">우량 성장(성장 10%↑·이익률 10%↑) 비율 ${pc(share(steps[4][1].length, n0), 0)}</p>`;
+      <p class="db-funnel-note">우량 성장형(성장 10%↑·이익률 5%↑) 비율 ${pc(share(steps[4][1].length, n0), 0)}</p>`;
   }
 
   function mixCard(rows, S) {
@@ -201,7 +201,7 @@
     const dm = S.m - S.m0;
     out.push([S.g >= 0 && dm >= 0 ? "good" : S.g < 0 && dm < 0 ? "bad" : "", "ph-trend-up",
       `매출 ${sg(S.g)}, 영업이익률 ${pc(S.m)}(${pp(dm)})`,
-      S.g >= 0 && dm >= 0 ? "외형과 수익성이 함께 좋아졌습니다." : S.g >= 0 ? "매출은 늘었지만 이익률이 낮아져 원가·단가 점검이 필요합니다." : dm >= 0 ? "매출은 줄었지만 수익성은 지켰습니다." : "매출과 수익성이 함께 약해졌습니다."]);
+      Math.abs(dm) < 0.3 ? (S.g >= 0 ? "매출은 늘었고 이익률은 전년 수준을 유지했습니다." : "매출은 줄었고 이익률은 전년 수준입니다.") : S.g >= 0 && dm >= 0 ? "외형과 수익성이 함께 좋아졌습니다." : S.g >= 0 ? "매출은 늘었지만 이익률이 낮아져 원가·단가 점검이 필요합니다." : dm >= 0 ? "매출은 줄었지만 수익성은 지켰습니다." : "매출과 수익성이 함께 약해졌습니다."]);
     const t10 = share(sum(rows.slice().sort((a, b) => b.s1 - a.s1).slice(0, 10).map((r) => r.s1)), S.s1);
     out.push([Math.abs(S.medG - S.g) > 5 ? "bad" : "", "ph-scales",
       `상위 10개사가 매출의 ${pc(t10, 0)} · 업체 중앙값 성장률 ${sg(S.medG)}`,
