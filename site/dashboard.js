@@ -58,6 +58,8 @@
     if (!VIEWS.includes(v)) v = "overview";
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
+    const fl = document.getElementById("filters"); // 화면을 바꾸면 모바일 필터 패널은 접는다
+    if (fl.classList.contains("open")) { fl.classList.remove("open"); document.getElementById("filter-toggle").setAttribute("aria-expanded", false); }
     if (v === "company") drawCompany();
     if (v === "report") loadPreview();
     syncUrl();
@@ -310,7 +312,7 @@
     const COLS = internal ? [...BASE_COLS, ["legal", "기업규모"], ["trade", "거래"], ["semi", "반도체 비중"]] : BASE_COLS;
     const tag = (t) => `<span class="db-tag ${t === TYPES[0] ? "good" : t === TYPES[3] ? "bad" : ""}">${t}</span>`;
     $("c-list").innerHTML = `<thead><tr>${COLS.map(([c, l]) => `<th scope="col" aria-sort="${c === k ? (state.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${c}">${l}</button></th>`).join("")}</tr></thead>`
-      + `<tbody>${rows.map((r) => `<tr><th scope="row">${coLink(r)}</th><td>${r.kind}${r.kindEst ? '<small class="db-est" title="DART 업종코드·회사명으로 추정">추정</small>' : ""}</td><td>${r.l ? "상장" : "비상장"}</td><td>${r.area}</td><td>${won(r.s1)}</td><td class="${tone(r.g)}">${sg(r.g)}</td><td class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td>${r.debt == null ? "-" : pc(r.debt, 0)}</td><td>${tag(r.type)}</td>${internal ? `<td>${r.legal}</td><td>${r.trade}</td><td>${r.semi == null ? "-" : pc(r.semi, 0)}</td>` : ""}</tr>`).join("") || `<tr><td colspan="${COLS.length}" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
+      + `<tbody>${rows.map((r) => `<tr><th scope="row">${coLink(r)}</th><td data-label="업종">${r.kind}${r.kindEst ? '<small class="db-est" title="DART 업종코드·회사명으로 추정">추정</small>' : ""}</td><td data-label="상장">${r.l ? "상장" : "비상장"}</td><td data-label="지역">${r.area}</td><td data-label="매출">${won(r.s1)}</td><td data-label="성장률" class="${tone(r.g)}">${sg(r.g)}</td><td data-label="영업이익률" class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td data-label="부채비율">${r.debt == null ? "-" : pc(r.debt, 0)}</td><td data-label="유형">${tag(r.type)}</td>${internal ? `<td data-label="기업규모">${r.legal}</td><td data-label="거래">${r.trade}</td><td data-label="반도체 비중">${r.semi == null ? "-" : pc(r.semi, 0)}</td>` : ""}</tr>`).join("") || `<tr><td colspan="${COLS.length}" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
     $("more").hidden = total <= 15;
     $("more").textContent = state.more ? "15곳만 보기" : `전체 ${total}곳 보기`;
   }
@@ -379,14 +381,17 @@
   $("co-list").innerHTML = recs.slice().sort((a, b) => a.n.localeCompare(b.n, "ko")).map((r) => `<option value="${esc(r.n)}"></option>`).join("");
   $("co-q").addEventListener("change", () => { const r = recs.find((x) => x.n === $("co-q").value.trim()); if (r) { state.co = r.c; drawCompany(); syncUrl(); } });
   function miniBars(labels, vals, ops) {
-    const H = 200, L = 46, R = 12, T = 18, B = 26, pw = W - L - R, ph = H - T - B, max = Math.max(...vals.filter((v) => v != null), 1), bw = pw / labels.length;
+    const narrow = W < 450 && labels.length > 4;
+    const H = narrow ? 210 : 200, L = 46, R = 12, T = 18, B = narrow ? 36 : 26, pw = W - L - R, ph = H - T - B, max = Math.max(...vals.filter((v) => v != null), 1), bw = pw / labels.length;
     let g = "";
     for (let i = 0; i <= 3; i++) { const v = (max * i) / 3, y = T + ph - (v / max) * ph; g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="ax" x="${L - 6}" y="${y + 4}" text-anchor="end">${won(v)}</text>`; }
     labels.forEach((l, i) => {
       const v = vals[i], x = L + bw * i + bw * 0.2, w = bw * 0.6, op = ops[i];
       if (v != null) { const h = (Math.max(v, 0) / max) * ph; g += `<rect x="${x}" y="${T + ph - h}" width="${w}" height="${h}" rx="3" fill="var(--blue)" data-tip="${l} 매출 ${won(v)} · 영업이익 ${won(op)} (${pc(share(op, v))})"/>`; }
       else g += `<text class="ax" x="${x + w / 2}" y="${T + ph - 6}" text-anchor="middle">결측</text>`;
-      g += `<text class="ax" x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${l}</text>`;
+      const m = narrow && /^'(\d\d)\.(\d)Q$/.exec(l);
+      if (m) g += `<text class="ax" x="${x + w / 2}" y="${H - 20}" text-anchor="middle">${m[2]}Q</text>${i === 0 || m[2] === "1" ? `<text class="ax" x="${x + w / 2}" y="${H - 6}" text-anchor="middle">'${m[1]}</text>` : ""}`;
+      else g += `<text class="ax" x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${l}</text>`;
       if (v && op != null) g += `<text class="val" x="${x + w / 2}" y="${T + ph - (Math.max(v, 0) / max) * ph - 5}" text-anchor="middle"${op < 0 ? ' fill="var(--down)"' : ""}>${pc(share(op, v), 0)}</text>`;
     });
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="매출과 영업이익률">${g}</svg><p class="db-mini">막대 위 숫자는 영업이익률입니다.</p>`;
@@ -435,6 +440,12 @@
     const href = $("rep-open").getAttribute("href"), fr = $("rep-frame"), src = `${href}${href.includes("?") ? "&" : "?"}embed=1`;
     if (fr && fr.getAttribute("src") !== src) fr.setAttribute("src", src);
   }
+  function fitPreview() {
+    const fr = $("rep-frame");
+    try { const h = fr.contentDocument.documentElement.scrollHeight; if (h) fr.style.height = `${h}px`; } catch (e) { /* 다른 출처면 CSS 높이 유지 */ }
+  }
+  $("rep-frame").addEventListener("load", () => { fitPreview(); setTimeout(fitPreview, 300); });
+  window.addEventListener("resize", () => setTimeout(fitPreview, 200));
 
   // ---------- 그리기 ----------
   function render() {

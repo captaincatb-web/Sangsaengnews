@@ -335,3 +335,51 @@ a { color: inherit; }
   #c-signal tbody td[data-label="신호"], #c-signal tbody td[data-label="근거"] { grid-column: 1 / -1; }
   .db-preview iframe { height: 760px; }
 }
+
+/* ---------- 모바일 보기 개선: 하단 탭·고정 머리·카드 목록 ---------- */
+.db-nav a .s { display: none; }
+@media (max-width: 860px) {
+  /* 메뉴는 화면 아래 고정 탭으로 */
+  .db-side { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 20; padding: 0 4px calc(4px + env(safe-area-inset-bottom)); overflow: visible; box-shadow: 0 -4px 16px rgb(0 0 0 / .18); }
+  .db-brand { display: none; }
+  .db-side nav { flex: 1; }
+  .db-nav { flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; }
+  .db-nav a { flex-direction: column; gap: 2px; padding: 7px 0 5px; min-height: 52px; justify-content: center; border-radius: 0; font-size: 11px; line-height: 1.2; text-align: center; }
+  .db-nav a i { display: block; font-size: 21px; }
+  .db-nav a .l { display: none; }
+  .db-nav a .s { display: block; white-space: nowrap; }
+  .db-nav a[aria-current="true"] { background: transparent; color: var(--accent); box-shadow: inset 0 3px 0 var(--accent); }
+  body.db { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  /* 머리: 위에 고정, 한 줄로 압축 */
+  .db-main { padding: 0 12px 16px; }
+  .db-top { position: sticky; top: 0; z-index: 15; margin: 0 -12px 4px; padding: 10px 12px 8px; background: var(--bg); border-bottom: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 6px 8px; }
+  .db-top > div { min-width: 0; }
+  .db-top h1 { font-size: 16px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .db-top #sub { margin: 2px 0 0; font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .db-lock { font-size: 0; gap: 0; padding: 0; width: 40px; height: 40px; justify-content: center; }
+  .db-lock i { font-size: 18px; }
+  .db-filter-toggle { height: 40px; padding: 0 12px; }
+  .db-filters.open { grid-column: 1 / -1; max-height: 60vh; overflow-y: auto; padding-top: 4px; }
+  .db-sel select { min-height: 32px; font-size: 16px; } /* 16px 미만이면 iOS가 확대한다 */
+  .db-view { gap: 12px; }
+  .db-card { padding: 14px; }
+  /* 누르기 쉬운 크기 */
+  .db-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 2px 14px; }
+  .db-chips::-webkit-scrollbar { display: none; }
+  .db-chips button { flex: none; min-height: 36px; padding: 6px 14px; font-size: 13px; }
+  .db-link, .db-more button, #more, #sig-more { min-height: 40px; }
+  .db-search { padding: 8px 12px; } .db-search input { font-size: 16px; }
+  #co-q { font-size: 16px; }
+  /* 표: 글자와 여백을 줄여 한 화면에 */
+  .db-tbl { font-size: 12px; }
+  .db-tbl th, .db-tbl td { padding: 7px 5px; }
+  /* 기업 목록 → 카드 */
+  #c-list thead { display: none; }
+  #c-list tbody tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  #c-list tbody th { grid-column: 1 / -1; border: 0; padding: 0; font-size: 14.5px; font-weight: 700; text-align: left; }
+  #c-list tbody td { border: 0; padding: 0; text-align: left !important; white-space: normal; font-size: 13px; }
+  #c-list tbody td::before { content: attr(data-label); display: block; font-size: 11px; color: var(--text-3); }
+  #c-list tbody td.db-empty { grid-column: 1 / -1; }
+  #c-list tbody td.db-empty::before { content: none; }
+  .db-preview iframe { height: 520px; }
+}
