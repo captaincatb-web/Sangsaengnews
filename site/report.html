@@ -40,6 +40,7 @@
       <p class="lead" id="lead"></p>
       <div class="rp-actions">
         <button class="btn btn-secondary btn-sm" type="button" id="csv"><i class="ph ph-download-simple" aria-hidden="true"></i>모판 내려받기(CSV)</button>
+        <a class="btn btn-tertiary btn-sm" id="back" href="dashboard.html#report"><i class="ph ph-arrow-left" aria-hidden="true"></i>대시보드로</a>
         <button class="btn btn-tertiary btn-sm" type="button" id="print"><i class="ph ph-printer" aria-hidden="true"></i>인쇄·PDF 저장</button>
         <span class="rp-basis" id="basis"></span>
       </div>
@@ -55,6 +56,7 @@
         <div><dt>연간과 분기</dt><dd>연간은 모든 기업(상장은 사업보고서, 비상장은 감사보고서), 분기는 상장사만 있습니다. 비상장사는 분기 실적을 공시하지 않습니다.</dd></div>
         <div><dt>재무 기준</dt><dd>개별(별도) 기준입니다. 반도체 사업 비중이 반영되지 않은 전체 매출이라 반도체 소부장 규모보다 크게 보일 수 있습니다.</dd></div>
         <div><dt>구분</dt><dd>직접 분류한 기업은 확정, 나머지는 DART 업종코드로 추정한 값입니다. 못 찾은 업종은 미분류로 둡니다.</dd></div>
+        <div><dt>산식</dt><dd><ul id="formulas" class="rp-formulas"></ul></dd></div>
       </dl>
     </section>
   </main>
@@ -66,6 +68,7 @@
   <script src="data/attrs.js"></script>
   <script src="data/financials.js"></script>
   <script src="data/classify.js"></script>
+  <script src="metrics.js"></script>
   <script src="report.js"></script>
 </body>
 </html>

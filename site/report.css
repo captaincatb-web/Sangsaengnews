@@ -47,3 +47,6 @@
   .rp-stage { box-shadow: none; border: 0; margin: 0; page-break-after: always; }
   @page { size: 1280px 720px; margin: 0; }
 }
+.rp-lb { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px; margin-right: 4px; vertical-align: 1px; }
+.rp-lb.f { background: #e3ebfb; color: #2c5bc9; } .rp-lb.r { background: #fdefdc; color: #b4630d; margin-left: 2px; }
+.rp-formulas { margin: 0; padding-left: 18px; display: grid; gap: 2px; }

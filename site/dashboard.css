@@ -252,3 +252,61 @@ a { color: inherit; }
 #c-signal td, #c-signal th { white-space: normal; }
 #c-signal td:nth-child(4) { min-width: 150px; }
 #c-signal .db-tag { margin: 1px 0; }
+
+/* ---------- 6개 화면 ---------- */
+.db-view { display: grid; gap: 16px; align-content: start; }
+.db-grid.r1 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.db-grid.r2b { grid-template-columns: 1.2fr 1fr; }
+.db-sub2 { display: block; margin-top: 2px; }
+.db-legend .dot { width: 8px !important; height: 8px !important; border-radius: 50% !important; }
+.db-legend.stack { margin-top: 8px; flex-wrap: wrap; }
+.db-legend.stack i { height: 9px; width: 9px; border-radius: 2px; }
+.db-mini { margin: 6px 0 2px; font-size: 12px; color: var(--text-3); }
+.db-stack { display: flex; height: 30px; border-radius: 6px; overflow: hidden; }
+.db-stack span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; }
+.db-chart .pt { cursor: pointer; } .db-chart .pt:hover { stroke-width: 2.5; }
+/* 주요 변화: 관측/해석 */
+.db-changes { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.db-changes li { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+.db-changes li > b { font-size: 14px; }
+.db-changes p { margin: 0; font-size: 13px; color: var(--text-2); line-height: 1.55; }
+.db-changes .db-link { justify-self: start; text-decoration: none; margin-top: 2px; }
+.db-lbl { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 6px; border-radius: 4px; margin-right: 6px; }
+.db-lbl.fact { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); }
+.db-lbl.read { background: color-mix(in srgb, var(--orange) 16%, transparent); color: var(--orange); }
+/* 요약표 구분 행 */
+.db-tbl tr.grp td { background: var(--grid); color: var(--text-3); font-size: 11.5px; text-align: left; padding: 4px 6px; }
+/* 위험 신호 카드 */
+.db-sig-cards { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+.db-sig { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: left; font: inherit; color: var(--text); cursor: pointer; display: grid; gap: 2px; box-shadow: var(--shadow); }
+.db-sig span { font-size: 12.5px; color: var(--text-2); }
+.db-sig b { font-size: 24px; font-variant-numeric: tabular-nums; } .db-sig b small { font-size: 12px; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+.db-sig em { font-style: normal; font-size: 11px; color: var(--text-3); line-height: 1.35; }
+.db-sig:hover { border-color: var(--text-3); }
+.db-sig.on { border-color: var(--down); box-shadow: 0 0 0 1px var(--down) inset; }
+/* 기업 상세 */
+.db-co-pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.db-co-pick label { font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
+.db-co-pick input { flex: 1 1 260px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; background: var(--bg); color: var(--text); }
+.db-co-hint { font-size: 12px; color: var(--text-3); flex-basis: 100%; }
+#c-company { display: grid; gap: 16px; }
+.db-co-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.db-co-head h2 { font-size: 20px; }
+.db-co-head p { margin: 4px 0 0; color: var(--text-2); font-size: 13px; }
+.db-co-act { display: flex; gap: 8px; } .db-co-act .db-btn { width: auto; padding: 8px 14px; }
+.db-co-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.db-co-kpis div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; box-shadow: var(--shadow); }
+.db-co-kpis span { font-size: 12px; color: var(--text-3); } .db-co-kpis b { font-size: 20px; font-variant-numeric: tabular-nums; } .db-co-kpis small { font-size: 12px; color: var(--text-2); }
+.db-plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13px; color: var(--text-2); }
+.db-plain li.down { color: var(--down); }
+.db-plain small { color: var(--text-3); }
+/* 보고서 화면 */
+.db-rep { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 16px; align-items: center; }
+.db-rep h2 { margin: 0 0 4px; } .db-rep p { margin: 0; color: var(--text-2); font-size: 13px; }
+.db-rep-meta { margin: 0; display: grid; gap: 4px; font-size: 13px; }
+.db-rep-meta div { display: grid; grid-template-columns: 76px 1fr; gap: 8px; } .db-rep-meta dt { color: var(--text-3); } .db-rep-meta dd { margin: 0; }
+.db-rep-act { display: grid; gap: 8px; min-width: 220px; }
+@media (max-width: 1280px) { .db-sig-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } .db-co-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .db-rep { grid-template-columns: 1fr; } .db-grid.r2b { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .db-grid.r1 { grid-template-columns: 1fr; } .db-sig-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .db-co-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .db-nav a { font-size: 12.5px; } }
+#c-signal td:nth-child(5), #c-signal td:nth-child(6) { text-align: left; }
+#c-signal td:nth-child(3), #c-signal td:nth-child(4) { white-space: nowrap; }
