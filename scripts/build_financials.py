@@ -34,6 +34,7 @@ BASE_GROUPS = ("g1", "g2", "g3")
 TIME_BUDGET_SECONDS = 40 * 60
 QUARTER_CODES = [("11013", 1), ("11012", 2), ("11014", 3), ("11011", 4)]
 ITEMS = ("매출액", "영업이익", "당기순이익")
+BS_ITEMS = ("총자산", "부채총계", "자본총계")  # 재무 안정성(부채비율)용, 같은 공시에서 함께 읽는다
 PLANT_SUFFIX = re.compile(r"(천안\d?공장|\S*공장|\S*사업장|\S*지점|한국영업소|전자재료사업부지점)$")
 
 
@@ -163,7 +164,7 @@ def annual_series(api_key: str, corp_code: str, this_year: int) -> tuple:
     years = sorted(y for y, v in fy.items() if v.get("매출액") is not None)[-3:]
     if not years:
         return [], {}, ""
-    return years, {k: [bcp.eok(fy[y].get(k)) for y in years] for k in ITEMS}, source
+    return years, {k: [bcp.eok(fy[y].get(k)) for y in years] for k in ITEMS + BS_ITEMS}, source
 
 
 def collect(api_key: str, corp_code: str, name: str, key: str | None) -> dict | None:
@@ -176,6 +177,7 @@ def collect(api_key: str, corp_code: str, name: str, key: str | None) -> dict | 
     rec = {"c": corp_code, "n": name, "k": key, "l": 1 if listed else 0, "cls": company.get("corp_cls", ""),
            "ind": company.get("induty_code", ""), "mt": company.get("acc_mt", ""), "ad": company.get("adres", ""),
            "y": years, "s": rows.get("매출액", []), "o": rows.get("영업이익", []), "ni": rows.get("당기순이익", []),
+           "ta": rows.get("총자산", []), "tl": rows.get("부채총계", []), "te": rows.get("자본총계", []),
            "src": source}
     if listed:
         try:

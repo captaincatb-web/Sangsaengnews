@@ -1,70 +1,26 @@
 // 경영 현황 보고: 협력사 명단의 연간·분기 실적으로 보고용 2장(16:9)을 만든다.
 (() => {
-  const FIN = window.COMPANY_FINANCIALS || [];
-  const META = window.COMPANY_FINANCIALS_META || {};
-  const segs = window.COMPANY_SEGMENTS || {};
-  const attrs = window.COMPANY_ATTRS || {};
-  const universe = window.COMPANY_UNIVERSE || [];
-  const uniByKey = new Map(universe.map((u) => [u[1], u]));
+  // 데이터 정의·산식은 metrics.js(SB)와 같고, 조건은 대시보드에서 넘긴 주소의 필터를 그대로 쓴다
+  const SB = window.SB;
+  const META = SB.meta;
   const $ = (id) => document.getElementById(id);
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const NA = "미분류";
+  const { esc, pc, sg } = SB.fmt;
+  const jo = SB.fmt.won;
+  const { sum, growth, share } = SB.math;
+  const { NA, HI_GROWTH, HI_MARGIN } = SB;
+  const num = SB.fmt.num;
 
-  // 성장·수익 분류 기준(4유형)
-  const HI_GROWTH = 10, HI_MARGIN = 5;
-
-  const num = (v) => Math.round(v).toLocaleString("ko-KR");
-  const jo = (v) => (Math.abs(v) >= 10000 ? `${(v / 10000).toFixed(1)}조` : `${num(v)}억`);
-  const pc = (v, d = 1) => (v == null || !isFinite(v) ? "-" : `${v.toFixed(d)}%`);
-  const sg = (v, d = 1) => (v == null || !isFinite(v) ? "-" : `${v > 0 ? "+" : ""}${v.toFixed(d)}%`);
-  const sum = (a) => a.reduce((s, v) => s + v, 0);
-  const med = (a) => { const s = a.filter((v) => v != null && isFinite(v)).sort((x, y) => x - y); if (!s.length) return null; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
-  const growth = (a, b) => (b > 0 ? (a / b - 1) * 100 : null);
-  const share = (n, d) => (d ? (n / d) * 100 : null);
-
-  // ---------- 기업 정보 ----------
-  const AREA = { 서울: "서울", 경기: "경기", 인천: "경기", 충북: "충청", 충남: "충청", 대전: "충청", 세종: "충청", 경북: "경상", 경남: "경상", 부산: "경상", 울산: "경상", 대구: "경상", 전북: "전라", 전남: "전라", 광주: "전라" };
-  const SHORT = { 서울특별시: "서울", 경기도: "경기", 인천광역시: "인천", 충청북도: "충북", 충청남도: "충남", 대전광역시: "대전", 세종특별자치시: "세종", 경상북도: "경북", 경상남도: "경남", 부산광역시: "부산", 울산광역시: "울산", 대구광역시: "대구", 전북특별자치도: "전북", 전라북도: "전북", 전라남도: "전남", 광주광역시: "광주" };
-  const areaOf = (r) => {
-    const u = r.k && uniByKey.get(r.k);
-    if (u && u[2].length) return u[2][0][0];
-    const a = SHORT[String(r.ad || "").trim().split(/\s+/)[0]];
-    return AREA[a] || "기타";
-  };
-
-  const recs = FIN.map((r) => {
-    const cl = window.classifyCompany(r, segs);
-    const at = attrs[r.c] || {};
-    return { ...r, kind: cl.kind, kindEst: cl.est, area: areaOf(r), size: at.size || "미입력" };
-  }).filter((r) => r.kind !== "수요");
-  // 대형사(최근 매출 1조 이상)는 대시보드 기본값과 같이 집계에서 빼고 따로 적는다
-  const lastSales = (r) => r.s.filter((v) => v != null).pop();
-  const bigCos = recs.filter((r) => window.sizeTier(lastSales(r) ?? 0) === "1조 이상");
-  recs.splice(0, recs.length, ...recs.filter((r) => !bigCos.includes(r)));
-
-  // 연간: 가장 많은 기업이 가진 최신 연도 기준
-  const mode = (arr) => { const c = {}; arr.forEach((v) => (c[v] = (c[v] || 0) + 1)); return Number(Object.keys(c).sort((a, b) => c[b] - c[a] || b - a)[0]); };
-  const FY = mode(recs.filter((r) => r.y.length).map((r) => r.y[r.y.length - 1]));
-  const annual = recs.map((r) => {
-    const i = r.y.indexOf(FY), j = r.y.indexOf(FY - 1);
-    if (i < 0 || j < 0 || !(r.s[i] > 0) || !(r.s[j] > 0) || r.o[i] == null) return null; // 영업이익이 없으면 이익률을 왜곡하므로 뺀다
-    return { ...r, s1: r.s[i], s0: r.s[j], o1: r.o[i] ?? 0, o0: r.o[j] ?? 0, g: growth(r.s[i], r.s[j]), m: share(r.o[i] ?? 0, r.s[i]), m0: share(r.o[j] ?? 0, r.s[j]) };
-  }).filter(Boolean);
-
-  // 분기: 상장사 중 최근 8개 분기가 모두 있는 곳
-  const qLabels = (() => { const c = {}; recs.forEach((r) => { if (r.q && r.q.labels.length === 8) { const k = r.q.labels.join(","); c[k] = (c[k] || 0) + 1; } }); const k = Object.keys(c).sort((a, b) => c[b] - c[a])[0]; return k ? k.split(",") : []; })();
-  const qPanel = recs.filter((r) => r.q && r.q.labels.join(",") === qLabels.join(",") && r.q.sales.every((v) => v != null) && r.q.op.every((v) => v != null));
+  const st = SB.fromQuery(location.search);
+  const F = SB.makeFilter(st, null);
+  const recs = SB.recs.filter(F.inFilter);
+  const bigCos = SB.recs.filter((r) => F.inBase(r) && SB.isBig(r));
+  const bigNote = st.big === "exclude" ? `대형사 ${bigCos.length}곳 별도` : st.big === "only" ? "대형사만" : "대형사 포함";
+  const FY = st.fy;
+  const annual = SB.panel(recs, FY).filter((r) => r.o1 != null); // 영업이익이 없으면 이익률을 왜곡하므로 뺀다
+  const Q = SB.quarters(recs), qLabels = Q.labels, qPanel = Q.P;
 
   // ---------- 집계 ----------
-  function stats(list) {
-    const s1 = sum(list.map((r) => r.s1)), s0 = sum(list.map((r) => r.s0)), o1 = sum(list.map((r) => r.o1)), o0 = sum(list.map((r) => r.o0));
-    return {
-      n: list.length, s1, s0, o1, o0, g: growth(s1, s0), og: o0 > 0 ? growth(o1, o0) : null, m: share(o1, s1), m0: share(o0, s0),
-      loss: list.filter((r) => r.o1 < 0).length, lossP: share(list.filter((r) => r.o1 < 0).length, list.length),
-      avg: list.length ? s1 / list.length : null, medS: med(list.map((r) => r.s1)), medG: med(list.map((r) => r.g)), medM: med(list.map((r) => r.m)),
-      up: list.filter((r) => r.g > 0).length,
-    };
-  }
+  const stats = (list) => { const s = SB.stats(list); return { ...s, up: s.upN }; };
   const A = stats(annual);
   const top = annual.slice().sort((a, b) => b.s1 - a.s1);
   const conc = (n) => share(sum(top.slice(0, n).map((r) => r.s1)), A.s1);
@@ -75,6 +31,8 @@
   const gTop = stats(decileTop).g, gLow = stats(half).g;
   const weak = annual.filter((r) => r.o1 < 0 && r.g < 0);
   const q4loss = qPanel.filter((r) => r.q.op.slice(-4).every((v) => v < 0));
+  // 시사점 한 줄: 관측(데이터 사실)과 해석(가설)을 나눠 적는다
+  const bullet = (fact, read) => `<li><span class="rp-lb f">관측</span>${fact}${read ? ` <span class="rp-lb r">해석</span>${read}` : ""}</li>`;
 
   // ---------- 그리기 도구 ----------
   const COLORS = ["#5b4bdb", "#0b8f7a", "#d97706", "#7c8696"];
@@ -113,14 +71,18 @@
       const s = qLabels.map((_, i) => sum(qPanel.map((r) => r.q.sales[i])));
       return { ltm: sum(s.slice(4)), prev: sum(s.slice(0, 4)) };
     })() : null;
+    const FS = SB.fullSample(recs, FY);
     const bullets = [
-      `${A.n}개사 합산 매출은 <b>${jo(A.s1)}원</b>으로 전년 대비 <b>${sg(A.g)}</b>, 영업이익률은 ${pc(A.m0)}에서 <b>${pc(A.m)}</b>(${Math.abs(dm) < 0.05 ? "보합" : `${dm > 0 ? "+" : ""}${dm.toFixed(1)}%p`})입니다.`,
-      `매출이 늘어난 업체는 <b>${pc(share(A.up, A.n), 0)}</b>(${A.up}곳)이고, 업체 중앙값 성장률은 ${sg(A.medG)}로 합산(${sg(A.g)})과 ${Math.abs(A.medG - A.g) < 3 ? "비슷해 성장이 고르게 퍼진 편" : A.g > A.medG ? "차이가 커 일부 대형사가 합계를 끌어올린 모습" : "달리 일반 업체가 더 크게 성장한 모습"}입니다.`,
-      `상위 10개사가 매출의 <b>${pc(conc(10), 0)}</b>를 차지합니다${conc(10) >= 40 ? `. 이들을 빼면 성장률 <b>${sg(stats(top.slice(10)).g)}</b>, 이익률 ${pc(stats(top.slice(10)).m)}로 합계와 ${Math.abs(stats(top.slice(10)).g - A.g) >= 3 ? "차이가 큽니다" : "비슷합니다"}` : ""}. 영업적자 업체는 ${A.loss}곳(${pc(A.lossP, 0)})입니다.`,
+      bullet(`${A.n}개사 합산 매출 <b>${jo(A.s1)}원</b>, 전년 대비 <b>${sg(A.g)}</b>(전체 표본 ${sg(FS.g)}), 영업이익률 ${pc(A.m0)} → <b>${pc(A.m)}</b>(${SB.fmt.pp(dm)}).`,
+        A.g >= 0 && dm >= -0.3 ? "외형 성장과 수익성 유지가 함께 나타났습니다." : A.g >= 0 ? "매출은 늘었지만 수익성이 낮아져 원가·단가 점검이 필요합니다." : "외형이 줄어 업황 영향 여부 확인이 필요합니다."),
+      bullet(`매출이 늘어난 업체 <b>${pc(share(A.up, A.n), 0)}</b>(${A.up}곳), 업체 중앙값 성장률 ${sg(A.medG)}(합계 ${sg(A.g)}).`,
+        Math.abs(A.medG - A.g) < 3 ? "성장이 업체 전반에 고르게 퍼진 편입니다." : A.g > A.medG ? "일부 큰 기업이 합계를 끌어올린 것으로 보입니다." : "일반 업체가 큰 기업보다 더 크게 성장했습니다."),
+      bullet(`상위 10개사 매출 비중 <b>${pc(conc(10), 0)}</b>, 영업적자 ${A.loss}곳(${pc(A.lossP, 0)}).`,
+        conc(10) >= 40 ? `상위 10개사를 빼면 성장률 ${sg(stats(top.slice(10)).g)}로, 합계만으로 업계 전반을 판단하기 어렵습니다.` : ""),
     ];
     return `
       <header class="sl-head"><div><p class="sl-tag">1 / 2 · 산업 전체</p><h2>반도체 소부장 협력사 경영실적 및 성장 추이</h2></div>
-        <p class="sl-meta">분석대상 ${A.n}개사(매출 1조↑ 대형사 ${bigCos.length}곳 별도) · ${FY}년(연간) · 단위 억원 · 개별 기준</p></header>
+        <p class="sl-meta">${esc(SB.describe(st))} · 분석대상 ${A.n}개사 · 단위 억원 · 개별 기준</p></header>
       <div class="sl-kpis">
         ${kpi(`${FY}년 매출`, jo(A.s1), `전년 대비 ${sg(A.g)}`, tone(A.g))}
         ${kpi("영업이익", jo(A.o1), A.og == null ? "전년 적자" : `전년 대비 ${sg(A.og)}`, tone(A.og))}
@@ -135,7 +97,7 @@
           <h3>③ 수익성 분포</h3>${stacked(marginDist)}
           <h3>④ 매출 상위 집중도</h3>${stacked([["상위 10개사", Math.round(conc(10))], ["11~100위", Math.round(conc(100) - conc(10))], ["기타", Math.round(100 - conc(100))]], ["#5b4bdb", "#0b8f7a", "#c5cad3"], "%")}</section>
       </div>
-      <footer class="sl-foot"><h3>종합 분석 및 시사점</h3><ul>${bullets.map((b) => `<li>${b}</li>`).join("")}</ul></footer>`;
+      <footer class="sl-foot"><h3>종합 분석 및 시사점</h3><ul>${bullets.join("")}</ul></footer>`;
   }
 
   // ---------- 2장 ----------
@@ -143,7 +105,7 @@
   const head = (first) => `<thead><tr><th>${first}</th><th>업체 수</th><th>매출</th><th>업체당 평균</th><th>매출 성장률</th><th>영업이익률</th><th>이익률 중앙값</th><th>적자 비중</th></tr></thead>`;
   function quadrant() {
     const cells = { "우량 성장형": [], "수익 안정형": [], "성장 투자형": [], "경영 취약형": [] };
-    annual.forEach((r) => { const hg = r.g >= HI_GROWTH, hm = r.m >= HI_MARGIN; cells[hg ? (hm ? "우량 성장형" : "성장 투자형") : hm ? "수익 안정형" : "경영 취약형"].push(r); });
+    annual.forEach((r) => cells[r.type] && cells[r.type].push(r));
     const box = (k, sub, cls) => {
       const l = cells[k];
       return `<div class="rp-q ${cls}"><p>${k}<small>${sub}</small></p><strong>${l.length}곳 <em>${pc(share(l.length, annual.length), 0)}</em></strong><span>${esc(l.sort((a, b) => b.s1 - a.s1).slice(0, 3).map((r) => r.n).join(" · ") || "-")}</span></div>`;
@@ -158,21 +120,22 @@
     const ls = [["상장사", annual.filter((r) => r.l)], ["비상장사", annual.filter((r) => !r.l)]];
     const best = kinds.filter(([k]) => k !== NA).map(([k, l]) => [k, stats(l)]).sort((a, b) => b[1].g - a[1].g);
     const L = stats(ls[0][1]), U = stats(ls[1][1]);
+    const hiM = best.slice().sort((a, b) => b[1].m - a[1].m)[0];
     const bullets = [
-      best.length > 1 ? `성장은 <b>${best[0][0]}</b>(${sg(best[0][1].g)}), 수익성은 <b>${best.slice().sort((a, b) => b[1].m - a[1].m)[0][0]}</b>(${pc(best.slice().sort((a, b) => b[1].m - a[1].m)[0][1].m)})이 앞섭니다.` : "",
-      L.n && U.n ? `상장사 영업이익률 ${pc(L.m)} · 비상장사 ${pc(U.m)}, 성장률은 ${sg(L.g)} 대 ${sg(U.g)}로 ${Math.abs(L.g - U.g) < 3 ? "격차가 크지 않습니다" : (L.g > U.g ? "상장사" : "비상장사") + "가 앞섭니다"}.` : "",
-      `양극화: 매출 상위 10% 성장률 ${sg(gTop)} · 하위 50% ${sg(gLow)}. 이익률 10%↑ 업체 ${prevHiM}곳→${curHiM}곳, 적자 업체 ${prevLoss}곳→${A.loss}곳입니다.`,
-      `경영 취약: 매출 감소와 영업적자가 겹친 업체 <b>${weak.length}곳</b>${qPanel.length ? `, 최근 4분기 연속 적자(상장) ${q4loss.length}곳` : ""}. 상생협력 지원 우선 검토 대상입니다.`,
+      best.length > 1 ? bullet(`성장 1위 <b>${best[0][0]}</b>(${sg(best[0][1].g)}), 수익성 1위 <b>${hiM[0]}</b>(${pc(hiM[1].m)}).`, best[0][0] === hiM[0] ? `${best[0][0]} 업종이 성장과 수익성 모두 앞서 있습니다.` : "성장과 수익성의 선두 업종이 달라 업종별 대응이 필요합니다.") : "",
+      L.n && U.n ? bullet(`영업이익률 상장 ${pc(L.m)} · 비상장 ${pc(U.m)}, 성장률 ${sg(L.g)} · ${sg(U.g)}.`, Math.abs(L.g - U.g) < 3 ? "상장 여부에 따른 성장 격차는 크지 않습니다." : `${L.g > U.g ? "상장사" : "비상장사"}의 성장이 빠릅니다.`) : "",
+      bullet(`매출 상위 10% 성장률 ${sg(gTop)} · 하위 50% ${sg(gLow)}, 이익률 10%↑ 업체 ${prevHiM} → ${curHiM}곳, 적자 업체 ${prevLoss} → ${A.loss}곳.`, Math.abs(gTop - gLow) >= 5 ? "규모에 따른 성장 양극화가 나타납니다." : "규모별 성장 격차는 크지 않습니다."),
+      bullet(`매출 감소와 영업적자가 겹친 업체 <b>${weak.length}곳</b>${qPanel.length ? `, 최근 4분기 연속 적자(상장) ${q4loss.length}곳` : ""}.`, weak.length ? "상생협력 지원 우선 검토 대상이며, 일회성 요인 여부를 개별 확인해야 합니다." : ""),
     ].filter(Boolean);
     return `
       <header class="sl-head"><div><p class="sl-tag">2 / 2 · 업종별·상장 여부별</p><h2>소부장 업종별 경쟁력 및 경영 격차</h2></div>
-        <p class="sl-meta">${FY}년 기준 · 분석대상 ${A.n}개사(대형사 ${bigCos.length}곳 별도) · 구분 추정 ${est}곳 포함</p></header>
+        <p class="sl-meta">${esc(SB.describe(st))} · 분석대상 ${A.n}개사 · 업종 추정 ${est}곳 포함</p></header>
       <div class="sl-body two">
         <section class="sl-col"><h3>소재·부품·장비별 경영실적</h3><table class="sl-table">${head("구분")}<tbody>${kinds.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>
           <h3>상장·비상장 경영실적 비교</h3><table class="sl-table">${head("구분")}<tbody>${ls.filter(([, l]) => l.length).map(([k, l]) => row(k, stats(l))).join("")}</tbody></table></section>
         <section class="sl-col"><h3>성장성·수익성 기반 업체 분류 <small>업체 ${A.n}곳</small></h3>${quadrant()}</section>
       </div>
-      <footer class="sl-foot"><h3>종합 분석 및 시사점</h3><ul>${bullets.map((b) => `<li>${b}</li>`).join("")}</ul></footer>`;
+      <footer class="sl-foot"><h3>종합 분석 및 시사점</h3><ul>${bullets.join("")}</ul></footer>`;
   }
 
   // ---------- 화면 ----------
@@ -189,8 +152,11 @@
       $("csv").disabled = true;
       return;
     }
-    $("lead").innerHTML = `협력사 명단 ${recs.length}곳 중 연간 실적이 있는 <strong>${A.n}곳</strong>을 보고용 2장으로 정리했습니다. 분기 실적은 상장 ${qPanel.length}곳만 있습니다.`;
-    $("basis").textContent = `수집 ${META.updated || ""} · 명단에서 못 찾은 곳 ${(META.missing || []).length}곳`;
+    $("lead").innerHTML = `조건: <strong>${esc(SB.describe(st))}</strong>. 연간 실적이 있는 ${A.n}곳을 대시보드와 같은 산식으로 정리했습니다. 분기 실적은 상장 ${qPanel.length}곳만 있습니다.`;
+    $("basis").textContent = `기준 데이터 DART ${META.updated || "-"} · 생성 ${new Date().toLocaleString("ko-KR")} · ${bigNote}`;
+    const qs = SB.toQuery(st);
+    $("back").href = `dashboard.html${qs ? `?${qs}` : ""}#report`;
+    $("formulas").innerHTML = SB.FORMULAS.map((f) => `<li>${f}</li>`).join("");
     $("slide1").innerHTML = slide1();
     $("slide2").innerHTML = slide2();
     fit();
@@ -202,7 +168,7 @@
 
   // 모판(CSV): 업체코드·분기·매출액·영업이익을 세로로 쌓는다
   $("csv").addEventListener("click", () => {
-    const rows = [["업체코드", "업체명", "상장", "구분", "구분추정", "지역", "기간", "매출액(억원)", "영업이익(억원)", "당기순이익(억원)"]];
+    const rows = [["업체코드", "업체명", "상장", "업종", "업종추정", "지역", "기간", "매출액(억원)", "영업이익(억원)", "당기순이익(억원)"]];
     recs.forEach((r) => {
       const base = [r.c, r.n, r.l ? "상장" : "비상장", r.kind, r.kindEst ? "추정" : "", r.area];
       r.y.forEach((y, i) => rows.push([...base, `FY${y}`, r.s[i], r.o[i], r.ni[i]]));
