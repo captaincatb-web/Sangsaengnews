@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>내부 정보 암호화 | 협력사 프로필</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .it { max-width: 820px; display: grid; gap: 18px; padding-block: 28px 60px; }
+    .it-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: grid; gap: 12px; }
+    .it-card h2 { margin: 0; font-size: 18px; }
+    .it-card p, .it-card li { color: var(--text-2); font-size: 15px; }
+    .it-card ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+    .it textarea { width: 100%; min-height: 170px; font: 13px/1.5 ui-monospace, Consolas, monospace; padding: 10px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--surface); color: var(--text); }
+    .it-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+    .it-row .field { flex: 1 1 220px; display: grid; gap: 4px; }
+    .it-row label { font-size: 14px; color: var(--text-3); }
+    .it-msg { font-size: 14px; }
+    .it-msg.bad { color: #c2362b; } .it-msg.ok { color: #0e7a43; }
+    .it-sample { font: 12.5px/1.6 ui-monospace, Consolas, monospace; background: var(--subtle); padding: 10px 12px; border-radius: 8px; overflow-x: auto; white-space: pre; }
+  </style>
+</head>
+<body>
+  <main class="inner it" id="content">
+    <section class="page-head" style="padding:0">
+      <h1>내부 정보 암호화</h1>
+      <p class="lead">기업규모·거래 관계·반도체 매출 비중을 비밀번호로 암호화한 파일을 만듭니다. 모든 처리는 이 브라우저 안에서만 이루어지고, 입력한 내용과 비밀번호는 어디로도 전송되지 않습니다.</p>
+    </section>
+
+    <section class="it-card">
+      <h2>1. 내부 정보 붙여 넣기</h2>
+      <p>엑셀에서 아래 열 순서대로 복사해 붙여 넣으세요(탭 또는 쉼표 구분, 첫 줄은 제목). 업체코드는 DART 고유번호 8자리이며, 없으면 업체명으로 찾습니다.</p>
+      <div class="it-sample">업체코드	업체명	기업규모	거래관계	반도체비중
+00365457	제이티	중견	당사 거래	85
+	코세스	중소	비거래	60</div>
+      <label class="sr-only" for="src">내부 정보</label>
+      <textarea id="src" spellcheck="false" placeholder="여기에 붙여 넣기"></textarea>
+      <p class="it-msg" id="parse-msg" aria-live="polite"></p>
+    </section>
+
+    <section class="it-card">
+      <h2>2. 비밀번호 정하기</h2>
+      <p>12자 이상으로 정하고, 볼 권한이 있는 분께만 따로 전달하세요. 비밀번호를 잃으면 파일을 다시 만들어야 합니다.</p>
+      <div class="it-row">
+        <div class="field"><label for="pw1">비밀번호</label><input class="krds-input" id="pw1" type="password" autocomplete="new-password"></div>
+        <div class="field"><label for="pw2">비밀번호 확인</label><input class="krds-input" id="pw2" type="password" autocomplete="new-password"></div>
+        <button class="btn btn-primary" type="button" id="make"><i class="ph ph-lock-key" aria-hidden="true"></i>암호화 파일 만들기</button>
+      </div>
+      <p class="it-msg" id="make-msg" aria-live="polite"></p>
+    </section>
+
+    <section class="it-card" id="out-card" hidden>
+      <h2>3. 파일 올리기</h2>
+      <ol>
+        <li><b>파일 받기</b>를 누르면 <code>internal.enc.js</code>가 저장됩니다.</li>
+        <li>GitHub 저장소의 <code>site/data/</code> 폴더에 같은 이름으로 올리거나, 이 파일을 Claude에게 전달하세요. 암호문이라 전달해도 내용은 보이지 않습니다.</li>
+        <li>배포 후 대시보드의 <b>내부 정보 보기</b>에서 비밀번호를 넣으면 표시됩니다.</li>
+      </ol>
+      <div class="it-row"><button class="btn btn-primary" type="button" id="dl"><i class="ph ph-download-simple" aria-hidden="true"></i>파일 받기</button><button class="btn btn-secondary" type="button" id="copy"><i class="ph ph-copy" aria-hidden="true"></i>내용 복사</button></div>
+      <textarea id="out" readonly spellcheck="false" aria-label="암호화된 파일 내용"></textarea>
+    </section>
+  </main>
+
+  <script src="data/companies.js"></script>
+  <script src="data/financials.js"></script>
+  <script src="internal.js"></script>
+  <script>
+    (() => {
+      const $ = (id) => document.getElementById(id);
+      const norm = (s) => String(s || "").replace(/주식회사|유한회사|\(주\)|㈜|[\s().,·\-]/g, "").toLowerCase();
+      // 업체명 → 고유번호: 재무 수집 대상과 지정 기업 목록에서 찾는다
+      const byName = new Map();
+      (window.COMPANY_FINANCIALS || []).forEach((r) => byName.set(norm(r.n), r.c));
+      (window.COMPANY_GROUPS || []).forEach((g) => g.companies.forEach((c) => byName.set(norm(c[0]), c[1])));
+      const SIZES = ["대기업", "중견", "중소"], TRADES = ["당사 거래", "비거래"];
+      let parsed = null;
+
+      function parse(text) {
+        const lines = text.split(/\r?\n/).filter((l) => l.trim()); // 앞쪽 빈 칸(업체코드 생략)이 있어도 열이 밀리지 않게 줄 앞은 자르지 않는다
+        if (lines.length < 2) return { rows: {}, ok: 0, miss: [], bad: [] };
+        const split = (l) => (l.includes("\t") ? l.split("\t") : l.split(",")).map((x) => x.trim());
+        const rows = {}, miss = [], bad = [];
+        lines.slice(1).forEach((l) => {
+          const [code, name, size, trade, semi] = split(l);
+          const c = /^\d{8}$/.test(code || "") ? code : byName.get(norm(name));
+          if (!c) { miss.push(name || code); return; }
+          const rec = {};
+          if (size) { if (SIZES.includes(size)) rec.size = size; else bad.push(`${name || c}: 기업규모 "${size}"`); }
+          if (trade) { if (TRADES.includes(trade)) rec.trade = trade; else bad.push(`${name || c}: 거래관계 "${trade}"`); }
+          if (semi !== undefined && semi !== "") { const v = Number(String(semi).replace("%", "")); if (v >= 0 && v <= 100) rec.semi = v; else bad.push(`${name || c}: 반도체비중 "${semi}"`); }
+          rows[c] = rec;
+        });
+        return { rows, ok: Object.keys(rows).length, miss, bad };
+      }
+      $("src").addEventListener("input", () => {
+        parsed = parse($("src").value);
+        const m = $("parse-msg");
+        m.className = "it-msg " + (parsed.miss.length || parsed.bad.length ? "bad" : "ok");
+        m.textContent = parsed.ok || parsed.miss.length ? `${parsed.ok}곳 인식${parsed.miss.length ? ` · 찾지 못함 ${parsed.miss.length}곳: ${parsed.miss.slice(0, 8).join(", ")}${parsed.miss.length > 8 ? " 등" : ""}` : ""}${parsed.bad.length ? ` · 값 확인 필요: ${parsed.bad.slice(0, 5).join(" / ")}` : ""}. 기업규모는 대기업·중견·중소, 거래관계는 당사 거래·비거래, 반도체비중은 0~100입니다.` : "";
+      });
+      let fileText = "";
+      $("make").addEventListener("click", async () => {
+        const m = $("make-msg");
+        if (!parsed || !parsed.ok) { m.className = "it-msg bad"; m.textContent = "먼저 내부 정보를 붙여 넣어 주세요."; return; }
+        if ($("pw1").value.length < 12) { m.className = "it-msg bad"; m.textContent = "비밀번호는 12자 이상으로 정해 주세요."; return; }
+        if ($("pw1").value !== $("pw2").value) { m.className = "it-msg bad"; m.textContent = "두 비밀번호가 다릅니다."; return; }
+        m.className = "it-msg"; m.textContent = "암호화 중…";
+        const box = await window.InternalData.encrypt(parsed.rows, $("pw1").value);
+        $("pw1").value = $("pw2").value = "";
+        fileText = `// 내부 정보 암호문. internal-tool.html 로 만든 파일입니다. 비밀번호 없이는 읽을 수 없습니다.\nwindow.INTERNAL_ENC = ${JSON.stringify(box)};\n`;
+        $("out").value = fileText;
+        $("out-card").hidden = false;
+        m.className = "it-msg ok"; m.textContent = `${parsed.ok}곳을 암호화했습니다.`;
+      });
+      $("dl").addEventListener("click", () => {
+        Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([fileText], { type: "text/javascript" })), download: "internal.enc.js" }).click();
+      });
+      $("copy").addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(fileText); $("make-msg").textContent = "내용을 복사했습니다."; } catch (e) { $("out").select(); }
+      });
+    })();
+  </script>
+</body>
+</html>
