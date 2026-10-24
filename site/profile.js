@@ -19,7 +19,7 @@
 
   const p = (window.COMPANY_PROFILES || {})[code] || {};
   const updated = window.COMPANY_PROFILES_UPDATED || "";
-  document.title = `${company.name} 프로필 | 협력사 프로필`;
+  document.title = `${company.name} 프로필 | 소부장 협력사 분석`;
   document.getElementById("crumb-current").textContent = company.name;
 
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
