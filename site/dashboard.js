@@ -44,7 +44,7 @@
   const yearCount = {};
   recs.forEach((r) => r.y.length && (yearCount[r.y[r.y.length - 1]] = (yearCount[r.y[r.y.length - 1]] || 0) + 1));
   const DEFAULT_FY = Number(Object.keys(yearCount).sort((a, b) => yearCount[b] - yearCount[a] || b - a)[0]) || new Date().getFullYear() - 1;
-  const state = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", q: "", chip: "전체", sort: "g", dir: -1, more: false };
+  const state = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", big: "exclude", legal: "all", trade: "all", sig: "전체", sigMore: false, q: "", chip: "전체", sort: "g", dir: -1, more: false };
   const fill = (id, opts, val) => ($(id).innerHTML = opts.map(([v, l]) => `<option value="${v}"${String(v) === String(val) ? " selected" : ""}>${l}</option>`).join(""));
   function drawFilters() {
     fill("f-fy", [DEFAULT_FY, DEFAULT_FY - 1].map((y) => [y, `${y}년`]), state.fy);
@@ -52,9 +52,12 @@
     fill("f-area", [["all", "전체"], ...AREAS.map((a) => [a, a])], state.area);
     fill("f-listed", [["all", "전체"], ["1", "상장"], ["0", "비상장"]], state.listed);
     fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s])], state.size);
+    fill("f-big", [["exclude", "제외(기본)"], ["include", "포함"], ["only", "대형사만"]], state.big);
+    fill("f-legal", [["all", "전체"], ...["대기업", "중견", "중소", "미입력"].map((s) => [s, s])], state.legal);
+    fill("f-trade", [["all", "전체"], ...["당사 거래", "비거래", "미입력"].map((s) => [s, s])], state.trade);
   }
   $("filters").addEventListener("change", (e) => {
-    const key = { "f-fy": "fy", "f-kind": "kind", "f-area": "area", "f-listed": "listed", "f-size": "size" }[e.target.id];
+    const key = { "f-fy": "fy", "f-kind": "kind", "f-area": "area", "f-listed": "listed", "f-size": "size", "f-big": "big", "f-legal": "legal", "f-trade": "trade" }[e.target.id];
     if (!key) return;
     state[key] = key === "fy" ? Number(e.target.value) : e.target.value;
     state.more = false;
@@ -62,13 +65,27 @@
   });
   $("filters").addEventListener("reset", (e) => {
     e.preventDefault();
-    Object.assign(state, { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", q: "", chip: "전체", more: false });
+    Object.assign(state, { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", big: "exclude", legal: "all", trade: "all", sig: "전체", q: "", chip: "전체", more: false });
     $("q").value = "";
     drawFilters();
     render();
   });
-  const inFilter = (r) => (state.kind === "all" || r.kind === state.kind) && (state.area === "all" || r.area === state.area)
-    && (state.listed === "all" || String(r.l) === state.listed) && (state.size === "all" || r.tier === state.size);
+  // 대형사(최근 매출 1조 이상)는 기본 집계에서 빼고 따로 보여 준다
+  const isBig = (r) => r.tier === "1조 이상";
+  const inBase = (r) => (state.kind === "all" || r.kind === state.kind) && (state.area === "all" || r.area === state.area)
+    && (state.listed === "all" || String(r.l) === state.listed) && (state.size === "all" || r.tier === state.size)
+    && (!internal || ((state.legal === "all" || r.legal === state.legal) && (state.trade === "all" || r.trade === state.trade)));
+  const inFilter = (r) => inBase(r) && (state.big === "include" || (state.big === "only" ? isBig(r) : !isBig(r)));
+
+  // 내부 정보(인증 후에만 복호화됨)
+  let internal = null;
+  window.InternalData && window.InternalData.onChange((data) => {
+    internal = data;
+    recs.forEach((r) => { const d = data && data[r.c]; r.legal = (d && d.size) || "미입력"; r.trade = (d && d.trade) || "미입력"; r.semi = d && d.semi != null ? d.semi : null; });
+    $("w-legal").hidden = $("w-trade").hidden = !data;
+    if (!data) { state.legal = state.trade = "all"; }
+    if (recs.length) { drawFilters(); render(); }
+  });
 
   // ---------- 집계 ----------
   const at = (r, arr, y) => { const i = r.y.indexOf(y); return i < 0 ? null : arr[i]; };
@@ -225,9 +242,51 @@
     return out.map(([c, ic, what, so]) => `<li><span class="ic ${c}"><i class="ph ${ic}" aria-hidden="true"></i></span><span><b>${what}</b><small>${so}</small></span></li>`).join("");
   }
 
+  // ---------- 경영 변화·위험 신호(확정 기준) ----------
+  const SIGNALS = [
+    ["급감", "매출 급감", (r) => r.g <= -30, (r) => `매출 ${sg(r.g)}`],
+    ["적자전환", "적자 전환", (r) => r.o0 > 0 && r.o1 < 0, (r) => `영업이익 ${won(r.o0)} → ${won(r.o1)}`],
+    ["적자지속", "적자 지속", (r) => r.o0 < 0 && r.o1 < 0, (r) => `2년 연속 영업적자(${won(r.o1)})`],
+    ["악화", "수익성 악화", (r) => { const m2 = r.s2 > 0 && r.o2 != null ? share(r.o2, r.s2) : null; return m2 != null && r.m0 != null && r.m != null && r.m0 < m2 - 1 && r.m < r.m0 - 1; },
+      (r) => `이익률 ${pc(share(r.o2, r.s2))} → ${pc(r.m0)} → ${pc(r.m)}`],
+    ["정체", "성장 정체", (r) => r.s2 > 0 && growth(r.s0, r.s2) < 3 && r.g < 3, (r) => `성장률 ${sg(growth(r.s0, r.s2))} → ${sg(r.g)}`],
+    ["분기적자", "분기 연속 적자", (r) => r.q && r.q.op.length >= 4 && r.q.op.slice(-4).every((v) => v != null && v < 0), () => "최근 4개 분기 모두 영업적자"],
+    ["이상", "데이터 이상", (r) => r.s1 / r.s0 >= 5 || r.s0 / r.s1 >= 5 || Math.abs(r.g) >= 200, (r) => `매출 ${won(r.s0)} → ${won(r.s1)} (단위·입력 확인)`],
+  ];
+  let sigRows = [];
+  function drawSignals() {
+    const hits = sigRows.map((r) => ({ r, h: SIGNALS.filter(([, , f]) => f(r)) })).filter((x) => x.h.length);
+    const count = (k) => hits.filter((x) => x.h.some((s) => s[0] === k)).length;
+    $("sig-chips").innerHTML = [["전체", `전체 ${hits.length}`], ...SIGNALS.map(([k, l]) => [k, `${l} ${count(k)}`])]
+      .map(([k, l]) => `<button type="button" role="radio" aria-checked="${state.sig === k}" data-sig="${k}">${l}</button>`).join("");
+    let list = hits.filter((x) => state.sig === "전체" || x.h.some((s) => s[0] === state.sig));
+    list.sort((a, b) => b.h.length - a.h.length || b.r.s1 - a.r.s1);
+    const total = list.length;
+    if (!state.sigMore) list = list.slice(0, 10);
+    $("c-signal").innerHTML = `<thead><tr><th>기업</th><th>업종</th><th>매출</th><th>신호</th><th>근거</th></tr></thead><tbody>`
+      + (list.map(({ r, h }) => `<tr><th scope="row">${profileCodes.has(r.c) ? `<a href="profile.html#${r.c}">${esc(r.n)}</a>` : esc(r.n)}</th><td>${r.kind}</td><td>${won(r.s1)}</td>`
+        + `<td>${h.map((s) => `<span class="db-tag ${s[0] === "이상" ? "" : "bad"}">${s[1]}</span>`).join(" ")}</td><td class="db-why">${h.map((s) => esc(s[3](r))).join(" · ")}</td></tr>`).join("")
+        || `<tr><td colspan="5" class="db-empty">해당 기업이 없습니다.</td></tr>`) + "</tbody>";
+    $("sig-more").hidden = total <= 10;
+    $("sig-more").textContent = state.sigMore ? "10곳만 보기" : `전체 ${total}곳 보기`;
+  }
+  $("sig-chips").addEventListener("click", (e) => { const b = e.target.closest("[data-sig]"); if (!b) return; state.sig = b.dataset.sig; state.sigMore = false; drawSignals(); });
+  $("sig-more").addEventListener("click", () => { state.sigMore = !state.sigMore; drawSignals(); });
+
+  function bigCard() {
+    const big = panel(recs.filter((r) => inBase(r) && isBig(r)), state.fy), rest = panel(recs.filter((r) => inBase(r) && !isBig(r)), state.fy);
+    if (!big.length) return `<p class="db-empty">조건에 맞는 대형사가 없습니다.</p>`;
+    const B = stats(big), O = stats(rest), list = big.slice().sort((a, b) => b.s1 - a.s1);
+    const status = state.big === "exclude" ? "위 지표에서는 제외돼 있습니다." : state.big === "only" ? "위 지표는 대형사만 보여 줍니다." : "위 지표에 포함돼 있습니다.";
+    return `<div class="db-big-kpi"><div><span>업체</span><b>${B.n}곳</b></div><div><span>매출</span><b>${won(B.s1)}</b></div><div><span>성장률</span><b class="${tone(B.g)}">${sg(B.g)}</b></div><div><span>이익률</span><b>${pc(B.m)}</b></div></div>`
+      + `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>대형사 ${B.n}곳이 전체 매출의 ${pc(share(B.s1, B.s1 + O.s1), 0)}를 차지합니다. 나머지 ${O.n}곳은 성장률 ${sg(O.g)}, 이익률 ${pc(O.m)}입니다. ${status}</span></p>`
+      + `<ul class="db-hbars wide">${list.slice(0, 8).map((r) => `<li><span class="nm">${esc(r.n)}</span><span class="track"><span class="fill" style="width:${(r.s1 / list[0].s1) * 100}%"></span></span><b>${won(r.s1)}</b><em class="${tone(r.g)}">${sg(r.g)}</em></li>`).join("")}</ul>`
+      + (list.length > 8 ? `<p class="db-more" style="font-size:12px;color:var(--text-3)">외 ${list.length - 8}곳</p>` : "");
+  }
+
   // ---------- 기업 목록(검색·칩·정렬) ----------
   const CHIPS = ["전체", ...TYPES, "영업적자"];
-  const COLS = [["n", "기업"], ["kind", "업종"], ["l", "상장"], ["area", "지역"], ["s1", "매출"], ["g", "성장률"], ["m", "영업이익률"], ["type", "유형"]];
+  const BASE_COLS = [["n", "기업"], ["kind", "업종"], ["l", "상장"], ["area", "지역"], ["s1", "매출"], ["g", "성장률"], ["m", "영업이익률"], ["type", "유형"]];
   let listRows = [];
   function drawList() {
     const q = state.q.trim().toLowerCase();
@@ -237,9 +296,10 @@
     $("list-count").textContent = `${rows.length}곳`;
     const total = rows.length;
     if (!state.more) rows = rows.slice(0, 15);
+    const COLS = internal ? [...BASE_COLS, ["legal", "기업규모"], ["trade", "거래"], ["semi", "반도체 비중"]] : BASE_COLS;
     const tag = (t) => `<span class="db-tag ${t === TYPES[0] ? "good" : t === TYPES[3] ? "bad" : ""}">${t}</span>`;
     $("c-list").innerHTML = `<thead><tr>${COLS.map(([c, l]) => `<th scope="col" aria-sort="${c === k ? (state.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${c}">${l}</button></th>`).join("")}</tr></thead>`
-      + `<tbody>${rows.map((r) => `<tr><th scope="row">${profileCodes.has(r.c) ? `<a href="profile.html#${r.c}">${esc(r.n)}</a>` : esc(r.n)}</th><td>${r.kind}${r.kindEst ? '<small class="db-est" title="DART 업종코드·회사명으로 추정">추정</small>' : ""}</td><td>${r.l ? "상장" : "비상장"}</td><td>${r.area}</td><td>${won(r.s1)}</td><td class="${tone(r.g)}">${sg(r.g)}</td><td class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td>${tag(r.type)}</td></tr>`).join("") || `<tr><td colspan="8" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
+      + `<tbody>${rows.map((r) => `<tr><th scope="row">${profileCodes.has(r.c) ? `<a href="profile.html#${r.c}">${esc(r.n)}</a>` : esc(r.n)}</th><td>${r.kind}${r.kindEst ? '<small class="db-est" title="DART 업종코드·회사명으로 추정">추정</small>' : ""}</td><td>${r.l ? "상장" : "비상장"}</td><td>${r.area}</td><td>${won(r.s1)}</td><td class="${tone(r.g)}">${sg(r.g)}</td><td class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td>${tag(r.type)}</td>${internal ? `<td>${r.legal}</td><td>${r.trade}</td><td>${r.semi == null ? "-" : pc(r.semi, 0)}</td>` : ""}</tr>`).join("") || `<tr><td colspan="${COLS.length}" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
     $("more").hidden = total <= 15;
     $("more").textContent = state.more ? "15곳만 보기" : `전체 ${total}곳 보기`;
   }
@@ -266,10 +326,10 @@
     const rows = panel(recs.filter(inFilter), state.fy);
     const S = stats(rows);
     const fy = state.fy;
-    $("sub").textContent = `${fy}년 사업연도 · 개별 기준 · 분석 ${S.n}곳 (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})`;
+    $("sub").textContent = `${fy}년 사업연도 · 개별 기준 · 분석 ${S.n}곳 (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})${state.big === "exclude" ? " · 매출 1조 이상 대형사 제외" : state.big === "only" ? " · 대형사만" : ""}`;
     if (!rows.length) {
       $("kpis").innerHTML = `<p class="db-empty">조건에 맞는 기업이 없습니다. 필터를 초기화해 보세요.</p>`;
-      ["c-trend", "c-region", "c-funnel", "c-mix", "c-top", "c-summary", "c-gauge", "c-insight"].forEach((id) => ($(id).innerHTML = ""));
+      ["c-trend", "c-region", "c-funnel", "c-mix", "c-top", "c-summary", "c-gauge", "c-insight", "c-signal", "c-big"].forEach((id) => ($(id).innerHTML = ""));
       listRows = [];
       drawList();
       return;
@@ -290,6 +350,9 @@
     $("c-summary").innerHTML = summary(rows, S);
     $("c-gauge").innerHTML = gauge(S);
     $("c-insight").innerHTML = insights(rows, S);
+    $("c-big").innerHTML = bigCard();
+    sigRows = rows;
+    drawSignals();
     listRows = rows;
     drawList();
   }

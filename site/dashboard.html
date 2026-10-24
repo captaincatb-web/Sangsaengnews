@@ -24,6 +24,7 @@
         <li><a href="#p-funnel"><i class="ph ph-funnel" aria-hidden="true"></i>경쟁력 단계</a></li>
         <li><a href="#p-mix"><i class="ph ph-stack" aria-hidden="true"></i>업종 분석</a></li>
         <li><a href="#p-top"><i class="ph ph-ranking" aria-hidden="true"></i>매출 상위</a></li>
+        <li><a href="#p-signal"><i class="ph ph-warning-diamond" aria-hidden="true"></i>위험 신호</a></li>
         <li><a href="#p-list"><i class="ph ph-list-magnifying-glass" aria-hidden="true"></i>기업 목록</a></li>
         <li><a href="#p-insight"><i class="ph ph-lightbulb" aria-hidden="true"></i>인사이트</a></li>
       </ul>
@@ -43,12 +44,16 @@
         <h1>소부장 협력사 경영 대시보드</h1>
         <p id="sub">반도체 소재·부품·장비 협력사의 실적과 경쟁력</p>
       </div>
+      <button class="db-lock" type="button" id="lock-btn"></button>
       <form class="db-filters" id="filters" aria-label="분석 조건">
         <label class="db-sel"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>기준 연도</span><select id="f-fy"></select></label>
         <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="f-kind"></select></label>
         <label class="db-sel"><i class="ph ph-map-pin" aria-hidden="true"></i><span>지역</span><select id="f-area"></select></label>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>상장 여부</span><select id="f-listed"></select></label>
         <label class="db-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>매출 규모</span><select id="f-size"></select></label>
+        <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>대형사(1조↑)</span><select id="f-big"></select></label>
+        <label class="db-sel" id="w-legal" hidden><i class="ph ph-identification-badge" aria-hidden="true"></i><span>기업규모</span><select id="f-legal"></select></label>
+        <label class="db-sel" id="w-trade" hidden><i class="ph ph-handshake" aria-hidden="true"></i><span>거래 관계</span><select id="f-trade"></select></label>
         <button class="db-clear" type="reset" id="clear"><i class="ph ph-funnel-x" aria-hidden="true"></i>필터 초기화</button>
       </form>
     </header>
@@ -85,6 +90,18 @@
       </section>
     </div>
 
+    <div class="db-grid r4">
+      <section class="db-card" id="p-signal" aria-labelledby="t-signal">
+        <div class="db-card-head"><h2 id="t-signal">경영 변화·위험 신호 <small>추가 검토 대상</small></h2><div class="db-chips" role="radiogroup" aria-label="신호" id="sig-chips"></div></div>
+        <div class="db-tbl-wrap"><table class="db-tbl" id="c-signal"></table></div>
+        <p class="db-more"><button class="db-link" type="button" id="sig-more" hidden></button></p>
+      </section>
+      <section class="db-card" id="p-big" aria-labelledby="t-big">
+        <div class="db-card-head"><h2 id="t-big">대형사 별도 현황 <small>매출 1조 이상</small></h2></div>
+        <div id="c-big"></div>
+      </section>
+    </div>
+
     <section class="db-card" id="p-list" aria-labelledby="t-list">
       <div class="db-card-head"><h2 id="t-list">기업 목록 <small id="list-count"></small></h2>
         <div class="db-list-tools">
@@ -117,6 +134,17 @@
     <p class="db-foot" id="foot"></p>
   </main>
 
+  <div class="db-modal" id="auth-dialog" hidden>
+    <form class="db-modal-box" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <h2 id="auth-title"><i class="ph ph-lock-key" aria-hidden="true"></i>내부 정보 보기</h2>
+      <p>기업규모·거래 관계·반도체 매출 비중은 암호화돼 있습니다. 전달받은 비밀번호를 입력하세요. 비밀번호는 저장되지 않고, 이 탭을 닫으면 다시 잠깁니다.</p>
+      <label class="sr-only" for="auth-pw">비밀번호</label>
+      <input id="auth-pw" type="password" autocomplete="current-password" placeholder="비밀번호">
+      <p class="db-modal-msg" id="auth-msg" aria-live="polite"></p>
+      <div class="db-modal-act"><button class="db-btn ghost" type="button" data-close>취소</button><button class="db-btn" type="submit" id="auth-go">열기</button></div>
+    </form>
+  </div>
+
   <div class="db-tip" id="tip" role="tooltip" hidden></div>
 
   <script src="data/companies.js"></script>
@@ -125,6 +153,8 @@
   <script src="data/attrs.js"></script>
   <script src="data/financials.js"></script>
   <script src="data/classify.js"></script>
+  <script src="data/internal.enc.js"></script>
+  <script src="internal.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>

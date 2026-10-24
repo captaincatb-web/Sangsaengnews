@@ -37,6 +37,10 @@
     const at = attrs[r.c] || {};
     return { ...r, kind: cl.kind, kindEst: cl.est, area: areaOf(r), size: at.size || "미입력" };
   }).filter((r) => r.kind !== "수요");
+  // 대형사(최근 매출 1조 이상)는 대시보드 기본값과 같이 집계에서 빼고 따로 적는다
+  const lastSales = (r) => r.s.filter((v) => v != null).pop();
+  const bigCos = recs.filter((r) => window.sizeTier(lastSales(r) ?? 0) === "1조 이상");
+  recs.splice(0, recs.length, ...recs.filter((r) => !bigCos.includes(r)));
 
   // 연간: 가장 많은 기업이 가진 최신 연도 기준
   const mode = (arr) => { const c = {}; arr.forEach((v) => (c[v] = (c[v] || 0) + 1)); return Number(Object.keys(c).sort((a, b) => c[b] - c[a] || b - a)[0]); };
@@ -110,17 +114,17 @@
       return { ltm: sum(s.slice(4)), prev: sum(s.slice(0, 4)) };
     })() : null;
     const bullets = [
-      `${A.n}개사 합산 매출은 <b>${jo(A.s1)}원</b>으로 전년 대비 <b>${sg(A.g)}</b>, 영업이익률은 ${pc(A.m0)}에서 <b>${pc(A.m)}</b>(${dm >= 0 ? "+" : ""}${dm.toFixed(1)}%p)입니다.`,
+      `${A.n}개사 합산 매출은 <b>${jo(A.s1)}원</b>으로 전년 대비 <b>${sg(A.g)}</b>, 영업이익률은 ${pc(A.m0)}에서 <b>${pc(A.m)}</b>(${Math.abs(dm) < 0.05 ? "보합" : `${dm > 0 ? "+" : ""}${dm.toFixed(1)}%p`})입니다.`,
       `매출이 늘어난 업체는 <b>${pc(share(A.up, A.n), 0)}</b>(${A.up}곳)이고, 업체 중앙값 성장률은 ${sg(A.medG)}로 합산(${sg(A.g)})과 ${Math.abs(A.medG - A.g) < 3 ? "비슷해 성장이 고르게 퍼진 편" : A.g > A.medG ? "차이가 커 일부 대형사가 합계를 끌어올린 모습" : "달리 일반 업체가 더 크게 성장한 모습"}입니다.`,
       `상위 10개사가 매출의 <b>${pc(conc(10), 0)}</b>를 차지합니다${conc(10) >= 40 ? `. 이들을 빼면 성장률 <b>${sg(stats(top.slice(10)).g)}</b>, 이익률 ${pc(stats(top.slice(10)).m)}로 합계와 ${Math.abs(stats(top.slice(10)).g - A.g) >= 3 ? "차이가 큽니다" : "비슷합니다"}` : ""}. 영업적자 업체는 ${A.loss}곳(${pc(A.lossP, 0)})입니다.`,
     ];
     return `
       <header class="sl-head"><div><p class="sl-tag">1 / 2 · 산업 전체</p><h2>반도체 소부장 협력사 경영실적 및 성장 추이</h2></div>
-        <p class="sl-meta">분석대상 ${A.n}개사 · ${FY}년(연간) · 단위 억원 · 개별 기준</p></header>
+        <p class="sl-meta">분석대상 ${A.n}개사(매출 1조↑ 대형사 ${bigCos.length}곳 별도) · ${FY}년(연간) · 단위 억원 · 개별 기준</p></header>
       <div class="sl-kpis">
         ${kpi(`${FY}년 매출`, jo(A.s1), `전년 대비 ${sg(A.g)}`, tone(A.g))}
         ${kpi("영업이익", jo(A.o1), A.og == null ? "전년 적자" : `전년 대비 ${sg(A.og)}`, tone(A.og))}
-        ${kpi("영업이익률", pc(A.m), `전년 ${pc(A.m0)} (${dm >= 0 ? "+" : ""}${dm.toFixed(1)}%p)`, tone(dm))}
+        ${kpi("영업이익률", pc(A.m), `전년 ${pc(A.m0)} (${Math.abs(dm) < 0.05 ? "보합" : `${dm > 0 ? "+" : ""}${dm.toFixed(1)}%p`})`, tone(dm))}
         ${kpi("흑자 업체 비중", pc(100 - A.lossP, 0), `전년 대비 ${(-dLoss) >= 0 ? "+" : ""}${(-dLoss).toFixed(1)}%p`, tone(-dLoss))}
         ${kpi("중앙값 영업이익률", pc(A.medM), `평균(합산) ${pc(A.m)}`, "")}
       </div>
@@ -162,7 +166,7 @@
     ].filter(Boolean);
     return `
       <header class="sl-head"><div><p class="sl-tag">2 / 2 · 업종별·상장 여부별</p><h2>소부장 업종별 경쟁력 및 경영 격차</h2></div>
-        <p class="sl-meta">${FY}년 기준 · 분석대상 ${A.n}개사 · 구분 추정 ${est}곳 포함</p></header>
+        <p class="sl-meta">${FY}년 기준 · 분석대상 ${A.n}개사(대형사 ${bigCos.length}곳 별도) · 구분 추정 ${est}곳 포함</p></header>
       <div class="sl-body two">
         <section class="sl-col"><h3>소재·부품·장비별 경영실적</h3><table class="sl-table">${head("구분")}<tbody>${kinds.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>
           <h3>상장·비상장 경영실적 비교</h3><table class="sl-table">${head("구분")}<tbody>${ls.filter(([, l]) => l.length).map(([k, l]) => row(k, stats(l))).join("")}</tbody></table></section>
