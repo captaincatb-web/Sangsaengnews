@@ -11,6 +11,8 @@
   const num = SB.fmt.num;
 
   const st = SB.fromQuery(location.search);
+  // 대시보드 미리보기 안에서는 머리글·안내를 숨기고 보고서 2장만 보인다
+  if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("rp-embed");
   const F = SB.makeFilter(st, null);
   const recs = SB.recs.filter(F.inFilter);
   const bigCos = SB.recs.filter((r) => F.inBase(r) && SB.isBig(r));

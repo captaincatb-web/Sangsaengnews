@@ -41,6 +41,7 @@
         <p id="sub">반도체 소재·부품·장비 협력사의 실적과 경쟁력</p>
       </div>
       <button class="db-lock" type="button" id="lock-btn"></button>
+      <button class="db-filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters"></button>
       <form class="db-filters" id="filters" aria-label="분석 조건">
         <label class="db-sel"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>기준 연도</span><select id="f-fy"></select></label>
         <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="f-kind"></select></label>
@@ -177,6 +178,7 @@
         <dl class="db-rep-meta" id="c-repmeta"></dl>
         <div class="db-rep-act"><a class="db-btn" id="rep-open" href="report.html">보고서 열기<i class="ph ph-arrow-right" aria-hidden="true"></i></a><button class="db-btn ghost" type="button" id="csv"><i class="ph ph-download-simple" aria-hidden="true"></i>실적 모판 내려받기(CSV)</button></div>
       </section>
+      <section class="db-card db-preview"><div class="db-card-head"><h2>미리보기</h2><span class="db-mini">현재 조건으로 만든 보고서입니다</span></div><iframe id="rep-frame" title="경영진 보고서 미리보기" loading="lazy"></iframe></section>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>보고서 구성</h2></div>
           <ul class="db-plain"><li><b>1장 산업 현황 및 핵심 변화</b>: 분석 범위·기준, 핵심 KPI, 매출·수익성 추이, 업종별 성장률, 핵심 메시지</li><li><b>2장 기업군 분석 및 시사점</b>: 성장·수익성 매트릭스, 업종·상장 비교, 양극화·취약 지표, 추가 확인 사항</li><li>모든 장에 기준일·필터 조건·생성 시각을 표기하고, 사실(관측)과 해석을 나눠 적습니다.</li></ul></section>

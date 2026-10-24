@@ -10,7 +10,12 @@
   const coLink = (r) => `<a href="#company" data-co="${r.c}">${esc(r.n)}</a>`;
 
   // ---------- 필터 상태(모든 화면 공유) ----------
-  const state = { ...SB.fromQuery(location.search), sig: "전체", sigMore: false, q: "", chip: "전체", sort: "g", dir: -1, more: false, co: null };
+  const state = { ...SB.fromQuery(location.search), sig: "전체", sigMore: false, q: "", chip: "전체", sort: "g", dir: -1, more: false, co: new URLSearchParams(location.search).get("co") };
+  // 지금 조건(과 선택 기업)을 주소에 남겨 링크로 공유할 수 있게 한다
+  function syncUrl() {
+    const qs = [SB.toQuery(state), state.co && location.hash === "#company" ? `co=${state.co}` : ""].filter(Boolean).join("&");
+    history.replaceState(null, "", `${location.pathname}${qs ? `?${qs}` : ""}${location.hash}`);
+  }
   let internal = null, ready = false;
   let F = SB.makeFilter(state, internal);
   const fill = (id, opts, val) => ($(id).innerHTML = opts.map(([v, l]) => `<option value="${v}"${String(v) === String(val) ? " selected" : ""}>${l}</option>`).join(""));
@@ -54,6 +59,8 @@
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
     if (v === "company") drawCompany();
+    if (v === "report") loadPreview();
+    syncUrl();
     window.scrollTo({ top: 0 });
   }
   window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
@@ -66,7 +73,9 @@
   });
 
   // ---------- 그림 도구 ----------
-  const W = 520;
+  // 차트 그림 폭: 좁은 화면에서는 좁게 그려 글자가 덜 줄어들게 한다
+  let W = 520;
+  const chartW = () => (window.innerWidth < 640 ? 380 : 520);
   function sparkBars(vals) {
     const v = vals.filter((x) => x != null), max = Math.max(...v.map(Math.abs), 1), w = 100 / v.length;
     return `<svg viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => `<rect class="spark-bar${i === v.length - 1 ? " on" : ""}" x="${i * w + w * 0.18}" y="${28 - (Math.abs(x) / max) * 26}" width="${w * 0.64}" height="${(Math.abs(x) / max) * 26}" rx="1.5"/>`).join("")}</svg>`;
@@ -100,10 +109,14 @@
       g += `<circle cx="${cx(p.x)}" cy="${cy(p.y)}" r="${r}" fill="${p.color}" fill-opacity="${opt.sized ? 0.3 : 0.7}" stroke="${p.color}" stroke-width="1.2"${p.co ? ` data-co="${p.co}" class="pt"` : ""} data-tip="${esc(p.tip)}"/>`;
       if (p.label) {
         // 이미 놓인 라벨과 겹치면 점 아래로 옮긴다
-        let ly = cy(p.y) - r - 3;
-        if (placed.some(([x, y]) => Math.abs(x - cx(p.x)) < 60 && Math.abs(y - ly) < 13)) ly = cy(p.y) + r + 12;
-        placed.push([cx(p.x), ly]);
-        g += `<text class="val" x="${cx(p.x)}" y="${ly}" text-anchor="middle">${esc(p.label)}</text>`;
+        // 위·아래·오른쪽·왼쪽 순으로 이미 놓인 라벨과 겹치지 않는 자리를 고른다
+        const lw = p.label.length * 6.6, px = cx(p.x), py = cy(p.y);
+        const spots = [[px, py - r - 4, "middle"], [px, py + r + 12, "middle"], [px + r + 4, py + 4, "start"], [px - r - 4, py + 4, "end"]];
+        const box = ([x, y, a]) => { const x0 = a === "middle" ? x - lw / 2 : a === "start" ? x : x - lw; return [x0, y - 10, x0 + lw, y + 2]; };
+        const hit = (b) => placed.some((q) => b[0] < q[2] && b[2] > q[0] && b[1] < q[3] && b[3] > q[1]);
+        const s = spots.find((sp) => !hit(box(sp))) || spots[0];
+        placed.push(box(s));
+        g += `<text class="val" x="${s[0]}" y="${s[1]}" text-anchor="${s[2]}">${esc(p.label)}</text>`;
       }
     });
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "성장률과 이익률 분포")}">${g}</svg>`;
@@ -116,8 +129,8 @@
     $("kpis").innerHTML = [
       { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: `${delta(S.g, "동일 기업 기준")}<span class="vs db-sub2">전체 표본 ${sg(FS.g)} (${FS.n0}→${FS.n1}곳)</span>`, spark: S.spark.s },
       { icon: "ph-coins", label: "영업이익", value: won(S.o1), delta: S.og == null ? `<span class="vs">전년 적자</span>` : delta(S.og, "전년 대비"), spark: S.spark.o },
-      { icon: "ph-percent", label: "영업이익률(합산)", value: pc(S.m), delta: delta(S.m - S.m0, `전년 ${pc(S.m0)} · 중앙값 ${pc(S.medM)}`, "pp") },
-      { icon: "ph-check-circle", label: "흑자 업체 비중", value: pc(S.profit, 0), delta: delta(S.profit - S.profit0, `전년 대비 · 적자 ${S.loss}곳`, "pp") },
+      { icon: "ph-percent", label: "영업이익률(합산)", value: pc(S.m), delta: `${delta(S.m - S.m0, `전년 ${pc(S.m0)}`, "pp")}<span class="vs db-sub2">업체 중앙값 ${pc(S.medM)}</span>` },
+      { icon: "ph-check-circle", label: "흑자 업체 비중", value: pc(S.profit, 0), delta: `${delta(S.profit - S.profit0, "전년 대비", "pp")}<span class="vs db-sub2">영업적자 ${S.loss}곳</span>` },
       { icon: "ph-arrow-fat-lines-up", label: "매출 증가 업체", value: pc(S.up, 0), delta: `<span class="vs">중앙값 성장률 ${sg(S.medG)}</span>` },
       { icon: "ph-scales", label: "상위 10개사 집중도", value: pc(SB.concentration(rows, 10), 0), delta: `<span class="vs">상위 50개사 ${pc(SB.concentration(rows, 50), 0)}</span>` },
     ].map(kpi).join("");
@@ -215,7 +228,20 @@
     const colors = ["var(--blue)", "var(--teal)", "var(--gray)", "var(--line)"];
     return `<div class="db-stack">${seg.map(([l, v], i) => `<span style="flex:${Math.max(v, 0.01)};background:${colors[i]}" data-tip="${l} ${pc(v, 0)}">${v >= 8 ? pc(v, 0) : ""}</span>`).join("")}</div>`
       + `<ul class="db-legend stack">${seg.map(([l, v], i) => `<li><i style="background:${colors[i]}"></i>${l} <b>${pc(v, 0)}</b></li>`).join("")}</ul>`
+      + concTrend(rows)
       + note(`분석 대상 ${rows.length}곳 중 상위 10개사가 매출의 ${pc(c10, 0)}, 상위 100개사가 ${pc(c100, 0)}를 차지합니다. ${c10 >= 40 ? "소수 기업 의존도가 높습니다." : "특정 기업 쏠림은 크지 않습니다."}`, c10 >= 40);
+  }
+  // 같은 기업(3개년 매출 보유) 기준으로 해마다 집중도를 비교해 쏠림이 커지는지 본다. HHI = Σ(매출 비중%)²
+  function concTrend(rows) {
+    const three = rows.filter((r) => r.s2 > 0);
+    if (three.length < 20) return "";
+    const yrs = [[state.fy - 2, "s2"], [state.fy - 1, "s0"], [state.fy, "s1"]].map(([y, k]) => {
+      const v = three.map((r) => r[k]).sort((a, b) => b - a), tot = sum(v);
+      return { y, c10: share(sum(v.slice(0, 10)), tot), c50: share(sum(v.slice(0, 50)), tot), hhi: sum(v.map((x) => (x / tot * 100) ** 2)) };
+    });
+    const d = yrs[2].c10 - yrs[0].c10;
+    return `<table class="db-tbl db-conc-t"><thead><tr><th>연도</th><th>상위 10</th><th>상위 50</th><th>HHI</th></tr></thead><tbody>${yrs.map((x) => `<tr><th scope="row">${x.y}년</th><td>${pc(x.c10, 1)}</td><td>${pc(x.c50, 1)}</td><td>${Math.round(x.hhi).toLocaleString("ko-KR")}</td></tr>`).join("")}</tbody></table>`
+      + `<p class="db-mini">3개년 매출이 모두 있는 ${three.length}곳 기준. 상위 10개사 비중이 ${Math.abs(d) < 0.5 ? "거의 변하지 않았습니다" : `${pp(d)} ${d > 0 ? "높아져 쏠림이 커졌습니다" : "낮아져 쏠림이 줄었습니다"}`}. HHI 1,500 미만은 집중도가 낮은 구조로 봅니다.</p>`;
   }
   function bigCard() {
     const big = SB.panel(recs.filter((r) => F.inBase(r) && SB.isBig(r)), state.fy), rest = SB.panel(recs.filter((r) => F.inBase(r) && !SB.isBig(r)), state.fy);
@@ -331,8 +357,8 @@
     const kindMed = {};
     KINDS.forEach((k) => (kindMed[k] = med(sigRows.filter((x) => x.kind === k).map((x) => x.m))));
     $("c-signal").innerHTML = `<thead><tr><th>기업</th><th>업종</th><th>매출</th><th>이익률 / 업종 중앙값</th><th>신호</th><th>근거</th></tr></thead><tbody>`
-      + (list.map(({ r, h }) => `<tr><th scope="row">${coLink(r)}</th><td>${r.kind}</td><td>${won(r.s1)}</td><td>${pc(r.m)} / ${pc(kindMed[r.kind])}</td>`
-        + `<td>${h.map((s) => `<span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span>`).join(" ")}</td><td class="db-why">${h.map((s) => esc(s.why(r))).join(" · ")}</td></tr>`).join("")
+      + (list.map(({ r, h }) => `<tr><th scope="row">${coLink(r)}</th><td data-label="업종">${r.kind}</td><td data-label="매출">${won(r.s1)}</td><td data-label="이익률 / 업종">${pc(r.m)} / ${pc(kindMed[r.kind])}</td>`
+        + `<td data-label="신호">${h.map((s) => `<span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span>`).join(" ")}</td><td class="db-why" data-label="근거">${h.map((s) => esc(s.why(r))).join(" · ")}</td></tr>`).join("")
         || `<tr><td colspan="6" class="db-empty">해당 기업이 없습니다.</td></tr>`) + "</tbody>";
     $("sig-more").hidden = total <= 15;
     $("sig-more").textContent = state.sigMore ? "15곳만 보기" : `전체 ${total}곳 보기`;
@@ -351,7 +377,7 @@
 
   // ---------- 05 기업 상세 ----------
   $("co-list").innerHTML = recs.slice().sort((a, b) => a.n.localeCompare(b.n, "ko")).map((r) => `<option value="${esc(r.n)}"></option>`).join("");
-  $("co-q").addEventListener("change", () => { const r = recs.find((x) => x.n === $("co-q").value.trim()); if (r) { state.co = r.c; drawCompany(); } });
+  $("co-q").addEventListener("change", () => { const r = recs.find((x) => x.n === $("co-q").value.trim()); if (r) { state.co = r.c; drawCompany(); syncUrl(); } });
   function miniBars(labels, vals, ops) {
     const H = 200, L = 46, R = 12, T = 18, B = 26, pw = W - L - R, ph = H - T - B, max = Math.max(...vals.filter((v) => v != null), 1), bw = pw / labels.length;
     let g = "";
@@ -404,9 +430,15 @@
     $("c-repmeta").innerHTML = `<div><dt>조건</dt><dd>${SB.describe(state)}</dd></div><div><dt>분석 대상</dt><dd>${S.n}곳</dd></div><div><dt>기준 데이터</dt><dd>DART 수집 ${SB.meta.updated || "-"}</dd></div>${internal ? "<div><dt>내부 정보</dt><dd>보고서 링크에는 넣지 않습니다</dd></div>" : ""}`;
   }
   $("c-formulas").innerHTML = SB.FORMULAS.map((f) => `<li>${f}</li>`).join("");
+  // 보고서 화면을 열었을 때만 미리보기를 불러온다(조건이 바뀌면 다시)
+  function loadPreview() {
+    const href = $("rep-open").getAttribute("href"), fr = $("rep-frame"), src = `${href}${href.includes("?") ? "&" : "?"}embed=1`;
+    if (fr && fr.getAttribute("src") !== src) fr.setAttribute("src", src);
+  }
 
   // ---------- 그리기 ----------
   function render() {
+    W = chartW();
     F = SB.makeFilter(state, internal);
     const list = recs.filter(F.inFilter), rows = SB.panel(list, state.fy), S = SB.stats(rows), FS = SB.fullSample(list, state.fy);
     $("sub").textContent = `${SB.describe(state)} · 개별 기준 · 분석 ${S.n}곳 (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})`;
@@ -435,7 +467,22 @@
     listRows = rows; drawList();
     drawReport(S);
     if (!$("v-company").hidden) drawCompany();
+    if (!$("v-report").hidden) loadPreview();
+    syncUrl();
+    updateFilterCount();
   }
+
+  // 좁은 화면: 필터를 접어 두고, 적용된 조건 수만 보여 준다
+  function updateFilterCount() {
+    const n = SB.FILTER_KEYS.filter((k) => String(state[k]) !== String(SB.DEFAULTS[k])).length;
+    $("filter-toggle").innerHTML = `<i class="ph ph-sliders-horizontal" aria-hidden="true"></i>필터${n ? ` <b>${n}</b>` : ""}`;
+  }
+  $("filter-toggle").addEventListener("click", () => {
+    const open = $("filters").classList.toggle("open");
+    $("filter-toggle").setAttribute("aria-expanded", open);
+  });
+  let lastW = chartW();
+  window.addEventListener("resize", () => { if (chartW() !== lastW) { lastW = chartW(); render(); } });
 
   // 툴팁
   const tip = $("tip");

@@ -310,3 +310,28 @@ a { color: inherit; }
 @media (max-width: 860px) { .db-grid.r1 { grid-template-columns: 1fr; } .db-sig-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .db-co-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .db-nav a { font-size: 12.5px; } }
 #c-signal td:nth-child(5), #c-signal td:nth-child(6) { text-align: left; }
 #c-signal td:nth-child(3), #c-signal td:nth-child(4) { white-space: nowrap; }
+
+/* ---------- 개선: 모바일·다크·미리보기 ---------- */
+.db-filter-toggle { display: none; }
+.db-conc-t { margin-top: 14px; }
+.db-preview iframe { width: 100%; height: 1120px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+:root[data-theme="dark"] .db-kpi.hero { background: #1b2a52; border-color: #2a3d70; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-kpi.hero { background: #1b2a52; border-color: #2a3d70; } }
+@media (max-width: 860px) {
+  .db-brand span:last-child { display: none; }
+  .db-top { gap: 10px; }
+  .db-top h1 { font-size: 19px; }
+  .db-filter-toggle { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+  .db-filter-toggle b { background: var(--accent); color: var(--accent-text); border-radius: 999px; padding: 0 7px; font-size: 12px; }
+  .db-filters { display: none; }
+  .db-filters.open { display: flex; }
+  .db-lock { padding: 7px 10px; font-size: 12px; }
+  /* 위험 신호 표 → 카드 */
+  #c-signal thead { display: none; }
+  #c-signal tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  #c-signal tbody th { grid-column: 1 / -1; border: 0; padding: 0; font-weight: 700; font-size: 14px; }
+  #c-signal tbody td { border: 0; padding: 0; text-align: left !important; white-space: normal !important; min-width: 0 !important; font-size: 12.5px; }
+  #c-signal tbody td::before { content: attr(data-label); display: block; font-size: 11px; color: var(--text-3); }
+  #c-signal tbody td[data-label="신호"], #c-signal tbody td[data-label="근거"] { grid-column: 1 / -1; }
+  .db-preview iframe { height: 760px; }
+}
