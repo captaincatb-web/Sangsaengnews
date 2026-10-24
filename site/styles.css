@@ -646,3 +646,83 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .an-check { grid-column: 1 / -1; display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--text-2); line-height: 1.4; cursor: pointer; }
 .an-check input { margin-top: 2px; accent-color: var(--primary); }
 #c-region svg { max-width: 680px; margin-inline: auto; }
+
+/* ---------- 디자인 통일: 대시보드와 같은 남색·노랑·파랑 ----------
+   대시보드(dashboard.css)의 색·모양을 모든 화면에 맞춘다. 글자 크기는 KRDS 기준을 유지한다. */
+:root {
+  --bg: #f4f6fb;
+  --line: #e6e9f2;
+  --text: #1d2433;
+  --text-strong: #131a2a;
+  --text-2: #4b5568;
+  --text-3: #6b7486;
+  --primary: #3b6fe0;
+  --primary-hover: #2f5cc4;
+  --primary-pressed: #244aa3;
+  --primary-text: #2f5cc4;
+  --primary-5: #eff3fd;
+  --primary-10: #e1e9fb;
+  --primary-20: #c3d3f6;
+  --selected: #0f1d3a;
+  --selected-text: #0f1d3a;
+  --nav-hover: #eef0f6;
+  --nav-pressed: #e1e5f0;
+  --side: #0f1d3a;
+  --side-2: #18294d;
+  --side-text: #c9d3ea;
+  --accent: #f5b70a;
+  --card-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 4px 16px rgb(16 24 40 / .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1120; --surface: #131b2e; --subtle: #18213a; --subtle-2: #1f2a42;
+    --text: #e8ecf5; --text-strong: #f4f6fb; --text-2: #b9c2d6; --text-3: #8f9ab2;
+    --line: #26324c; --line-2: #3a4866;
+    --primary: #7aa2ff; --primary-hover: #93b4ff; --primary-pressed: #adc6ff; --primary-text: #a9c2ff;
+    --primary-5: #111b33; --primary-10: #15234a; --primary-20: #1d3266;
+    --selected: #f5b70a; --selected-text: #f5b70a; --nav-hover: #1a2440; --nav-pressed: #22305a;
+    --thead: #131b2e; --thead-line: #26324c; --side: #070d1a; --side-2: #121c33;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1120; --surface: #131b2e; --subtle: #18213a; --subtle-2: #1f2a42;
+  --text: #e8ecf5; --text-strong: #f4f6fb; --text-2: #b9c2d6; --text-3: #8f9ab2;
+  --line: #26324c; --line-2: #3a4866;
+  --primary: #7aa2ff; --primary-hover: #93b4ff; --primary-pressed: #adc6ff; --primary-text: #a9c2ff;
+  --primary-5: #111b33; --primary-10: #15234a; --primary-20: #1d3266;
+  --selected: #f5b70a; --selected-text: #f5b70a; --nav-hover: #1a2440; --nav-pressed: #22305a;
+  --thead: #131b2e; --thead-line: #26324c; --side: #070d1a; --side-2: #121c33;
+}
+/* 머리글: 대시보드 사이드바와 같은 남색 띠, 선택 메뉴는 노란 밑줄 */
+.krds-header { background: var(--side); color: #fff; box-shadow: none; }
+.krds-header .head-inner { padding-block: 10px 6px; }
+.krds-header .brand, .krds-header .brand-name { color: #fff; }
+.krds-header .brand-name small { color: #8f9dc0; }
+.brand-mark { background: transparent; border: 2px solid var(--accent); color: var(--accent); border-radius: 10px; font-size: 20px; }
+.krds-header .btn-navi { color: var(--side-text); }
+.krds-header .btn-navi:hover, .krds-header .btn-navi:active { background: var(--side-2); color: #fff; }
+.krds-header .gnb { background: var(--side); border-top: 1px solid var(--side-2); }
+.krds-header .gnb a { color: var(--side-text); font-size: 17px; height: 52px; }
+.krds-header .gnb a:hover, .krds-header .gnb a:active { background: var(--side-2); color: #fff; }
+.krds-header .gnb a[aria-current="page"], .krds-header .gnb a.on { color: #fff; }
+.krds-header .gnb a[aria-current="page"]::after, .krds-header .gnb a.on::after { background: var(--accent); height: 3px; bottom: 0; }
+.krds-header :focus-visible { outline-color: var(--accent); }
+.f-logo .brand-mark { color: var(--primary); border-color: var(--primary); }
+.krds-tabs button[aria-checked="true"] { background: var(--side); color: #fff; }
+.pf-nav a[aria-current] { background: var(--side); color: #fff; }
+.table-wrap, .sheet, .guide-list > div { border-radius: 12px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .krds-tabs button[aria-checked="true"], :root:not([data-theme="light"]) .pf-nav a[aria-current] { background: var(--accent); color: #1d2433; }
+}
+:root[data-theme="dark"] .krds-tabs button[aria-checked="true"], :root[data-theme="dark"] .pf-nav a[aria-current] { background: var(--accent); color: #1d2433; }
+@media (max-width: 767px) {
+  .krds-header .gnb ul { gap: 0; overflow-x: auto; scrollbar-width: none; }
+  .krds-header .gnb ul::-webkit-scrollbar { display: none; }
+  .krds-header .gnb li { flex: none; }
+  .krds-header .gnb a { font-size: 15px; height: 46px; padding: 0 10px; white-space: nowrap; }
+  .brand-mark { font-size: 17px; }
+}
+/* 차트 색: 대시보드 계열(파랑·초록·주황·회색·청록) */
+:root { --c0: #3b6fe0; --c1: #16a06a; --c2: #f08a1c; --c3: #9aa3b5; --c4: #12a3b8; --c5: #3b6fe0; --c6: #16a06a; --pos: #12804f; --neg: #c93a2e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c0: #7aa2ff; --c1: #4fd394; --c2: #f5a524; --c3: #a4adba; --c4: #4fc6d6; --c5: #7aa2ff; --c6: #4fd394; } }
+:root[data-theme="dark"] { --c0: #7aa2ff; --c1: #4fd394; --c2: #f5a524; --c3: #a4adba; --c4: #4fc6d6; --c5: #7aa2ff; --c6: #4fd394; }

@@ -37,7 +37,7 @@
   const bullet = (fact, read) => `<li><span class="rp-lb f">관측</span>${fact}${read ? ` <span class="rp-lb r">해석</span>${read}` : ""}</li>`;
 
   // ---------- 그리기 도구 ----------
-  const COLORS = ["#5b4bdb", "#0b8f7a", "#d97706", "#7c8696"];
+  const COLORS = ["#3b6fe0", "#16a06a", "#f08a1c", "#9aa3b5"]; // 대시보드와 같은 색
   function stacked(parts, colors = COLORS, unit = "곳") {
     const total = sum(parts.map((p) => p[1])) || 1;
     return `<div class="rp-stack">${parts.map((p, i) => `<span style="flex:${Math.max(p[1], 0.0001)};background:${colors[i % colors.length]}" title="${esc(p[0])} ${p[1]}${unit}">${p[1] / total >= 0.12 ? pc(share(p[1], total), 0) : ""}</span>`).join("")}</div>`
@@ -55,11 +55,11 @@
     const pts = [];
     s.forEach((v, i) => {
       const x = L + bw * i + bw / 2, h = (v / max) * ph, w = bw * 0.55;
-      g += `<rect x="${x - w / 2}" y="${T + ph - h}" width="${w}" height="${h}" rx="3" fill="#5b4bdb"><title>${qLabels[i]} 매출 ${num(v)}억, 영업이익 ${num(o[i])}억</title></rect><text x="${x}" y="${T + ph + 18}" class="ax" text-anchor="middle">${qLabels[i]}</text>`;
+      g += `<rect x="${x - w / 2}" y="${T + ph - h}" width="${w}" height="${h}" rx="3" fill="#3b6fe0"><title>${qLabels[i]} 매출 ${num(v)}억, 영업이익 ${num(o[i])}억</title></rect><text x="${x}" y="${T + ph + 18}" class="ax" text-anchor="middle">${qLabels[i]}</text>`;
       pts.push([x, T + ph - ((m[i] - mmin) / (mmax - mmin || 1)) * ph * 0.85 - 6, m[i]]);
     });
-    g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="#0b8f7a" stroke-width="2.5"/>`;
-    pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff" stroke="#0b8f7a" stroke-width="2.5"/><text x="${p[0]}" y="${p[1] - 9}" class="mv" text-anchor="middle">${pc(p[2])}</text>`));
+    g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="#16a06a" stroke-width="2.5"/>`;
+    pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#fff" stroke="#16a06a" stroke-width="2.5"/><text x="${p[0]}" y="${p[1] - 9}" class="mv" text-anchor="middle">${pc(p[2])}</text>`));
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="분기별 합산 매출과 영업이익률">${g}</svg>`;
   }
 
@@ -97,7 +97,7 @@
           ${q ? `<p class="sl-note">최근 4분기 매출 ${jo(q.ltm)}원, 직전 4분기 대비 ${sg(growth(q.ltm, q.prev))}</p>` : ""}</section>
         <section class="sl-col"><h3>② 매출 성장 업체 분포</h3>${stacked(growthDist)}
           <h3>③ 수익성 분포</h3>${stacked(marginDist)}
-          <h3>④ 매출 상위 집중도</h3>${stacked([["상위 10개사", Math.round(conc(10))], ["11~100위", Math.round(conc(100) - conc(10))], ["기타", Math.round(100 - conc(100))]], ["#5b4bdb", "#0b8f7a", "#c5cad3"], "%")}</section>
+          <h3>④ 매출 상위 집중도</h3>${stacked([["상위 10개사", Math.round(conc(10))], ["11~100위", Math.round(conc(100) - conc(10))], ["기타", Math.round(100 - conc(100))]], ["#3b6fe0", "#16a06a", "#c5cad3"], "%")}</section>
       </div>
       <footer class="sl-foot"><h3>종합 분석 및 시사점</h3><ul>${bullets.join("")}</ul></footer>`;
   }
