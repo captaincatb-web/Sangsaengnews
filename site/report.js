@@ -143,7 +143,7 @@
   // ---------- 화면 ----------
   function fit() {
     document.querySelectorAll(".rp-stage").forEach((st) => {
-      const sl = st.firstElementChild, k = Math.min(1, Math.max(0.55, st.clientWidth / 1280));
+      const sl = st.firstElementChild, k = Math.min(1, Math.max(window.innerWidth < 640 ? 0.2 : 0.55, st.clientWidth / 1280)); // 휴대폰은 한 장 전체가 보이게 맞춤
       sl.style.transform = `scale(${k})`;
       st.style.height = `${720 * k}px`;
     });
