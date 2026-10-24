@@ -23,7 +23,6 @@
   const share = (n, d) => (d ? (n / d) * 100 : null);
 
   // ---------- 기업 정보 ----------
-  const KSIC = [[/^29/, "장비"], [/^(20|21|22|23|24)/, "소재"], [/^(25|26|27|28|30)/, "부품"]];
   const AREA = { 서울: "서울", 경기: "경기", 인천: "경기", 충북: "충청", 충남: "충청", 대전: "충청", 세종: "충청", 경북: "경상", 경남: "경상", 부산: "경상", 울산: "경상", 대구: "경상", 전북: "전라", 전남: "전라", 광주: "전라" };
   const SHORT = { 서울특별시: "서울", 경기도: "경기", 인천광역시: "인천", 충청북도: "충북", 충청남도: "충남", 대전광역시: "대전", 세종특별자치시: "세종", 경상북도: "경북", 경상남도: "경남", 부산광역시: "부산", 울산광역시: "울산", 대구광역시: "대구", 전북특별자치도: "전북", 전라북도: "전북", 전라남도: "전남", 광주광역시: "광주" };
   const areaOf = (r) => {
@@ -34,10 +33,9 @@
   };
 
   const recs = FIN.map((r) => {
-    const seg = segs[r.c];
-    const est = !seg && KSIC.find(([re]) => re.test(r.ind || ""));
+    const cl = window.classifyCompany(r, segs);
     const at = attrs[r.c] || {};
-    return { ...r, kind: seg ? seg[0] : est ? est[1] : NA, kindEst: !seg && !!est, area: areaOf(r), size: at.size || "미입력" };
+    return { ...r, kind: cl.kind, kindEst: cl.est, area: areaOf(r), size: at.size || "미입력" };
   }).filter((r) => r.kind !== "수요");
 
   // 연간: 가장 많은 기업이 가진 최신 연도 기준
@@ -45,7 +43,7 @@
   const FY = mode(recs.filter((r) => r.y.length).map((r) => r.y[r.y.length - 1]));
   const annual = recs.map((r) => {
     const i = r.y.indexOf(FY), j = r.y.indexOf(FY - 1);
-    if (i < 0 || j < 0 || !(r.s[i] > 0) || !(r.s[j] > 0)) return null;
+    if (i < 0 || j < 0 || !(r.s[i] > 0) || !(r.s[j] > 0) || r.o[i] == null) return null; // 영업이익이 없으면 이익률을 왜곡하므로 뺀다
     return { ...r, s1: r.s[i], s0: r.s[j], o1: r.o[i] ?? 0, o0: r.o[j] ?? 0, g: growth(r.s[i], r.s[j]), m: share(r.o[i] ?? 0, r.s[i]), m0: share(r.o[j] ?? 0, r.s[j]) };
   }).filter(Boolean);
 
@@ -114,7 +112,7 @@
     const bullets = [
       `${A.n}개사 합산 매출은 <b>${jo(A.s1)}원</b>으로 전년 대비 <b>${sg(A.g)}</b>, 영업이익률은 ${pc(A.m0)}에서 <b>${pc(A.m)}</b>(${dm >= 0 ? "+" : ""}${dm.toFixed(1)}%p)입니다.`,
       `매출이 늘어난 업체는 <b>${pc(share(A.up, A.n), 0)}</b>(${A.up}곳)이고, 업체 중앙값 성장률은 ${sg(A.medG)}로 합산(${sg(A.g)})과 ${Math.abs(A.medG - A.g) < 3 ? "비슷해 성장이 고르게 퍼진 편" : A.g > A.medG ? "차이가 커 일부 대형사가 합계를 끌어올린 모습" : "달리 일반 업체가 더 크게 성장한 모습"}입니다.`,
-      `상위 10개사가 매출의 <b>${pc(conc(10), 0)}</b>, 상위 100개사가 <b>${pc(conc(100), 0)}</b>를 차지하며, 영업적자 업체는 ${A.loss}곳(${pc(A.lossP, 0)})입니다.`,
+      `상위 10개사가 매출의 <b>${pc(conc(10), 0)}</b>를 차지합니다${conc(10) >= 40 ? `. 이들을 빼면 성장률 <b>${sg(stats(top.slice(10)).g)}</b>, 이익률 ${pc(stats(top.slice(10)).m)}로 합계와 ${Math.abs(stats(top.slice(10)).g - A.g) >= 3 ? "차이가 큽니다" : "비슷합니다"}` : ""}. 영업적자 업체는 ${A.loss}곳(${pc(A.lossP, 0)})입니다.`,
     ];
     return `
       <header class="sl-head"><div><p class="sl-tag">1 / 2 · 산업 전체</p><h2>반도체 소부장 협력사 경영실적 및 성장 추이</h2></div>

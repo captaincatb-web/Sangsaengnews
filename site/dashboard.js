@@ -25,7 +25,6 @@
   const share = (n, d) => (d ? (n / d) * 100 : null);
 
   // ---------- 기업 속성 ----------
-  const KSIC = [[/^29/, "장비"], [/^(20|21|22|23|24)/, "소재"], [/^(25|26|27|28|30)/, "부품"]];
   const SHORT = { 서울특별시: "서울", 경기도: "경기", 인천광역시: "경기", 충청북도: "충청", 충청남도: "충청", 대전광역시: "충청", 세종특별자치시: "충청", 경상북도: "경상", 경상남도: "경상", 부산광역시: "경상", 울산광역시: "경상", 대구광역시: "경상", 전북특별자치도: "전라", 전라북도: "전라", 전라남도: "전라", 광주광역시: "전라" };
   const areaOf = (r) => {
     const u = r.k && uniByKey.get(r.k);
@@ -33,8 +32,8 @@
     return SHORT[String(r.ad || "").trim().split(/\s+/)[0]] || "기타";
   };
   const recs = FIN.map((r) => {
-    const seg = segs[r.c], est = !seg && KSIC.find(([re]) => re.test(r.ind || ""));
-    return { ...r, kind: seg ? seg[0] : est ? est[1] : NA, area: areaOf(r) };
+    const cl = window.classifyCompany(r, segs), last = r.s.filter((v) => v != null).pop();
+    return { ...r, kind: cl.kind, kindEst: cl.est, area: areaOf(r), tier: last != null ? window.sizeTier(last) : "-" };
   }).filter((r) => r.kind !== "수요");
 
   const KINDS = ["소재", "부품", "장비", NA], AREAS = ["서울", "경기", "충청", "경상", "전라", "기타"];
@@ -45,16 +44,17 @@
   const yearCount = {};
   recs.forEach((r) => r.y.length && (yearCount[r.y[r.y.length - 1]] = (yearCount[r.y[r.y.length - 1]] || 0) + 1));
   const DEFAULT_FY = Number(Object.keys(yearCount).sort((a, b) => yearCount[b] - yearCount[a] || b - a)[0]) || new Date().getFullYear() - 1;
-  const state = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", q: "", chip: "전체", sort: "g", dir: -1, more: false };
+  const state = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", q: "", chip: "전체", sort: "g", dir: -1, more: false };
   const fill = (id, opts, val) => ($(id).innerHTML = opts.map(([v, l]) => `<option value="${v}"${String(v) === String(val) ? " selected" : ""}>${l}</option>`).join(""));
   function drawFilters() {
     fill("f-fy", [DEFAULT_FY, DEFAULT_FY - 1].map((y) => [y, `${y}년`]), state.fy);
     fill("f-kind", [["all", "전체"], ...KINDS.map((k) => [k, k])], state.kind);
     fill("f-area", [["all", "전체"], ...AREAS.map((a) => [a, a])], state.area);
     fill("f-listed", [["all", "전체"], ["1", "상장"], ["0", "비상장"]], state.listed);
+    fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s])], state.size);
   }
   $("filters").addEventListener("change", (e) => {
-    const key = { "f-fy": "fy", "f-kind": "kind", "f-area": "area", "f-listed": "listed" }[e.target.id];
+    const key = { "f-fy": "fy", "f-kind": "kind", "f-area": "area", "f-listed": "listed", "f-size": "size" }[e.target.id];
     if (!key) return;
     state[key] = key === "fy" ? Number(e.target.value) : e.target.value;
     state.more = false;
@@ -62,13 +62,13 @@
   });
   $("filters").addEventListener("reset", (e) => {
     e.preventDefault();
-    Object.assign(state, { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", q: "", chip: "전체", more: false });
+    Object.assign(state, { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", q: "", chip: "전체", more: false });
     $("q").value = "";
     drawFilters();
     render();
   });
   const inFilter = (r) => (state.kind === "all" || r.kind === state.kind) && (state.area === "all" || r.area === state.area)
-    && (state.listed === "all" || String(r.l) === state.listed);
+    && (state.listed === "all" || String(r.l) === state.listed) && (state.size === "all" || r.tier === state.size);
 
   // ---------- 집계 ----------
   const at = (r, arr, y) => { const i = r.y.indexOf(y); return i < 0 ? null : arr[i]; };
@@ -76,16 +76,17 @@
     return list.map((r) => {
       const s1 = at(r, r.s, fy), s0 = at(r, r.s, fy - 1);
       if (!(s1 > 0) || !(s0 > 0)) return null;
-      const o1 = at(r, r.o, fy) ?? 0, o0 = at(r, r.o, fy - 1) ?? 0, g = growth(s1, s0), m = share(o1, s1);
-      return { ...r, s1, s0, o1, o0, s2: at(r, r.s, fy - 2), o2: at(r, r.o, fy - 2), g, m, m0: share(o0, s0), type: typeOf(g, m) };
+      // 영업이익이 비어 있는 기업은 매출 합계에만 넣고 이익률·흑자·유형 계산에서는 뺀다
+      const o1 = at(r, r.o, fy), o0 = at(r, r.o, fy - 1), g = growth(s1, s0), m = o1 == null ? null : share(o1, s1);
+      return { ...r, s1, s0, o1, o0, s2: at(r, r.s, fy - 2), o2: at(r, r.o, fy - 2), g, m, m0: o0 == null ? null : share(o0, s0), type: m == null ? "-" : typeOf(g, m) };
     }).filter(Boolean);
   }
   function stats(rows) {
     const s1 = sum(rows.map((r) => r.s1)), s0 = sum(rows.map((r) => r.s0)), o1 = sum(rows.map((r) => r.o1)), o0 = sum(rows.map((r) => r.o0));
-    const three = rows.filter((r) => r.s2 > 0);
+    const three = rows.filter((r) => r.s2 > 0), withOp = rows.filter((r) => r.o1 != null), withOp0 = rows.filter((r) => r.o0 != null);
     return {
       n: rows.length, s1, s0, o1, o0, g: growth(s1, s0), og: o0 > 0 ? growth(o1, o0) : null, m: share(o1, s1), m0: share(o0, s0),
-      profit: share(rows.filter((r) => r.o1 > 0).length, rows.length), profit0: share(rows.filter((r) => r.o0 > 0).length, rows.length),
+      profit: share(withOp.filter((r) => r.o1 > 0).length, withOp.length), profit0: share(withOp0.filter((r) => r.o0 > 0).length, withOp0.length), nOp: withOp.length,
       up: share(rows.filter((r) => r.g > 0).length, rows.length), medG: med(rows.map((r) => r.g)), medM: med(rows.map((r) => r.m)),
       loss: rows.filter((r) => r.o1 < 0).length,
       spark: { s: [sum(three.map((r) => r.s2)), sum(three.map((r) => r.s0)), sum(three.map((r) => r.s1))], o: [sum(three.map((r) => r.o2 || 0)), sum(three.map((r) => r.o0)), sum(three.map((r) => r.o1))] },
@@ -175,9 +176,10 @@
   }
 
   function summary(rows, S) {
-    const tr = (label, st, foot) => `<tr>${foot ? `<td>${label}</td>` : `<th scope="row">${label}</th>`}<td>${st.n}</td><td>${won(st.s1)}</td><td>${pc(share(st.s1, S.s1), 0)}</td><td class="${tone(st.g)}">${sg(st.g)}</td><td>${pc(st.m)}</td><td>${pc(share(st.loss, st.n), 0)}</td></tr>`;
+    const tr = (label, st, foot) => `<tr>${foot ? `<td>${label}</td>` : `<th scope="row">${label}</th>`}<td>${st.n}</td><td>${won(st.s1)}</td><td>${pc(share(st.s1, S.s1), 0)}</td><td class="${tone(st.g)}">${sg(st.g)}</td><td>${pc(st.m)}</td><td>${pc(share(st.loss, st.nOp), 0)}</td></tr>`;
     const body = KINDS.map((k) => [k, rows.filter((r) => r.kind === k)]).filter(([, rs]) => rs.length).map(([k, rs]) => tr(k, stats(rs))).join("")
-      + [["상장", rows.filter((r) => r.l)], ["비상장", rows.filter((r) => !r.l)]].filter(([, rs]) => rs.length).map(([k, rs]) => tr(k, stats(rs))).join("");
+      + [["상장", rows.filter((r) => r.l)], ["비상장", rows.filter((r) => !r.l)]].filter(([, rs]) => rs.length).map(([k, rs]) => tr(k, stats(rs))).join("")
+      + window.SIZE_TIERS.map((t) => [`매출 ${t}`, rows.filter((r) => window.sizeTier(r.s1) === t)]).filter(([, rs]) => rs.length).map(([k, rs]) => tr(k, stats(rs))).join("");
     return `<thead><tr><th>구분</th><th>업체</th><th>매출</th><th>비중</th><th>성장률</th><th>이익률</th><th>적자</th></tr></thead><tbody>${body}</tbody><tfoot>${tr("합계", S, true)}</tfoot>`;
   }
 
@@ -191,7 +193,7 @@
       <path d="${arc(v)}" fill="none" stroke="${v >= v0 ? "var(--green)" : "var(--down)"}" stroke-width="16" stroke-linecap="round"/>
       <line x1="${bx}" y1="${by}" x2="${bx2}" y2="${by2}" stroke="var(--text)" stroke-width="2"/>
       <text class="big" x="${cx}" y="${cy - 8}" text-anchor="middle">${pc(v, 0)}</text>
-      <text class="small" x="${cx}" y="${cy + 12}" text-anchor="middle">흑자 ${S.n - S.loss}곳 / ${S.n}곳</text>
+      <text class="small" x="${cx}" y="${cy + 12}" text-anchor="middle">흑자 ${S.nOp - S.loss}곳 / ${S.nOp}곳</text>
       <text class="small" x="${cx - r}" y="${cy + 24}" text-anchor="middle">0%</text><text class="small" x="${cx + r}" y="${cy + 24}" text-anchor="middle">100%</text></svg>
       <p>전년 ${pc(v0, 0)} → <b class="${tone(v - v0)}">${pp(v - v0)}</b> <span style="color:var(--text-3)">(눈금은 전년)</span></p>`;
   }
@@ -202,10 +204,17 @@
     out.push([S.g >= 0 && dm >= 0 ? "good" : S.g < 0 && dm < 0 ? "bad" : "", "ph-trend-up",
       `매출 ${sg(S.g)}, 영업이익률 ${pc(S.m)}(${pp(dm)})`,
       Math.abs(dm) < 0.3 ? (S.g >= 0 ? "매출은 늘었고 이익률은 전년 수준을 유지했습니다." : "매출은 줄었고 이익률은 전년 수준입니다.") : S.g >= 0 && dm >= 0 ? "외형과 수익성이 함께 좋아졌습니다." : S.g >= 0 ? "매출은 늘었지만 이익률이 낮아져 원가·단가 점검이 필요합니다." : dm >= 0 ? "매출은 줄었지만 수익성은 지켰습니다." : "매출과 수익성이 함께 약해졌습니다."]);
-    const t10 = share(sum(rows.slice().sort((a, b) => b.s1 - a.s1).slice(0, 10).map((r) => r.s1)), S.s1);
-    out.push([Math.abs(S.medG - S.g) > 5 ? "bad" : "", "ph-scales",
+    const sorted = rows.slice().sort((a, b) => b.s1 - a.s1), t10 = share(sum(sorted.slice(0, 10).map((r) => r.s1)), S.s1), rest = stats(sorted.slice(10));
+    out.push([t10 >= 40 ? "bad" : "", "ph-scales",
       `상위 10개사가 매출의 ${pc(t10, 0)} · 업체 중앙값 성장률 ${sg(S.medG)}`,
-      S.g - S.medG > 5 ? "대형사 중심의 성장입니다. 일반 업체 체감은 이보다 약합니다." : S.medG - S.g > 5 ? "일반 업체가 대형사보다 더 크게 성장했습니다." : "성장이 업체 전반에 고르게 퍼져 있습니다."]);
+      (t10 >= 40 ? `매출이 소수 대형사에 몰려 있어 합계만으로는 업계 전반을 판단하기 어렵습니다. 상위 10개사를 빼면 성장률 ${sg(rest.g)}, 이익률 ${pc(rest.m)}입니다. ` : "")
+      + (S.g - S.medG > 5 ? "합계 성장은 대형사가 이끌었고 일반 업체 체감은 더 약합니다." : S.medG - S.g > 5 ? "일반 업체가 대형사보다 더 크게 성장했습니다." : "업체 중앙값과 합계 성장률이 비슷합니다.")]);
+    const tiers = window.SIZE_TIERS.map((t) => [t, stats(rows.filter((r) => window.sizeTier(r.s1) === t))]).filter(([, s]) => s.n >= 5);
+    if (tiers.length >= 2) {
+      const big = tiers[0], small = tiers[tiers.length - 1], gap = big[1].m - small[1].m;
+      out.push([Math.abs(gap) >= 3 ? "bad" : "", "ph-stack", `규모별 이익률: ${big[0]} ${pc(big[1].m)} · ${small[0]} ${pc(small[1].m)}`,
+        `${small[0]} ${small[1].n}곳의 매출 성장률은 ${sg(small[1].g)}, 적자 비중 ${pc(share(small[1].loss, small[1].nOp), 0)}입니다. ${Math.abs(gap) >= 3 ? `${gap > 0 ? big[0] : small[0]} 기업의 이익률이 ${Math.abs(gap).toFixed(1)}%p 높아 규모별 격차가 큽니다.` : "규모에 따른 수익성 차이는 크지 않습니다."}`]);
+    }
     const weak = rows.filter((r) => r.o1 < 0 && r.g < 0);
     out.push([weak.length ? "bad" : "good", "ph-first-aid",
       `매출 감소와 영업적자가 겹친 업체 ${weak.length}곳`,
@@ -230,7 +239,7 @@
     if (!state.more) rows = rows.slice(0, 15);
     const tag = (t) => `<span class="db-tag ${t === TYPES[0] ? "good" : t === TYPES[3] ? "bad" : ""}">${t}</span>`;
     $("c-list").innerHTML = `<thead><tr>${COLS.map(([c, l]) => `<th scope="col" aria-sort="${c === k ? (state.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${c}">${l}</button></th>`).join("")}</tr></thead>`
-      + `<tbody>${rows.map((r) => `<tr><th scope="row">${profileCodes.has(r.c) ? `<a href="profile.html#${r.c}">${esc(r.n)}</a>` : esc(r.n)}</th><td>${r.kind}</td><td>${r.l ? "상장" : "비상장"}</td><td>${r.area}</td><td>${won(r.s1)}</td><td class="${tone(r.g)}">${sg(r.g)}</td><td class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td>${tag(r.type)}</td></tr>`).join("") || `<tr><td colspan="8" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
+      + `<tbody>${rows.map((r) => `<tr><th scope="row">${profileCodes.has(r.c) ? `<a href="profile.html#${r.c}">${esc(r.n)}</a>` : esc(r.n)}</th><td>${r.kind}${r.kindEst ? '<small class="db-est" title="DART 업종코드·회사명으로 추정">추정</small>' : ""}</td><td>${r.l ? "상장" : "비상장"}</td><td>${r.area}</td><td>${won(r.s1)}</td><td class="${tone(r.g)}">${sg(r.g)}</td><td class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td>${tag(r.type)}</td></tr>`).join("") || `<tr><td colspan="8" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
     $("more").hidden = total <= 15;
     $("more").textContent = state.more ? "15곳만 보기" : `전체 ${total}곳 보기`;
   }
@@ -268,10 +277,10 @@
     $("kpis").innerHTML = [
       { hero: 1, icon: "ph-currency-krw", label: `${fy}년 합산 매출`, value: `${won(S.s1)}<small>원</small>`, delta: delta(S.g, "전년 대비"), spark: S.spark.s },
       { icon: "ph-coins", label: "영업이익", value: won(S.o1), delta: S.og == null ? `<span class="vs">전년 적자</span>` : delta(S.og, "전년 대비"), spark: S.spark.o },
-      { icon: "ph-percent", label: "영업이익률", value: pc(S.m), delta: delta(S.m - S.m0, `전년 ${pc(S.m0)}`, "pp") },
+      { icon: "ph-percent", label: "영업이익률(합산)", value: pc(S.m), delta: delta(S.m - S.m0, `전년 ${pc(S.m0)} · 중앙값 ${pc(S.medM)}`, "pp") },
       { icon: "ph-check-circle", label: "흑자 업체 비중", value: pc(S.profit, 0), delta: delta(S.profit - S.profit0, "전년 대비", "pp") },
       { icon: "ph-arrow-fat-lines-up", label: "매출 증가 업체", value: pc(S.up, 0), delta: `<span class="vs">중앙값 성장률 ${sg(S.medG)}</span>` },
-      { icon: "ph-buildings", label: "분석 업체", value: `${S.n}<small>곳</small>`, delta: `<span class="vs">영업적자 ${S.loss}곳</span>` },
+      { icon: "ph-buildings", label: "분석 업체", value: `${S.n}<small>곳</small>`, delta: `<span class="vs">${window.SIZE_TIERS.map((t) => `${t.replace("1천억~1조", "중간").replace(" 이상", "↑").replace(" 미만", "↓")} ${rows.filter((r) => window.sizeTier(r.s1) === t).length}`).join(" · ")}</span>` },
     ].map(kpi).join("");
     $("c-trend").innerHTML = trendChart(recs.filter(inFilter));
     $("c-region").innerHTML = regionCard(rows, S);
@@ -317,8 +326,10 @@
   });
 
   $("updated").textContent = META.updated || "-";
+  const offFy = recs.filter((r) => r.mt && r.mt !== "12").length;
   $("foot").textContent = "자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 개별(별도) 기준. 분기 추이는 분기 실적을 공시하는 상장사만 포함합니다. "
-    + "업종은 직접 분류한 기업 외에는 DART 업종코드로 추정했습니다. 삼성전자·SK하이닉스 등 수요기업은 제외했습니다.";
+    + "업종은 직접 분류한 기업 외에는 회사명·DART 업종코드로 추정했습니다(목록의 '추정' 표시). 매출 규모는 법적 기업규모가 입력되기 전까지 쓰는 매출액 구간입니다. "
+    + `12월 결산이 아닌 ${offFy}곳은 해당 사업연도(예: 3월 결산은 다음 해 3월까지)로 맞췄습니다. 삼성전자·SK하이닉스 등 수요기업은 제외했습니다.`;
   if (!recs.length) {
     $("kpis").innerHTML = `<p class="db-empty">실적 데이터가 아직 없습니다. 다음 자동 갱신 후에 표시됩니다.</p>`;
     return;
