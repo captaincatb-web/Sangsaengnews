@@ -78,11 +78,7 @@
   // 차트 그림 폭: 좁은 화면에서는 좁게 그려 글자가 덜 줄어들게 한다
   let W = 520;
   const chartW = () => (window.innerWidth < 640 ? 380 : 520);
-  function sparkBars(vals) {
-    const v = vals.filter((x) => x != null), max = Math.max(...v.map(Math.abs), 1), w = 100 / v.length;
-    return `<svg viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">${v.map((x, i) => `<rect class="spark-bar${i === v.length - 1 ? " on" : ""}" x="${i * w + w * 0.18}" y="${28 - (Math.abs(x) / max) * 26}" width="${w * 0.64}" height="${(Math.abs(x) / max) * 26}" rx="1.5"/>`).join("")}</svg>`;
-  }
-  const kpi = (o) => `<article class="db-kpi${o.hero ? " hero" : ""}"><p class="lab"><i class="ph ${o.icon}" aria-hidden="true"></i>${o.label}</p><strong>${o.value}</strong><p class="delta">${o.delta}</p>${o.spark ? sparkBars(o.spark) : ""}</article>`;
+  const kpi = (o) => `<article class="db-kpi${o.hero ? " hero" : ""}"><p class="lab"><i class="ph ${o.icon}" aria-hidden="true"></i>${o.label}</p><strong>${o.value}</strong><p class="delta">${o.delta}</p></article>`;
   const delta = (v, txt, unit = "pct") => `<b class="${tone(v)}">${arrow(v)} ${unit === "pp" ? pp(v) : sg(v)}</b><span class="vs">${txt}</span>`;
   const note = (html, warn) => `<p class="db-note${warn ? " warn" : ""}"><i class="ph ${warn ? "ph-warning" : "ph-info"}" aria-hidden="true"></i><span>${html}</span></p>`;
   function hbarList(items, opt = {}) {
@@ -129,8 +125,8 @@
   // ---------- 01 Executive Overview ----------
   function kpis(rows, S, FS) {
     $("kpis").innerHTML = [
-      { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: `${delta(S.g, "동일 기업 기준")}<span class="vs db-sub2">전체 표본 ${sg(FS.g)} (${FS.n0}→${FS.n1}곳)</span>`, spark: S.spark.s },
-      { icon: "ph-coins", label: "영업이익", value: won(S.o1), delta: S.og == null ? `<span class="vs">전년 적자</span>` : delta(S.og, "전년 대비"), spark: S.spark.o },
+      { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: `${delta(S.g, "동일 기업 기준")}<span class="vs db-sub2">전체 표본 ${sg(FS.g)} (${FS.n0}→${FS.n1}곳)</span>` },
+      { icon: "ph-coins", label: "영업이익", value: won(S.o1), delta: S.og == null ? `<span class="vs">전년 적자</span>` : delta(S.og, "전년 대비") },
       { icon: "ph-percent", label: "영업이익률(합산)", value: pc(S.m), delta: `${delta(S.m - S.m0, `전년 ${pc(S.m0)}`, "pp")}<span class="vs db-sub2">업체 중앙값 ${pc(S.medM)}</span>` },
       { icon: "ph-check-circle", label: "흑자 업체 비중", value: pc(S.profit, 0), delta: `${delta(S.profit - S.profit0, "전년 대비", "pp")}<span class="vs db-sub2">영업적자 ${S.loss}곳</span>` },
       { icon: "ph-arrow-fat-lines-up", label: "매출 증가 업체", value: pc(S.up, 0), delta: `<span class="vs">중앙값 성장률 ${sg(S.medG)}</span>` },
