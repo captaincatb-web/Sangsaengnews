@@ -402,21 +402,20 @@ body.db { display: block; }
 .krds-header .gnb a[aria-current="page"] { color: #fff; }
 .krds-header .gnb a[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent); }
 @media (min-width: 861px) {
-  /* 사이드바 → 머리글 아래 고정 화면 탭 */
-  .db-side { position: sticky; top: 0; z-index: 12; height: auto; flex-direction: row; align-items: center; gap: 16px; padding: 0 24px; background: var(--card); color: var(--text-2); border-bottom: 1px solid var(--line); box-shadow: var(--shadow); overflow-x: auto; }
+  /* 머리글 아래 왼쪽 세로 메뉴(흰 바탕) + 오른쪽 본문 */
+  body.db { display: grid; grid-template-columns: 232px minmax(0, 1fr); align-items: start; }
+  body.db > .krds-header { grid-column: 1 / -1; }
+  .db-side { position: static; align-self: stretch; height: auto; min-height: calc(100vh - 120px); padding: 16px 12px; background: var(--card); color: var(--text-2); border-right: 1px solid var(--line); overflow: visible; }
+  .db-side > nav { position: sticky; top: 16px; display: grid; gap: 16px; } /* 본문을 내려도 메뉴는 따라온다 */
   .db-brand { display: none; }
-  .db-side nav { flex: 1; }
-  .db-nav { display: flex; gap: 4px; }
-  .db-nav a { position: relative; gap: 7px; padding: 0 12px; height: 50px; border-radius: 0; font-size: 14.5px; white-space: nowrap; color: var(--text-2); }
-  .db-nav a i { font-size: 18px; }
+  .db-nav a { gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14.5px; color: var(--text-2); position: relative; }
+  .db-nav a i { font-size: 19px; }
   .db-nav a:hover { background: var(--grid); color: var(--text); }
-  .db-nav a[aria-current="true"] { background: transparent; color: var(--text); font-weight: 700; }
-  .db-nav a[aria-current="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--accent); }
+  .db-nav a[aria-current="true"] { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--text); font-weight: 700; }
+  .db-nav a[aria-current="true"]::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent); }
   .db-nav a[aria-current="true"] i { color: var(--blue); }
-  .db-refresh { margin: 0; padding: 0; border: 0; align-items: center; white-space: nowrap; color: var(--text-3); }
-  .db-refresh br { display: none; }
-  .db-refresh b { color: var(--text-2); margin-left: 4px; }
-  .db-main { max-width: 1600px; margin: 0 auto; }
+  .db-refresh { position: sticky; top: 300px; margin: 16px 0 0; color: var(--text-3); border-top-color: var(--line); }
+  .db-refresh b { color: var(--text-2); }
 }
 @media (max-width: 860px) {
   .krds-header .head-inner { padding: 8px 16px 4px; }
