@@ -434,9 +434,3 @@ body.db { display: block; }
 .db-chart .mval { fill: var(--orange); font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
 .db-changes.cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .db-changes.cols { grid-template-columns: 1fr; } }
-
-/* 개요: 연도별·분기별 실적(매출·영업이익 막대 + 이익률 선) */
-.db-legend i.sq { width: 10px; height: 10px; border-radius: 2px; }
-.db-chart .mval { fill: var(--orange); font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
-.db-changes.cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-@media (max-width: 1100px) { .db-changes.cols { grid-template-columns: 1fr; } }
