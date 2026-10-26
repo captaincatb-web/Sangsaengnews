@@ -117,7 +117,7 @@
       <div class="rp-axis x">매출 성장률 ${HI_GROWTH}% 기준</div></div>`;
   }
   function slide2() {
-    const kinds = ["소재", "부품", "장비", NA].map((k) => [k, annual.filter((r) => r.kind === k)]).filter(([, l]) => l.length);
+    const kinds = [...SB.KINDS].map((k) => [k, annual.filter((r) => r.kind === k)]).filter(([, l]) => l.length);
     const est = annual.filter((r) => r.kindEst).length;
     const ls = [["상장사", annual.filter((r) => r.l)], ["비상장사", annual.filter((r) => !r.l)]];
     const best = kinds.filter(([k]) => k !== NA).map(([k, l]) => [k, stats(l)]).sort((a, b) => b[1].g - a[1].g);
@@ -133,7 +133,7 @@
       <header class="sl-head"><div><p class="sl-tag">2 / 2 · 업종별·상장 여부별</p><h2>소부장 업종별 경쟁력 및 경영 격차</h2></div>
         <p class="sl-meta">${esc(SB.describe(st))} · 분석대상 ${A.n}개사 · 업종 추정 ${est}곳 포함</p></header>
       <div class="sl-body two">
-        <section class="sl-col"><h3>소재·부품·장비별 경영실적</h3><table class="sl-table">${head("구분")}<tbody>${kinds.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>
+        <section class="sl-col"><h3>업종별 경영실적</h3><table class="sl-table">${head("구분")}<tbody>${kinds.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>
           <h3>상장·비상장 경영실적 비교</h3><table class="sl-table">${head("구분")}<tbody>${ls.filter(([, l]) => l.length).map(([k, l]) => row(k, stats(l))).join("")}</tbody></table></section>
         <section class="sl-col"><h3>성장성·수익성 기반 업체 분류 <small>업체 ${A.n}곳</small></h3>${quadrant()}</section>
       </div>

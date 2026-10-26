@@ -119,7 +119,7 @@
     });
     return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "성장률과 이익률 분포")}">${g}</svg>`;
   }
-  const KIND_COLOR = { 소재: "var(--blue)", 부품: "var(--teal)", 장비: "var(--orange)", [NA]: "var(--gray)" };
+  const KIND_COLOR = { 소재: "var(--blue)", 부품: "var(--teal)", 장비: "var(--orange)", "IT·서비스": "var(--purple)", [NA]: "var(--gray)" };
   const TYPE_COLOR = { [TYPES[0]]: "var(--green)", [TYPES[1]]: "var(--blue)", [TYPES[2]]: "var(--orange)", [TYPES[3]]: "var(--down)" };
 
   // ---------- 01 Executive Overview ----------

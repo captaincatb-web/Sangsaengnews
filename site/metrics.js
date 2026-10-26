@@ -20,7 +20,7 @@
 
   // ---------- 분류 기준(확정) ----------
   const NA = "미분류";
-  const KINDS = ["소재", "부품", "장비", NA], AREAS = ["서울", "경기", "충청", "경상", "전라", "기타"];
+  const KINDS = ["소재", "부품", "장비", "IT·서비스", NA], AREAS = ["서울", "경기", "충청", "경상", "전라", "기타"];
   const HI_GROWTH = 10, HI_MARGIN = 5;
   const TYPES = ["우량 성장형", "수익 안정형", "성장 투자형", "경영 취약형"];
   const typeOf = (g, m) => (g >= HI_GROWTH ? (m >= HI_MARGIN ? TYPES[0] : TYPES[2]) : m >= HI_MARGIN ? TYPES[1] : TYPES[3]);
