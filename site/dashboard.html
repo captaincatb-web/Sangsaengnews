@@ -17,9 +17,10 @@
   <header class="krds-header">
     <div class="head-inner">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 협력사 분석<small>반도체 소재·부품·장비 협력 기업 정보</small></span></a>
+      <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
       <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
     </div>
-    <nav class="gnb" aria-label="주 메뉴">
+    <nav class="gnb" id="site-gnb" aria-label="주 메뉴">
       <ul>
         <li><a href="./">기업 현황</a></li>
         <li><a href="analysis2.html">성장 분석</a></li>
@@ -34,7 +35,7 @@
     <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span>소부장<br>협력사 분석</span></a>
     <nav>
       <ul class="db-nav" id="views-nav">
-        <li><a href="#overview" data-view="overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">Executive Overview</span><span class="s" aria-hidden="true">개요</span></a></li>
+        <li><a href="#overview" data-view="overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">경영 개요</span><span class="s" aria-hidden="true">개요</span></a></li>
         <li><a href="#industry" data-view="industry"><i class="ph ph-stack" aria-hidden="true"></i><span class="l">산업·업종 분석</span><span class="s" aria-hidden="true">산업</span></a></li>
         <li><a href="#portfolio" data-view="portfolio"><i class="ph ph-chart-scatter" aria-hidden="true"></i><span class="l">기업 포트폴리오</span><span class="s" aria-hidden="true">기업군</span></a></li>
         <li><a href="#signals" data-view="signals"><i class="ph ph-warning-diamond" aria-hidden="true"></i><span class="l">경영 변화·위험 신호</span><span class="s" aria-hidden="true">위험 신호</span></a></li>
@@ -68,7 +69,7 @@
 
     <div class="db-empty-panel" id="empty-panel" role="status" hidden></div>
 
-    <!-- 01 Executive Overview -->
+    <!-- 01 경영 개요 -->
     <div class="db-view" id="v-overview" data-view="overview">
       <p class="db-headline" id="headline" aria-live="polite"></p>
       <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
@@ -206,7 +207,7 @@
       </div>
     </div>
 
-    <p class="db-foot" id="foot"></p>
+    <details class="db-foot"><summary>자료·집계 기준</summary><p id="foot"></p></details>
   </main>
 
   <div class="db-modal" id="auth-dialog" hidden>
