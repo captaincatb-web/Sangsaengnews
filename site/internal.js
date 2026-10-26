@@ -65,13 +65,25 @@
       dlg.hidden = false;
       input.focus();
     });
-    dlg.addEventListener("click", (e) => { if (e.target === dlg || e.target.closest("[data-close]")) dlg.hidden = true; });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") dlg.hidden = true; });
+    // 닫으면 열었던 버튼으로 초점을 돌려준다
+    const close = () => { if (dlg.hidden) return; dlg.hidden = true; btn.focus(); };
+    dlg.addEventListener("click", (e) => { if (e.target === dlg || e.target.closest("[data-close]")) close(); });
+    document.addEventListener("keydown", (e) => {
+      if (dlg.hidden) return;
+      if (e.key === "Escape") { close(); return; }
+      if (e.key !== "Tab") return;
+      // 열려 있는 동안 Tab 이 대화상자 밖으로 나가지 않게 한다
+      const f = [...dlg.querySelectorAll("input, button, a[href]")].filter((el) => !el.disabled && el.offsetParent);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!window.INTERNAL_ENC) return;
       go.disabled = true; msg.textContent = "확인 중…";
-      try { await unlock(input.value); dlg.hidden = true; msg.textContent = ""; }
+      try { await unlock(input.value); close(); msg.textContent = ""; }
       catch (err) { msg.textContent = "비밀번호가 맞지 않습니다. 다시 입력해 주세요."; input.select(); }
       finally { go.disabled = false; input.value = ""; }
     });

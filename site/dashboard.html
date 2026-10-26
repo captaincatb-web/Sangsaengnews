@@ -66,6 +66,8 @@
       </form>
     </header>
 
+    <div class="db-empty-panel" id="empty-panel" role="status" hidden></div>
+
     <!-- 01 Executive Overview -->
     <div class="db-view" id="v-overview" data-view="overview">
       <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
@@ -181,7 +183,7 @@
         <label for="co-q"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>기업 선택</label>
         <div class="db-combo">
           <input id="co-q" role="combobox" aria-expanded="false" aria-controls="co-list" aria-autocomplete="list" placeholder="기업명 검색 또는 눌러서 목록 보기" autocomplete="off">
-          <ul id="co-list" class="db-combo-list" role="listbox" aria-label="기업 목록" hidden></ul>
+          <ul id="co-list" class="db-combo-list" role="listbox" aria-label="기업 목록" tabindex="-1" hidden></ul>
         </div>
         <span class="db-co-hint">목록·분포·순위에서 기업을 누르면 여기로 옵니다. 상세는 필터와 무관하게 전체 기업 기준입니다.</span>
       </section>

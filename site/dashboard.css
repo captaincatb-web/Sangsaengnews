@@ -3,7 +3,7 @@
 @font-face { font-family: "Pretendard GOV"; font-weight: 700; font-display: swap; src: url("vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2") format("woff2"); }
 
 :root {
-  --bg: #f4f6fb; --card: #ffffff; --line: #e6e9f2; --text: #1d2433; --text-2: #4b5568; --text-3: #6b7486;
+  --bg: #f4f6fb; --card: #ffffff; --line: #e6e9f2; --text: #1d2433; --text-2: #4b5568; --text-3: #5e6779;
   --side: #0f1d3a; --side-2: #18294d; --side-text: #c9d3ea; --accent: #f5b70a; --accent-text: #1d2433;
   --blue: #3b6fe0; --green: #16a06a; --purple: #7c4ddb; --orange: #f08a1c; --teal: #12a3b8; --pink: #e0457b; --gray: #9aa3b5;
   --up: #12804f; --down: #c93a2e; --grid: #eef0f6; --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 4px 16px rgb(16 24 40 / .05);
@@ -466,3 +466,23 @@ body.db { display: block; }
 .db-kpi.hero .lab, .db-kpi.hero .delta .vs, .db-kpi.hero strong small { color: var(--text-3); }
 .db-kpi.hero .lab i { color: var(--blue); }
 .db-kpi.hero .up { color: var(--up); } .db-kpi.hero .down { color: var(--down); }
+
+/* 점검 반영: 초점 표시·대비·빈 상태·다크 모드 */
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.krds-header :focus-visible { outline-color: var(--accent); }
+circle.pt:focus-visible { outline: none; stroke: var(--text); stroke-width: 3; }
+.db-lbl.fact { color: #2a56c6; }
+.db-lbl.read { color: #a35200; }
+.db-funnel-note { color: var(--up); }
+.db-card svg text.ax { fill: var(--text-3); font-size: 11px; }
+#c-signal td:nth-child(2) { white-space: nowrap; }
+.db-empty-panel { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; border: 1px dashed var(--line); border-radius: 12px; background: var(--card); }
+.db-empty-panel > i { font-size: 28px; color: var(--text-3); }
+.db-empty-panel p { margin: 2px 0 10px; color: var(--text-2); }
+.db-empty-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.db-empty-chips button { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; min-height: 36px; }
+.db-empty-chips button:last-child { background: var(--side); color: #fff; border-color: var(--side); }
+body.db-nodata #v-overview, body.db-nodata #v-industry, body.db-nodata #v-portfolio, body.db-nodata #v-signals { display: none !important; }
+:root[data-theme="dark"] .db-clear, :root[data-theme="dark"] .db-empty-chips button:last-child { background: #2a3d70; border-color: #3a5294; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-clear, :root:not([data-theme="light"]) .db-empty-chips button:last-child { background: #2a3d70; border-color: #3a5294; } :root:not([data-theme="light"]) .db-lbl.fact { color: #8fb0ff; } :root:not([data-theme="light"]) .db-lbl.read { color: #ffb366; } }
+:root[data-theme="dark"] .db-lbl.fact { color: #8fb0ff; } :root[data-theme="dark"] .db-lbl.read { color: #ffb366; }

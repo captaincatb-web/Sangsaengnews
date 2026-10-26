@@ -18,7 +18,7 @@
   const bigCos = SB.recs.filter((r) => F.inBase(r) && SB.isBig(r));
   const bigNote = st.big === "exclude" ? `대형사 ${bigCos.length}곳 별도` : st.big === "only" ? "대형사만" : "대형사 포함";
   const FY = st.fy;
-  const annual = SB.panel(recs, FY).filter((r) => r.o1 != null); // 영업이익이 없으면 이익률을 왜곡하므로 뺀다
+  const annual = SB.panel(recs, FY); // 대시보드와 같은 표본(영업이익이 비면 이익률 계산에서만 빠진다)
   const Q = SB.quarters(recs), qLabels = Q.labels, qPanel = Q.P;
 
   // ---------- 집계 ----------
@@ -105,14 +105,14 @@
   const row = (label, s) => `<tr><th scope="row">${esc(label)}</th><td>${s.n}</td><td>${jo(s.s1)}</td><td>${s.n ? jo(s.avg) : "-"}</td><td class="${tone(s.g)}">${sg(s.g)}</td><td>${pc(s.m)}</td><td>${pc(s.medM)}</td><td>${pc(s.lossP, 0)}</td></tr>`;
   const head = (first) => `<thead><tr><th>${first}</th><th>업체 수</th><th>매출</th><th>업체당 평균</th><th>매출 성장률</th><th>영업이익률</th><th>이익률 중앙값</th><th>적자 비중</th></tr></thead>`;
   function quadrant() {
-    const cells = { "우량 성장형": [], "수익 안정형": [], "성장 투자형": [], "경영 취약형": [] };
+    const T = SB.TYPES, cells = Object.fromEntries(T.map((t) => [t, []]));
     annual.forEach((r) => cells[r.type] && cells[r.type].push(r));
     const box = (k, sub, cls) => {
       const l = cells[k];
       return `<div class="rp-q ${cls}"><p>${k}<small>${sub}</small></p><strong>${l.length}곳 <em>${pc(share(l.length, annual.length), 0)}</em></strong><span>${esc(l.sort((a, b) => b.s1 - a.s1).slice(0, 3).map((r) => r.n).join(" · ") || "-")}</span></div>`;
     };
     return `<div class="rp-quad"><div class="rp-axis y">영업이익률 ${HI_MARGIN}% 기준</div>
-      ${box("수익 안정형", "저성장 · 고수익", "b")}${box("우량 성장형", "고성장 · 고수익", "a")}${box("경영 취약형", "저성장 · 저수익", "d")}${box("성장 투자형", "고성장 · 저수익", "c")}
+      ${box(T[1], `성장 ${HI_GROWTH}% 미만 · 이익률 ${HI_MARGIN}% 이상`, "b")}${box(T[0], `성장 ${HI_GROWTH}% 이상 · 이익률 ${HI_MARGIN}% 이상`, "a")}${box(T[3], `성장 ${HI_GROWTH}% 미만 · 이익률 ${HI_MARGIN}% 미만`, "d")}${box(T[2], `성장 ${HI_GROWTH}% 이상 · 이익률 ${HI_MARGIN}% 미만`, "c")}
       <div class="rp-axis x">매출 성장률 ${HI_GROWTH}% 기준</div></div>`;
   }
   function slide2() {
