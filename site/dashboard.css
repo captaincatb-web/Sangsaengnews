@@ -435,3 +435,8 @@ body.db { display: block; }
 .db-changes.cols { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .db-changes.cols { grid-template-columns: 1fr; } }
 .db-mini-leg { margin: -4px 0 6px; }
+/* 연도별 수치 표(매출·영업이익·이익률·임직원) */
+.db-ytbl { margin-top: 10px; font-size: 12.5px; }
+.db-ytbl th[scope="row"] { text-align: left; color: var(--text-2); font-weight: 400; }
+.db-ytbl thead th { color: var(--text-3); font-weight: 400; }
+.db-ytbl td:last-child { font-weight: 700; }
