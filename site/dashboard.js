@@ -133,34 +133,37 @@
       { icon: "ph-scales", label: "상위 10개사 집중도", value: pc(SB.concentration(rows, 10), 0), delta: `<span class="vs">상위 50개사 ${pc(SB.concentration(rows, 50), 0)}</span>` },
     ].map(kpi).join("");
   }
-  // 매출·영업이익 막대(왼쪽 축) + 영업이익률 선(오른쪽 축)
+  const niceStep = (v) => { const e = Math.pow(10, Math.floor(Math.log10(v || 1))), f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; };
+  // 매출·영업이익 막대(아래) + 영업이익률 선(위쪽 띠)
   function comboChart(labels, sales, ops, opt = {}) {
     const n = labels.length, H = 260, L = 50, R = 12, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 62; // 위 62px는 이익률 선, 아래는 막대
-    const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null));
-    const hi = Math.max(...sales, ...ops.filter((v) => v != null), 1) * (opt.values ? 1.15 : 1.05), lo = Math.min(0, ...ops.filter((v) => v != null)) * 1.12;
+    const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null)), legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
+    const vals = [...sales, ...ops].filter((v) => v != null), top = Math.max(...vals, 1) * (opt.values ? 1.12 : 1.02), bot = Math.min(0, ...vals);
+    const step = niceStep(top / 4), hi = Math.ceil(top / step) * step, lo = bot < 0 ? -Math.min(Math.max(-bot * 1.3, hi * (opt.values ? 0.14 : 0.06)), hi / 2) : 0, ticks = Math.round(hi / step); // 적자는 아래로 조금만 내린다
     const bh = ph - band, y = (v) => T + band + bh - ((v - lo) / (hi - lo)) * bh;
     const mv = margins.filter((v) => v != null), mHi = Math.max(...mv), mLo = Math.min(...mv), span = Math.max(mHi - mLo, 2);
     const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30); // 값 차이만 보이도록 띠 안에서 늘린다
     const slot = pw / n, bw = Math.min(opt.bw || 22, slot * 0.32), cx = (i) => L + slot * i + slot / 2;
     let g = "";
     g += `<text class="ax" x="${L - 6}" y="${T + 12}" text-anchor="end">이익률</text><line class="grid" x1="${L}" x2="${W - R}" y1="${T + band - 4}" y2="${T + band - 4}" stroke-dasharray="2 3"/>`;
-    for (let i = 0; i <= 4; i++) {
-      const v = lo + ((hi - lo) * i) / 4;
+    for (let i = 0; i <= ticks; i++) {
+      const v = step * i;
       g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${won(v)}</text>`;
     }
     if (lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
     labels.forEach((l, i) => {
       const x = cx(i), s = sales[i], o = ops[i];
+      if (s == null) { g += `<text class="ax" x="${x}" y="${y(0) - 6}" text-anchor="middle">결측</text><text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`; return; }
       g += `<rect x="${x - bw - 1}" y="${y(Math.max(s, 0))}" width="${bw}" height="${Math.abs(y(s) - y(0))}" rx="3" fill="var(--blue)"/>`;
       if (o != null) g += `<rect x="${x + 1}" y="${y(Math.max(o, 0))}" width="${bw}" height="${Math.max(1, Math.abs(y(o) - y(0)))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
-      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${y(Math.max(s, 0)) - 5}" text-anchor="middle">${won(s)}</text>${o != null ? `<text class="val" x="${x + bw / 2 + 1}" y="${y(Math.max(o, 0)) - 5}" text-anchor="middle">${won(o)}</text>` : ""}`;
+      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${y(Math.max(s, 0)) - 5}" text-anchor="middle">${won(s)}</text>${o != null ? `<text class="val" x="${x + bw / 2 + 1}" y="${o < 0 ? y(o) + 12 : y(o) - 5}" text-anchor="middle"${o < 0 ? ' fill="var(--down)"' : ""}>${won(o)}</text>` : ""}`;
       g += `<text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`;
       g += `<rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}" data-tip="${l} 매출 ${won(s)} · 영업이익 ${won(o)} · 이익률 ${pc(margins[i])}"/>`;
     });
     const pts = margins.map((m, i) => (m == null ? null : [cx(i), ym(m), m])).filter(Boolean);
     g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>`;
     pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pc(p[2])}</text>`));
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
+    return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
   }
   function yearlyChart(rows) {
     const fy = state.fy, P = rows.filter((r) => r.s2 > 0 && r.o2 != null && r.o0 != null && r.o1 != null);
@@ -406,22 +409,6 @@
   // ---------- 05 기업 상세 ----------
   $("co-list").innerHTML = recs.slice().sort((a, b) => a.n.localeCompare(b.n, "ko")).map((r) => `<option value="${esc(r.n)}"></option>`).join("");
   $("co-q").addEventListener("change", () => { const r = recs.find((x) => x.n === $("co-q").value.trim()); if (r) { state.co = r.c; drawCompany(); syncUrl(); } });
-  function miniBars(labels, vals, ops) {
-    const narrow = W < 450 && labels.length > 4;
-    const H = narrow ? 210 : 200, L = 46, R = 12, T = 18, B = narrow ? 36 : 26, pw = W - L - R, ph = H - T - B, max = Math.max(...vals.filter((v) => v != null), 1), bw = pw / labels.length;
-    let g = "";
-    for (let i = 0; i <= 3; i++) { const v = (max * i) / 3, y = T + ph - (v / max) * ph; g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y}" y2="${y}"/><text class="ax" x="${L - 6}" y="${y + 4}" text-anchor="end">${won(v)}</text>`; }
-    labels.forEach((l, i) => {
-      const v = vals[i], x = L + bw * i + bw * 0.2, w = bw * 0.6, op = ops[i];
-      if (v != null) { const h = (Math.max(v, 0) / max) * ph; g += `<rect x="${x}" y="${T + ph - h}" width="${w}" height="${h}" rx="3" fill="var(--blue)" data-tip="${l} 매출 ${won(v)} · 영업이익 ${won(op)} (${pc(share(op, v))})"/>`; }
-      else g += `<text class="ax" x="${x + w / 2}" y="${T + ph - 6}" text-anchor="middle">결측</text>`;
-      const m = narrow && /^'(\d\d)\.(\d)Q$/.exec(l);
-      if (m) g += `<text class="ax" x="${x + w / 2}" y="${H - 20}" text-anchor="middle">${m[2]}Q</text>${i === 0 || m[2] === "1" ? `<text class="ax" x="${x + w / 2}" y="${H - 6}" text-anchor="middle">'${m[1]}</text>` : ""}`;
-      else g += `<text class="ax" x="${x + w / 2}" y="${H - 8}" text-anchor="middle">${l}</text>`;
-      if (v && op != null) g += `<text class="val" x="${x + w / 2}" y="${T + ph - (Math.max(v, 0) / max) * ph - 5}" text-anchor="middle"${op < 0 ? ' fill="var(--down)"' : ""}>${pc(share(op, v), 0)}</text>`;
-    });
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="매출과 영업이익률">${g}</svg><p class="db-mini">막대 위 숫자는 영업이익률입니다.</p>`;
-  }
   function drawCompany() {
     const P = SB.panel(recs, state.fy);
     if (!state.co) state.co = (P.slice().sort((a, b) => b.s1 - a.s1)[0] || recs[0] || {}).c;
@@ -445,8 +432,8 @@
       </section>
       <div class="db-co-kpis">${card(`${state.fy}년 매출`, r ? won(r.s1) : "-", r ? `${base.kind} ${peers.length}곳 중 ${salesRank}위` : "")}${card("매출 성장률", r ? sg(r.g) : "-", r ? `업종 ${rank("g", r.g)} · 중앙값 ${sg(med(peers.map((x) => x.g)))}` : "")}${card("영업이익률", r ? pc(r.m) : "-", r && r.m != null ? `업종 ${rank("m", r.m)} · 중앙값 ${pc(med(peers.map((x) => x.m)))}` : "")}${card("부채비율", r && r.debt != null ? pc(r.debt, 0) : "-", r && r.debt != null ? `업종 중앙값 ${pc(med(peers.map((x) => x.debt)), 0)}` : "자료 없음")}${card("기업 유형", r ? r.type : "-", `성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준`)}</div>
       <div class="db-grid r1">
-        <section class="db-card"><div class="db-card-head"><h2>연도별 매출·영업이익률</h2></div>${miniBars(base.y.map((y) => `${y}`), base.s, base.o)}</section>
-        <section class="db-card"><div class="db-card-head"><h2>분기별 매출·영업이익률</h2></div>${base.q ? miniBars(base.q.labels, base.q.sales, base.q.op) : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
+        <section class="db-card"><div class="db-card-head"><h2>연도별 매출·영업이익·이익률</h2></div><div class="db-chart">${comboChart(base.y.map((y) => `${y}년`), base.s, base.o, { values: true, bw: 30, legend: true, label: "연도별 매출·영업이익·영업이익률" })}</div></section>
+        <section class="db-card"><div class="db-card-head"><h2>분기별 매출·영업이익·이익률</h2></div>${base.q ? `<div class="db-chart">${comboChart(W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels, base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}</div>` : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
       </div>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>경영 변화 신호</h2></div>${sigs.length ? `<ul class="db-plain">${sigs.map((s) => `<li><span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span> ${esc(s.why(r))}<small> · 확인: ${s.check}</small></li>`).join("")}</ul>` : `<p class="db-empty">해당하는 신호가 없습니다.</p>`}</section>
