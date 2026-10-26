@@ -459,3 +459,10 @@ body.db { display: block; }
 .db-qwrap { overflow-x: auto; }
 .db-qtbl { min-width: 520px; }
 .db-qtbl td, .db-qtbl th { white-space: nowrap; }
+
+/* 핵심 지표: 첫 카드도 다른 카드와 같은 색(크기만 크게) */
+.db-kpi.hero, :root[data-theme="dark"] .db-kpi.hero { background: var(--card); border-color: var(--line); color: var(--text); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-kpi.hero { background: var(--card); border-color: var(--line); color: var(--text); } }
+.db-kpi.hero .lab, .db-kpi.hero .delta .vs, .db-kpi.hero strong small { color: var(--text-3); }
+.db-kpi.hero .lab i { color: var(--blue); }
+.db-kpi.hero .up { color: var(--up); } .db-kpi.hero .down { color: var(--down); }
