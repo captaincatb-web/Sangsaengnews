@@ -1,0 +1,15 @@
+{
+  "topic": "반도체와 AI의 관계",
+  "accent": "cyan",
+  "scenes": [
+    {"text": "AI는 어떻게 이렇게 똑똑해졌을까요?", "terms": "artificial intelligence robot", "scene": "icon", "icon": "robot", "title": "AI의 비밀"},
+    {"text": "그 비밀은 바로 반도체 칩에 있습니다.", "terms": "computer chip close up", "scene": "chip", "title": "반도체 칩"},
+    {"text": "AI는 학습할 때 엄청난 양의 계산을 합니다.", "terms": "neural network data visualization", "scene": "network", "icon": "brain", "title": "엄청난 계산"},
+    {"text": "이 계산은 GPU라는 반도체가 맡습니다.", "terms": "graphics card gpu", "scene": "flow", "icons": ["brain", "desktop-computer"], "labels": ["AI", "GPU"], "title": "GPU가 담당"},
+    {"text": "GPU는 수천 개의 계산을 동시에 처리합니다.", "terms": "processor cores circuit board", "scene": "grid", "title": "동시 처리"},
+    {"text": "데이터를 빠르게 나르는 메모리도 꼭 필요합니다.", "terms": "memory chip ram module", "scene": "flow", "icons": ["computer-disk", "desktop-computer"], "labels": ["메모리", "GPU"], "packet": "bar-chart", "title": "메모리 반도체"},
+    {"text": "AI가 커질수록 필요한 칩도 크게 늘어납니다.", "terms": "data center servers", "scene": "trend", "direction": "up", "label": "칩 수요 증가", "title": "늘어나는 수요"},
+    {"text": "그래서 세계 각국이 반도체 공장을 앞다퉈 짓고 있습니다.", "terms": "semiconductor factory cleanroom", "scene": "icons", "icons": ["factory", "globe-showing-asia-australia", "building-construction"], "title": "공장 경쟁"},
+    {"text": "반도체가 AI의 속도를 결정하는 시대입니다.", "terms": "futuristic technology speed", "scene": "icon", "icon": "rocket", "title": "AI의 속도"}
+  ]
+}
