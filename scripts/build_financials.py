@@ -49,11 +49,13 @@ ENGLISH = [("에스케이", "SK"), ("엘지", "LG"), ("오씨아이", "OCI"), ("
            ("엘엑스", "LX"), ("에이치피에스피", "HPSP"), ("케이엑스", "KX"), ("에스에프에이", "SFA"), ("피에스", "PS")]
 ALIAS = {"글로벌스탠다드테크놀로지": "GST", "원익IPS": "원익아이피에스"}
 # 명단 이름 → DART 회사명이 다를 때
-NAME_ALIAS = {"원익아이피에스": "원익IPS", "글로벌스탠다드테크놀로지": "GST", "아이에스시": "ISC", "원익큐엔씨": "원익QnC"}
+NAME_ALIAS = {"원익아이피에스": "원익IPS", "글로벌스탠다드테크놀로지": "GST", "아이에스시": "ISC", "원익큐엔씨": "원익QnC",
+              "에스에프에이넥셀": ["SFA NEXEL", "SFA넥셀"], "에스에프에이반도체": ["SFA Semicon", "SFA반도체"]}
 
 
 def variants(name: str) -> list:
-    base = [name, PLANT_SUFFIX.sub("", name).strip()] + ([NAME_ALIAS[name]] if name in NAME_ALIAS else [])
+    alias = NAME_ALIAS.get(name, [])
+    base = [name, PLANT_SUFFIX.sub("", name).strip()] + ([alias] if isinstance(alias, str) else list(alias))
     out = []
     for b in base:
         out.append(b)
