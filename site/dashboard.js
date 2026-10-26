@@ -202,14 +202,17 @@
   }
   function kindScatter(rows) {
     const pts = [];
-    KINDS.forEach((k) => [["상장", 1], ["비상장", 0]].forEach(([ln, l]) => {
-      const rs = rows.filter((r) => r.kind === k && r.l === l);
+    // 상장·비상장이 섞여 있을 때만 나눠 그린다(대상사가 모두 상장사면 업종만)
+    const split = rows.some((r) => r.l) && rows.some((r) => !r.l);
+    const groups = split ? [["상장", 1], ["비상장", 0]] : [["", null]];
+    KINDS.forEach((k) => groups.forEach(([ln, l]) => {
+      const rs = rows.filter((r) => r.kind === k && (l == null || r.l === l));
       if (rs.length < 3) return;
       const st = SB.stats(rs);
-      pts.push({ x: st.g, y: st.m, size: st.s1, color: KIND_COLOR[k], label: `${k}·${ln}`, tip: `${k} ${ln} ${st.n}곳 · 매출 ${won(st.s1)} · 성장 ${sg(st.g)} · 이익률 ${pc(st.m)}` });
+      pts.push({ x: st.g, y: st.m, size: st.s1, color: KIND_COLOR[k], label: ln ? `${k}·${ln}` : k, tip: `${k}${ln ? " " + ln : ""} ${st.n}곳 · 매출 ${won(st.s1)} · 성장 ${sg(st.g)} · 이익률 ${pc(st.m)}` });
     }));
     if (!pts.length) return `<p class="db-empty">자료가 없습니다.</p>`;
-    return scatter(pts, { sized: 1, fit: 1, h: 270, label: "업종·상장 여부별 성장률과 이익률" }) + note(`점선은 기업 유형 기준(성장 ${SB.HI_GROWTH}%, 이익률 ${SB.HI_MARGIN}%)입니다. 3곳 미만 집단은 뺐습니다.`);
+    return scatter(pts, { sized: 1, fit: 1, h: 270, label: "업종별 성장률과 이익률" }) + note(`점선은 기업 유형 기준(성장 ${SB.HI_GROWTH}%, 이익률 ${SB.HI_MARGIN}%)입니다. 3곳 미만 집단은 뺐습니다.`);
   }
   // 주요 변화 3건: 관측(데이터로 확인된 사실)과 해석(가설)을 나눠 적는다
   function changes(rows, S) {
