@@ -3,8 +3,8 @@ name: Company Profile Site to GitHub Pages
 on:
   push:
     branches:
+      # 배포 브랜치만. 작업 브랜치 푸시가 진행 중인 배포를 취소하지 않게 한다
       - claude/semiconductor-news-kakao-sender-1vfo23
-      - claude/adoring-mendel-tqejsu
     paths:
       - "site/**"
       - "scripts/build_company_profiles.py"
