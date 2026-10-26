@@ -15,7 +15,12 @@ on:
   schedule:
     # 매일 07:30 KST = 전날 22:30 UTC (DART 데이터·주가 갱신)
     - cron: "30 22 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "DART 데이터를 새로 수집 (끄면 저장해 둔 데이터로 바로 배포)"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -36,16 +41,62 @@ jobs:
       NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 화면만 고친 푸시는 저장해 둔 데이터로 바로 배포하고(1~3분),
+      # 정기 실행·수동 실행·수집 코드/명단 변경일 때만 DART 를 새로 수집한다(30~40분).
+      - name: Decide whether to collect
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          REFRESH: ${{ github.event.inputs.refresh }}
+        run: |
+          collect=true
+          if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+            echo "$changed"
+            if ! echo "$changed" | grep -qE '^(scripts/|requirements\.txt$|site/data/(companies|universe)\.js$)'; then collect=false; fi
+          fi
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$REFRESH" = "false" ]; then collect=false; fi
+          echo "collect=$collect" >> "$GITHUB_OUTPUT"
+          echo "새로 수집: $collect"
+
+      - name: Restore saved data
+        id: restore
+        if: ${{ steps.plan.outputs.collect == 'false' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            site/data/profiles.js
+            site/data/financials.js
+          key: site-data-${{ github.run_id }}
+          restore-keys: site-data-
+
+      # 저장해 둔 데이터가 없으면 새로 수집한다
+      - name: Fall back to collecting
+        id: need
+        run: |
+          if [ "${{ steps.plan.outputs.collect }}" = "true" ] || [ "${{ steps.restore.outputs.cache-matched-key }}" = "" ]; then
+            echo "collect=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "collect=false" >> "$GITHUB_OUTPUT"
+            echo "저장된 데이터 사용: ${{ steps.restore.outputs.cache-matched-key }}"
+          fi
 
       - uses: actions/setup-python@v5
+        if: ${{ steps.need.outputs.collect == 'true' }}
         with:
           python-version: "3.11"
 
       - run: pip install -r requirements.txt
+        if: ${{ steps.need.outputs.collect == 'true' }}
 
       # DART_API_KEY 가 없으면 건너뛰고 기본 정보만 배포한다
       - name: Collect DART profiles
-        if: ${{ env.DART_API_KEY != '' }}
+        id: profiles
+        if: ${{ env.DART_API_KEY != '' && steps.need.outputs.collect == 'true' }}
         # 수집이 실패해도 사이트는 기본 정보로 배포한다
         continue-on-error: true
         timeout-minutes: 45
@@ -53,10 +104,21 @@ jobs:
 
       # 협력사 명단 전체의 연간·분기 실적 (성장 분석용). 실패해도 사이트는 배포한다
       - name: Collect financials for analysis
-        if: ${{ env.DART_API_KEY != '' }}
+        id: financials
+        if: ${{ env.DART_API_KEY != '' && steps.need.outputs.collect == 'true' }}
         continue-on-error: true
         timeout-minutes: 45
         run: python scripts/build_financials.py
+
+      # 둘 다 성공했을 때만 저장한다(실패한 반쪽 데이터가 다음 배포에 쓰이지 않게)
+      - name: Save collected data
+        if: ${{ steps.profiles.outcome == 'success' && steps.financials.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            site/data/profiles.js
+            site/data/financials.js
+          key: site-data-${{ github.run_id }}
 
       - uses: actions/configure-pages@v5
 
