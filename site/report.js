@@ -112,7 +112,7 @@
       return `<div class="rp-q ${cls}"><p>${k}<small>${sub}</small></p><strong>${l.length}곳 <em>${pc(share(l.length, annual.length), 0)}</em></strong><span>${esc(l.sort((a, b) => b.s1 - a.s1).slice(0, 3).map((r) => r.n).join(" · ") || "-")}</span></div>`;
     };
     return `<div class="rp-quad"><div class="rp-axis y">영업이익률 ${HI_MARGIN}% 기준</div>
-      ${box(T[1], `성장 ${HI_GROWTH}% 미만 · 이익률 ${HI_MARGIN}% 이상`, "b")}${box(T[0], `성장 ${HI_GROWTH}% 이상 · 이익률 ${HI_MARGIN}% 이상`, "a")}${box(T[3], `성장 ${HI_GROWTH}% 미만 · 이익률 ${HI_MARGIN}% 미만`, "d")}${box(T[2], `성장 ${HI_GROWTH}% 이상 · 이익률 ${HI_MARGIN}% 미만`, "c")}
+      ${box(T[1], `성장 ${HI_GROWTH}% 미만 · 이익률 ${HI_MARGIN}% 이상`, "t1")}${box(T[0], `성장 ${HI_GROWTH}% 이상 · 이익률 ${HI_MARGIN}% 이상`, "t0")}${box(T[3], `성장 ${HI_GROWTH}% 미만 · 이익률 ${HI_MARGIN}% 미만`, "t3")}${box(T[2], `성장 ${HI_GROWTH}% 이상 · 이익률 ${HI_MARGIN}% 미만`, "t2")}
       <div class="rp-axis x">매출 성장률 ${HI_GROWTH}% 기준</div></div>`;
   }
   function slide2() {
@@ -133,7 +133,7 @@
         <p class="sl-meta">${esc(SB.describe(st))} · 분석대상 ${A.n}개사 · 업종 추정 ${est}곳 포함</p></header>
       <div class="sl-body two">
         <section class="sl-col"><h3>업종별 경영실적</h3><table class="sl-table">${head("구분")}<tbody>${kinds.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>
-          <h3>상장·비상장 경영실적 비교</h3><table class="sl-table">${head("구분")}<tbody>${ls.filter(([, l]) => l.length).map(([k, l]) => row(k, stats(l))).join("")}</tbody></table></section>
+          ${L.n && U.n ? `<h3>상장·비상장 경영실적 비교</h3><table class="sl-table">${head("구분")}<tbody>${ls.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>` : ""}</section>
         <section class="sl-col"><h3>성장성·수익성 기반 업체 분류 <small>업체 ${A.n}곳</small></h3>${quadrant()}</section>
       </div>
       <footer class="sl-foot"><h3>종합 분석 및 시사점</h3><ul>${bullets.join("")}</ul></footer>`;

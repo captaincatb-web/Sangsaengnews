@@ -70,6 +70,7 @@
 
     <!-- 01 Executive Overview -->
     <div class="db-view" id="v-overview" data-view="overview">
+      <p class="db-headline" id="headline" aria-live="polite"></p>
       <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
       <div class="db-grid r1">
         <section class="db-card" aria-labelledby="t-yearly">
@@ -165,9 +166,9 @@
 
     <!-- 04 경영 변화·위험 신호 -->
     <div class="db-view" id="v-signals" data-view="signals" hidden>
-      <section class="db-sig-cards" id="c-sigcards" aria-label="신호별 해당 기업 수"></section>
+      <section class="db-sig-cards" id="c-sigcards" aria-label="신호별 해당 기업 수(눌러서 목록 거르기)"></section>
       <section class="db-card" aria-labelledby="t-signal">
-        <div class="db-card-head"><h2 id="t-signal">추가 검토 대상 <small>위험 기업이 아니라 확인이 필요한 기업입니다</small></h2><div class="db-chips" role="radiogroup" aria-label="신호" id="sig-chips"></div></div>
+        <div class="db-card-head"><h2 id="t-signal">추가 검토 대상 <small>위험 기업이 아니라 확인이 필요한 기업입니다</small></h2></div>
         <div class="db-tbl-wrap"><table class="db-tbl" id="c-signal"></table></div>
         <p class="db-more"><button class="db-link" type="button" id="sig-more" hidden></button></p>
       </section>

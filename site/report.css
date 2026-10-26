@@ -38,7 +38,9 @@
 .rp-q p { margin: 0; font-weight: 700; font-size: 15px; } .rp-q p small { display: block; font-weight: 400; font-size: 12px; color: #464c53; }
 .rp-q strong { font-size: 26px; } .rp-q strong em { font-size: 14px; font-weight: 400; font-style: normal; color: #464c53; }
 .rp-q span { font-size: 12px; color: #464c53; line-height: 1.4; }
-.rp-q.a { background: #e1e9fb; } .rp-q.b { background: #dff3ee; } .rp-q.c { background: #fdf0d8; } .rp-q.d { background: #fbe4e1; }
+/* 유형 색은 대시보드와 같다(metrics.js TYPE_COLOR): 고성장·고수익 초록, 저성장·고수익 파랑, 고성장·저수익 주황, 저성장·저수익 빨강 */
+.rp-q.t0 { background: #dcf1e7; } .rp-q.t1 { background: #e1e9fb; } .rp-q.t2 { background: #fdeed8; } .rp-q.t3 { background: #fbe4e1; }
+.rp-q.t0 p { color: #0d6b45; } .rp-q.t1 p { color: #2a56c6; } .rp-q.t2 p { color: #9a4f00; } .rp-q.t3 p { color: #a3271d; }
 .rp-axis { position: absolute; font-size: 12px; color: #58616a; }
 .rp-axis.y { left: 0; top: 50%; transform: translate(-50%, 0) rotate(-90deg); transform-origin: center; white-space: nowrap; margin-left: 6px; }
 .rp-axis.x { left: 22px; right: 0; bottom: 0; text-align: center; }

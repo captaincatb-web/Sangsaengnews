@@ -55,6 +55,7 @@
     const form = dlg.querySelector("form"), input = dlg.querySelector("#auth-pw"), msg = dlg.querySelector("#auth-msg"), go = dlg.querySelector("#auth-go");
     const paint = () => {
       const on = !!state.data;
+      btn.hidden = !on && !window.INTERNAL_ENC; // 올라온 내부 정보가 없으면 비밀번호를 묻지 않는다
       btn.classList.toggle("on", on);
       btn.innerHTML = on ? '<i class="ph ph-lock-open" aria-hidden="true"></i>내부 정보 표시 중 · 잠그기' : '<i class="ph ph-lock-key" aria-hidden="true"></i>내부 정보 보기';
     };

@@ -23,6 +23,9 @@
   const KINDS = ["소재", "부품", "장비", "IT·서비스", NA], AREAS = ["서울", "경기", "충청", "경상", "전라", "기타"];
   const HI_GROWTH = 10, HI_MARGIN = 5;
   const TYPES = ["고성장·고수익", "저성장·고수익", "고성장·저수익", "저성장·저수익"]; // 판정이 아닌 위치 표시(중립 명칭)
+  // 유형 색: 대시보드·보고서가 같은 색을 쓴다(저성장·저수익은 살펴볼 집단이라 경고색)
+  const TYPE_COLOR = { [TYPES[0]]: "#16a06a", [TYPES[1]]: "#3b6fe0", [TYPES[2]]: "#f08a1c", [TYPES[3]]: "#c93a2e" };
+  const typeIdx = (t) => TYPES.indexOf(t);
   const typeOf = (g, m) => (g >= HI_GROWTH ? (m >= HI_MARGIN ? TYPES[0] : TYPES[2]) : m >= HI_MARGIN ? TYPES[1] : TYPES[3]);
   const BIG = "1조 이상"; // 대형사: 최근 매출 1조 원 이상, 기본 집계에서 제외
 
@@ -120,16 +123,18 @@
 
   // ---------- 위험 신호(확정 기준) ----------
   const SIGNALS = [
-    { key: "급감", label: "매출 급감", rule: "전년 대비 매출 −30% 이하", test: (r) => r.g <= -30, why: (r) => `매출 ${sg(r.g)}`, check: "업황, 사업 매각, 결산 범위 변경" },
-    { key: "적자전환", label: "적자 전환", rule: "전년 흑자 → 당해 영업적자", test: (r) => r.o0 > 0 && r.o1 < 0, why: (r) => `영업이익 ${won(r.o0)} → ${won(r.o1)}`, check: "일회성 비용 여부" },
-    { key: "적자지속", label: "적자 지속", rule: "2년 연속 영업적자", test: (r) => r.o0 < 0 && r.o1 < 0, why: (r) => `2년 연속 영업적자(${won(r.o1)})`, check: "구조적 수익성 문제" },
-    { key: "악화", label: "수익성 악화", rule: "영업이익률 2년 연속 1%p 이상 하락", test: (r) => { const m2 = r.s2 > 0 && r.o2 != null ? share(r.o2, r.s2) : null; return m2 != null && r.m0 != null && r.m != null && r.m0 < m2 - 1 && r.m < r.m0 - 1; },
+    { key: "급감", sev: 1, label: "매출 급감", rule: "전년 대비 매출 −30% 이하", test: (r) => r.g <= -30, why: (r) => `매출 ${sg(r.g)}`, check: "업황, 사업 매각, 결산 범위 변경" },
+    { key: "적자전환", sev: 1, label: "적자 전환", rule: "전년 흑자 → 당해 영업적자", test: (r) => r.o0 > 0 && r.o1 < 0, why: (r) => `영업이익 ${won(r.o0)} → ${won(r.o1)}`, check: "일회성 비용 여부" },
+    { key: "적자지속", sev: 1, label: "적자 지속", rule: "2년 연속 영업적자", test: (r) => r.o0 < 0 && r.o1 < 0, why: (r) => `2년 연속 영업적자(${won(r.o1)})`, check: "구조적 수익성 문제" },
+    { key: "악화", sev: 2, label: "수익성 악화", rule: "영업이익률 2년 연속 1%p 이상 하락", test: (r) => { const m2 = r.s2 > 0 && r.o2 != null ? share(r.o2, r.s2) : null; return m2 != null && r.m0 != null && r.m != null && r.m0 < m2 - 1 && r.m < r.m0 - 1; },
       why: (r) => `이익률 ${pc(share(r.o2, r.s2))} → ${pc(r.m0)} → ${pc(r.m)}`, check: "제품 구성, 원가, 가격" },
-    { key: "정체", label: "성장 정체", rule: "2년 연속 성장률 3% 미만", test: (r) => r.s2 > 0 && growth(r.s0, r.s2) < 3 && r.g < 3, why: (r) => `성장률 ${sg(growth(r.s0, r.s2))} → ${sg(r.g)}`, check: "시장 성숙, 사업 전환" },
-    { key: "분기적자", label: "분기 연속 적자", rule: "최근 4개 분기 모두 영업적자(상장)", test: (r) => !!r.q && r.q.op.length >= 4 && r.q.op.slice(-4).every((v) => v != null && v < 0), why: () => "최근 4개 분기 모두 영업적자", check: "유동성" },
-    { key: "이상", label: "데이터 이상", rule: "매출 5배 이상 변동 또는 ±200%", test: (r) => r.s1 / r.s0 >= 5 || r.s0 / r.s1 >= 5 || Math.abs(r.g) >= 200, why: (r) => `매출 ${won(r.s0)} → ${won(r.s1)}`, check: "단위·입력 오류" },
+    { key: "정체", sev: 2, label: "성장 정체", rule: "2년 연속 성장률 3% 미만", test: (r) => r.s2 > 0 && growth(r.s0, r.s2) < 3 && r.g < 3, why: (r) => `성장률 ${sg(growth(r.s0, r.s2))} → ${sg(r.g)}`, check: "시장 성숙, 사업 전환" },
+    { key: "분기적자", sev: 1, label: "분기 연속 적자", rule: "최근 4개 분기 모두 영업적자(상장)", test: (r) => !!r.q && r.q.op.length >= 4 && r.q.op.slice(-4).every((v) => v != null && v < 0), why: () => "최근 4개 분기 모두 영업적자", check: "유동성" },
+    { key: "이상", sev: 3, label: "데이터 이상", rule: "매출 5배 이상 변동 또는 ±200%", test: (r) => r.s1 / r.s0 >= 5 || r.s0 / r.s1 >= 5 || Math.abs(r.g) >= 200, why: (r) => `매출 ${won(r.s0)} → ${won(r.s1)}`, check: "단위·입력 오류" },
   ];
-  const signalsOf = (r) => SIGNALS.filter((s) => s.test(r));
+  // 심각도: 1 우선 확인(적자·급감), 2 주의(추세 둔화), 3 자료 점검
+  const SEV = { 1: "우선 확인", 2: "주의", 3: "자료 점검" };
+  const signalsOf = (r) => SIGNALS.filter((s) => s.test(r)).sort((a, b) => a.sev - b.sev);
 
   const FORMULAS = [
     "매출 성장률(동일 기업) = Σ당기 매출 ÷ Σ전기 매출 − 1, 두 해 매출이 모두 있는 기업",
@@ -142,7 +147,7 @@
 
   window.SB = {
     fmt: { num, won, pc, sg, pp, tone, esc }, math: { sum, med, quantile, growth, share },
-    NA, KINDS, AREAS, TYPES, HI_GROWTH, HI_MARGIN, BIG, SIGNALS, FORMULAS,
+    NA, KINDS, AREAS, TYPES, TYPE_COLOR, typeIdx, SEV, HI_GROWTH, HI_MARGIN, BIG, SIGNALS, FORMULAS,
     recs, DEFAULT_FY, DEFAULTS, FILTER_KEYS, typeOf, isBig, makeFilter, toQuery, fromQuery, describe,
     at, panel, stats, fullSample, concentration, quarters, signalsOf,
     meta: window.COMPANY_FINANCIALS_META || {},
