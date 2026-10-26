@@ -111,7 +111,13 @@ def resolve(entries: list, corps: list, api_key: str | None = None) -> tuple:
     for entry in entries:
         name, key = entry[0], entry[1]
         biz = re.sub(r"\D", "", entry[3]) if len(entry) > 3 and entry[3] else ""
-        hits = next((by_name[v] for v in variants(name) if v in by_name), [])
+        # 한글·영문 표기 후보를 모두 모은다(같은 이름의 소규모 회사가 먼저 걸리지 않게)
+        seen, hits = set(), []
+        for v in variants(name):
+            for c in by_name.get(v, []):
+                if c["corp_code"] not in seen:
+                    seen.add(c["corp_code"]); hits.append(c)
+        hits.sort(key=lambda c: not c["stock_code"])  # 상장사부터 확인
         if not hits and biz:  # 이름이 조금 달라도 앞부분이 같은 회사를 후보로 둔다
             n = variants(name)[0]
             hits = [c for k, cs in by_name.items() if len(n) >= 2 and (k.startswith(n) or n.startswith(k)) and len(k) >= 2 for c in cs][:8]
@@ -125,7 +131,7 @@ def resolve(entries: list, corps: list, api_key: str | None = None) -> tuple:
         if not pick:
             if biz and biz[3:5] == "85":
                 checked["지점번호"] += 1
-            exact = next((by_name[v] for v in variants(name) if v in by_name), [])
+            exact = [c for c in hits if norm(c["name"]) in variants(name)]
             listed = [c for c in exact if c["stock_code"]]
             cand = listed if len(exact) > 1 and len(listed) == 1 else exact
             if len(cand) == 1:
