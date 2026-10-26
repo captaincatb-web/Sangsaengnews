@@ -3,8 +3,8 @@ name: Company Profile Site to GitHub Pages
 on:
   push:
     branches:
+      # 배포 브랜치만. 작업 브랜치 푸시가 진행 중인 배포를 취소하지 않게 한다
       - claude/semiconductor-news-kakao-sender-1vfo23
-      - claude/adoring-mendel-tqejsu
     paths:
       - "site/**"
       - "scripts/build_company_profiles.py"
@@ -107,7 +107,8 @@ jobs:
         id: financials
         if: ${{ env.DART_API_KEY != '' && steps.need.outputs.collect == 'true' }}
         continue-on-error: true
-        timeout-minutes: 45
+        # 351곳 연간·분기·임직원 조회로 40분 안팎 걸린다. 여유를 둔다
+        timeout-minutes: 75
         run: python scripts/build_financials.py
 
       # 둘 다 성공했을 때만 저장한다(실패한 반쪽 데이터가 다음 배포에 쓰이지 않게)

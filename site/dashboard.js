@@ -165,14 +165,31 @@
     pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pc(p[2])}</text>`));
     return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
   }
+  // 연도별 수치 표: 매출·영업이익·이익률·임직원, 마지막 열은 전년 대비
+  const people = (v) => (v == null ? "-" : `${Math.round(v).toLocaleString("ko-KR")}명`);
+  function yearTable(years, s, o, e, eNote) {
+    const n = years.length, last = n - 1, m = s.map((v, i) => (v > 0 && o[i] != null ? share(o[i], v) : null));
+    const chg = (a, b, f) => (a == null || b == null ? "-" : f(a, b));
+    const row = (k, vals, fmt, d) => `<tr><th scope="row">${k}</th>${vals.map((v) => `<td>${fmt(v)}</td>`).join("")}<td class="${d.cls || ""}">${d.txt}</td></tr>`;
+    const gr = (a, b) => { const v = growth(a, b); return { txt: sg(v), cls: tone(v) }; };
+    const sd = n > 1 ? gr(s[last], s[last - 1]) : { txt: "-" }, od = n < 2 || o[last] == null || o[last - 1] == null ? { txt: "-" }
+      : o[last - 1] > 0 && o[last] < 0 ? { txt: "적자 전환", cls: "down" } : o[last - 1] < 0 && o[last] > 0 ? { txt: "흑자 전환", cls: "up" }
+      : o[last - 1] < 0 ? { txt: "적자 지속", cls: "down" } : gr(o[last], o[last - 1]);
+    const md = n > 1 && m[last] != null && m[last - 1] != null ? { txt: pp(m[last] - m[last - 1]), cls: tone(m[last] - m[last - 1]) } : { txt: "-" };
+    const ed = n > 1 && e && e[last] != null && e[last - 1] > 0 ? (() => { const d = e[last] - e[last - 1]; return { txt: `${d > 0 ? "+" : ""}${d.toLocaleString("ko-KR")}명 (${sg(growth(e[last], e[last - 1]))})`, cls: tone(d) }; })() : { txt: "-" };
+    return `<table class="db-tbl db-ytbl"><thead><tr><th scope="col">구분</th>${years.map((y) => `<th scope="col">${y}</th>`).join("")}<th scope="col">전년 대비</th></tr></thead><tbody>`
+      + row("매출", s, won, sd) + row("영업이익", o, won, od) + row("영업이익률", m, (v) => pc(v), md)
+      + row("임직원", e || years.map(() => null), people, ed) + `</tbody></table>${eNote ? `<p class="db-mini">${eNote}</p>` : ""}`;
+  }
   function yearlyChart(rows) {
     const fy = state.fy, P = rows.filter((r) => r.s2 > 0 && r.o2 != null && r.o0 != null && r.o1 != null);
     $("yearly-sub").textContent = P.length ? `3년 실적이 모두 있는 ${P.length}곳` : "";
     if (!P.length) return `<p class="db-empty">이 조건에는 3년 실적이 모두 있는 기업이 없습니다.</p>`;
     const s = [sum(P.map((r) => r.s2)), sum(P.map((r) => r.s0)), sum(P.map((r) => r.s1))], o = [sum(P.map((r) => r.o2)), sum(P.map((r) => r.o0)), sum(P.map((r) => r.o1))];
-    const m = s.map((v, i) => share(o[i], v)), sgv = growth(s[2], s[1]), ogv = o[1] > 0 ? growth(o[2], o[1]) : null;
-    return comboChart([fy - 2, fy - 1, fy].map((y) => `${y}년`), s, o, { values: true, bw: 34, label: "연도별 매출·영업이익·영업이익률" })
-      + note(`${fy}년 매출 ${won(s[2])}원(<b class="${tone(sgv)}">${sg(sgv)}</b>), 영업이익 ${won(o[2])}원${ogv == null ? "" : `(<b class="${tone(ogv)}">${sg(ogv)}</b>)`}, 이익률 ${pc(m[1])} → <b>${pc(m[2])}</b>.`);
+        const PE = P.filter((r) => r.e2 != null && r.e0 != null && r.e1 != null), e = PE.length ? [sum(PE.map((r) => r.e2)), sum(PE.map((r) => r.e0)), sum(PE.map((r) => r.e1))] : null;
+    const yrs = [fy - 2, fy - 1, fy].map((y) => `${y}년`);
+    return comboChart(yrs, s, o, { values: true, bw: 34, label: "연도별 매출·영업이익·영업이익률" })
+      + yearTable(yrs, s, o, e, e ? `임직원은 3년 모두 사업보고서로 공시한 ${PE.length}곳 합계입니다(감사보고서만 내는 비상장사는 공시하지 않음).` : "임직원 수는 사업보고서 제출 기업만 공시합니다. 다음 자동 갱신 후 표시됩니다.");
   }
   function trendChart(list) {
     const Q = SB.quarters(list);
@@ -432,8 +449,8 @@
       </section>
       <div class="db-co-kpis">${card(`${state.fy}년 매출`, r ? won(r.s1) : "-", r ? `${base.kind} ${peers.length}곳 중 ${salesRank}위` : "")}${card("매출 성장률", r ? sg(r.g) : "-", r ? `업종 ${rank("g", r.g)} · 중앙값 ${sg(med(peers.map((x) => x.g)))}` : "")}${card("영업이익률", r ? pc(r.m) : "-", r && r.m != null ? `업종 ${rank("m", r.m)} · 중앙값 ${pc(med(peers.map((x) => x.m)))}` : "")}${card("부채비율", r && r.debt != null ? pc(r.debt, 0) : "-", r && r.debt != null ? `업종 중앙값 ${pc(med(peers.map((x) => x.debt)), 0)}` : "자료 없음")}${card("기업 유형", r ? r.type : "-", `성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준`)}</div>
       <div class="db-grid r1">
-        <section class="db-card"><div class="db-card-head"><h2>연도별 매출·영업이익·이익률</h2></div><div class="db-chart">${comboChart(base.y.map((y) => `${y}년`), base.s, base.o, { values: true, bw: 30, legend: true, label: "연도별 매출·영업이익·영업이익률" })}</div></section>
-        <section class="db-card"><div class="db-card-head"><h2>분기별 매출·영업이익·이익률</h2></div>${base.q ? `<div class="db-chart">${comboChart(W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels, base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}</div>` : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
+        <section class="db-card"><div class="db-card-head"><h2>연도별 실적</h2></div><div class="db-chart">${comboChart(base.y.map((y) => `${y}년`), base.s, base.o, { values: true, bw: 30, legend: true, label: "연도별 매출·영업이익·영업이익률" })}${yearTable(base.y.map((y) => `${y}년`), base.s, base.o, base.e, base.e ? "" : base.src === "감사보고서" ? "임직원 수: 감사보고서만 내는 회사라 공시하지 않습니다." : "임직원 수: 다음 자동 갱신 후 표시됩니다.")}</div></section>
+        <section class="db-card"><div class="db-card-head"><h2>분기별 실적 <small>임직원 수는 연간만 공시</small></h2></div>${base.q ? `<div class="db-chart">${comboChart(W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels, base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}</div>` : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
       </div>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>경영 변화 신호</h2></div>${sigs.length ? `<ul class="db-plain">${sigs.map((s) => `<li><span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span> ${esc(s.why(r))}<small> · 확인: ${s.check}</small></li>`).join("")}</ul>` : `<p class="db-empty">해당하는 신호가 없습니다.</p>`}</section>

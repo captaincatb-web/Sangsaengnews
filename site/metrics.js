@@ -82,6 +82,7 @@
       const o1 = at(r, r.o, fy), o0 = at(r, r.o, fy - 1), g = growth(s1, s0), m = o1 == null ? null : share(o1, s1);
       const tl = at(r, r.tl, fy), te = at(r, r.te, fy);
       return { ...r, s1, s0, o1, o0, s2: at(r, r.s, fy - 2), o2: at(r, r.o, fy - 2), g, m, m0: o0 == null ? null : share(o0, s0),
+        e1: at(r, r.e, fy), e0: at(r, r.e, fy - 1), e2: at(r, r.e, fy - 2),
         debt: tl != null && te > 0 ? share(tl, te) : null, type: m == null ? "-" : typeOf(g, m) };
     }).filter(Boolean);
   }

@@ -179,6 +179,19 @@ def collect(api_key: str, corp_code: str, name: str, key: str | None) -> dict | 
            "y": years, "s": rows.get("매출액", []), "o": rows.get("영업이익", []), "ni": rows.get("당기순이익", []),
            "ta": rows.get("총자산", []), "tl": rows.get("부채총계", []), "te": rows.get("자본총계", []),
            "src": source}
+    # 임직원 수(사업보고서 '직원 현황' 합계). 감사보고서만 내는 회사는 공시하지 않는다
+    if source == "사업보고서" and years:
+        emp = []
+        for y in years:
+            try:
+                emp.append(bcp.fetch_employees(api_key, corp_code, y).get("count"))
+            except bcp.DartUnreachable:
+                raise
+            except Exception as e:  # 임직원 수를 못 읽어도 실적은 저장한다
+                print(f"[employees] {corp_code} {name} {y}: {e}")
+                emp.append(None)
+        if any(v is not None for v in emp):
+            rec["e"] = emp
     if listed:
         try:
             rec["q"] = quarter_series(api_key, corp_code, this_year)
