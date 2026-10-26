@@ -133,22 +133,52 @@
       { icon: "ph-scales", label: "상위 10개사 집중도", value: pc(SB.concentration(rows, 10), 0), delta: `<span class="vs">상위 50개사 ${pc(SB.concentration(rows, 50), 0)}</span>` },
     ].map(kpi).join("");
   }
+  // 매출·영업이익 막대(왼쪽 축) + 영업이익률 선(오른쪽 축)
+  function comboChart(labels, sales, ops, opt = {}) {
+    const n = labels.length, H = 260, L = 50, R = 12, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 62; // 위 62px는 이익률 선, 아래는 막대
+    const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null));
+    const hi = Math.max(...sales, ...ops.filter((v) => v != null), 1) * (opt.values ? 1.15 : 1.05), lo = Math.min(0, ...ops.filter((v) => v != null)) * 1.12;
+    const bh = ph - band, y = (v) => T + band + bh - ((v - lo) / (hi - lo)) * bh;
+    const mv = margins.filter((v) => v != null), mHi = Math.max(...mv), mLo = Math.min(...mv), span = Math.max(mHi - mLo, 2);
+    const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30); // 값 차이만 보이도록 띠 안에서 늘린다
+    const slot = pw / n, bw = Math.min(opt.bw || 22, slot * 0.32), cx = (i) => L + slot * i + slot / 2;
+    let g = "";
+    g += `<text class="ax" x="${L - 6}" y="${T + 12}" text-anchor="end">이익률</text><line class="grid" x1="${L}" x2="${W - R}" y1="${T + band - 4}" y2="${T + band - 4}" stroke-dasharray="2 3"/>`;
+    for (let i = 0; i <= 4; i++) {
+      const v = lo + ((hi - lo) * i) / 4;
+      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${won(v)}</text>`;
+    }
+    if (lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
+    labels.forEach((l, i) => {
+      const x = cx(i), s = sales[i], o = ops[i];
+      g += `<rect x="${x - bw - 1}" y="${y(Math.max(s, 0))}" width="${bw}" height="${Math.abs(y(s) - y(0))}" rx="3" fill="var(--blue)"/>`;
+      if (o != null) g += `<rect x="${x + 1}" y="${y(Math.max(o, 0))}" width="${bw}" height="${Math.max(1, Math.abs(y(o) - y(0)))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
+      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${y(Math.max(s, 0)) - 5}" text-anchor="middle">${won(s)}</text>${o != null ? `<text class="val" x="${x + bw / 2 + 1}" y="${y(Math.max(o, 0)) - 5}" text-anchor="middle">${won(o)}</text>` : ""}`;
+      g += `<text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`;
+      g += `<rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}" data-tip="${l} 매출 ${won(s)} · 영업이익 ${won(o)} · 이익률 ${pc(margins[i])}"/>`;
+    });
+    const pts = margins.map((m, i) => (m == null ? null : [cx(i), ym(m), m])).filter(Boolean);
+    g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>`;
+    pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pc(p[2])}</text>`));
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
+  }
+  function yearlyChart(rows) {
+    const fy = state.fy, P = rows.filter((r) => r.s2 > 0 && r.o2 != null && r.o0 != null && r.o1 != null);
+    $("yearly-sub").textContent = P.length ? `3년 실적이 모두 있는 ${P.length}곳` : "";
+    if (!P.length) return `<p class="db-empty">이 조건에는 3년 실적이 모두 있는 기업이 없습니다.</p>`;
+    const s = [sum(P.map((r) => r.s2)), sum(P.map((r) => r.s0)), sum(P.map((r) => r.s1))], o = [sum(P.map((r) => r.o2)), sum(P.map((r) => r.o0)), sum(P.map((r) => r.o1))];
+    const m = s.map((v, i) => share(o[i], v)), sgv = growth(s[2], s[1]), ogv = o[1] > 0 ? growth(o[2], o[1]) : null;
+    return comboChart([fy - 2, fy - 1, fy].map((y) => `${y}년`), s, o, { values: true, bw: 34, label: "연도별 매출·영업이익·영업이익률" })
+      + note(`${fy}년 매출 ${won(s[2])}원(<b class="${tone(sgv)}">${sg(sgv)}</b>), 영업이익 ${won(o[2])}원${ogv == null ? "" : `(<b class="${tone(ogv)}">${sg(ogv)}</b>)`}, 이익률 ${pc(m[1])} → <b>${pc(m[2])}</b>.`);
+  }
   function trendChart(list) {
     const Q = SB.quarters(list);
     $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · 최근 8개 분기` : "";
     if (!Q.P.length) return `<p class="db-empty">이 조건에는 분기 실적이 있는 상장사가 없습니다. 비상장사는 분기 실적을 공시하지 않습니다.</p>`;
-    const { labels, s } = Q, H = 230, L = 46, R = 70, T = 18, B = 28, pw = W - L - R, ph = H - T - B, max = Math.max(...s) * 1.1;
-    const x = (i) => L + (pw * i) / (labels.length - 1), y = (v) => T + ph - (v / max) * ph;
-    let g = "";
-    for (let i = 0; i <= 4; i++) { const v = (max * i) / 4; g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${won(v)}</text>`; }
-    labels.forEach((l, i) => (g += `<text class="ax" x="${x(i)}" y="${H - 8}" text-anchor="middle">${l}</text>`));
-    g += `<path d="M${x(0)},${y(0)} ${s.map((v, i) => `L${x(i)},${y(v)}`).join(" ")} L${x(s.length - 1)},${y(0)}Z" fill="var(--blue)" opacity=".1"/>`;
-    g += `<polyline points="${s.slice(0, 4).map((v, i) => `${x(i + 4)},${y(v)}`).join(" ")}" fill="none" stroke="var(--text-3)" stroke-width="1.6" stroke-dasharray="4 4"/>`;
-    g += `<polyline points="${s.map((v, i) => `${x(i)},${y(v)}`).join(" ")}" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>`;
-    s.forEach((v, i) => (g += `<circle cx="${x(i)}" cy="${y(v)}" r="${i === 7 ? 5 : 3}" fill="${i === 7 ? "var(--blue)" : "var(--card)"}" stroke="var(--blue)" stroke-width="2"/><rect class="hit" x="${x(i) - 18}" y="${T}" width="36" height="${ph}" data-tip="${labels[i]} 매출 ${won(v)}${i >= 4 ? ` · 전년 동기 ${won(s[i - 4])} (${sg(growth(v, s[i - 4]))})` : ""}"/>`));
-    const yoy = growth(s[7], s[3]), ltm = growth(sum(s.slice(4)), sum(s.slice(0, 4))), cx = x(7) + 10, cy = Math.max(T + 2, y(s[7]) - 34);
-    g += `<rect class="callout" x="${cx - 4}" y="${cy}" width="${R - 2}" height="34" rx="6"/><text class="callout-t" x="${cx + 2}" y="${cy + 14}">전년 동기</text><text class="callout-t" x="${cx + 2}" y="${cy + 28}">${sg(yoy)}</text>`;
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="분기 매출 추이">${g}</svg>` + note(`최근 4분기 매출 ${won(sum(s.slice(4)))}원, 직전 4분기 대비 <b class="${tone(ltm)}">${sg(ltm)}</b>.`);
+    const { labels, s, o } = Q, ltm = growth(sum(s.slice(4)), sum(s.slice(0, 4))), yoy = growth(s[7], s[3]);
+    const short = W < 450 ? labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : labels;
+    return comboChart(short, s, o, { bw: 12, label: "분기 매출·영업이익·영업이익률" })
+      + note(`최근 분기(${labels[7]}) 매출 전년 동기 대비 <b class="${tone(yoy)}">${sg(yoy)}</b> · 최근 4분기 합계 ${won(sum(s.slice(4)))}원, 직전 4분기 대비 <b class="${tone(ltm)}">${sg(ltm)}</b>.`);
   }
   function kindScatter(rows) {
     const pts = [];
@@ -449,12 +479,13 @@
     F = SB.makeFilter(state, internal);
     const list = recs.filter(F.inFilter), rows = SB.panel(list, state.fy), S = SB.stats(rows), FS = SB.fullSample(list, state.fy);
     $("sub").textContent = `${SB.describe(state)} · 개별 기준 · 분석 ${S.n}곳 (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})`;
-    const ids = ["c-trend", "c-kindsc", "c-changes", "c-insight", "c-mix", "c-region", "c-summary", "c-conc", "c-cosc", "c-box", "c-top", "c-fast", "c-funnel"];
+    const ids = ["c-yearly", "c-trend", "c-kindsc", "c-changes", "c-insight", "c-mix", "c-region", "c-summary", "c-conc", "c-cosc", "c-box", "c-top", "c-fast", "c-funnel"];
     if (!rows.length) {
       $("kpis").innerHTML = `<p class="db-empty">조건에 맞는 기업이 없습니다. 필터를 초기화해 보세요.</p>`;
       ids.forEach((id) => ($(id).innerHTML = ""));
     } else {
       kpis(rows, S, FS);
+      $("c-yearly").innerHTML = yearlyChart(rows);
       $("c-trend").innerHTML = trendChart(list);
       $("c-kindsc").innerHTML = kindScatter(rows);
       $("c-changes").innerHTML = changes(rows, S);
