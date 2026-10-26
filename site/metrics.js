@@ -86,6 +86,7 @@
       const tl = at(r, r.tl, fy), te = at(r, r.te, fy);
       return { ...r, s1, s0, o1, o0, s2: at(r, r.s, fy - 2), o2: at(r, r.o, fy - 2), g, m, m0: o0 == null ? null : share(o0, s0),
         e1: at(r, r.e, fy), e0: at(r, r.e, fy - 1), e2: at(r, r.e, fy - 2),
+        prod: at(r, r.e, fy) > 0 ? s1 / at(r, r.e, fy) : null, // 1인당 매출(억원)
         debt: tl != null && te > 0 ? share(tl, te) : null, type: m == null ? "-" : typeOf(g, m) };
     }).filter(Boolean);
   }
@@ -100,6 +101,9 @@
       upN: rows.filter((r) => r.g > 0).length, up: share(rows.filter((r) => r.g > 0).length, rows.length),
       avg: rows.length ? s1 / rows.length : null, medS: med(rows.map((r) => r.s1)), medG: med(rows.map((r) => r.g)), medM: med(rows.map((r) => r.m)),
       q1G: quantile(rows.map((r) => r.g), 0.25), q3G: quantile(rows.map((r) => r.g), 0.75), q1M: quantile(rows.map((r) => r.m), 0.25), q3M: quantile(rows.map((r) => r.m), 0.75),
+      // 임직원: 두 해 모두 공시한 기업만 더해 증감을 비교한다
+      ...(() => { const E = rows.filter((r) => r.e1 > 0 && r.e0 > 0); const e1 = sum(E.map((r) => r.e1)), e0 = sum(E.map((r) => r.e0)), s = sum(E.map((r) => r.s1));
+        return { eN: E.length, e1, e0, eg: growth(e1, e0), prod: e1 ? s / e1 : null, medProd: med(rows.map((r) => r.prod)), eDown: E.filter((r) => r.e1 < r.e0).length }; })(),
       spark: { s: [sum(three.map((r) => r.s2)), sum(three.map((r) => r.s0)), sum(three.map((r) => r.s1))], o: [sum(three.map((r) => r.o2 || 0)), sum(three.map((r) => r.o0)), sum(three.map((r) => r.o1))] },
     };
   }
@@ -129,6 +133,7 @@
     { key: "악화", sev: 2, label: "수익성 악화", rule: "영업이익률 2년 연속 1%p 이상 하락", test: (r) => { const m2 = r.s2 > 0 && r.o2 != null ? share(r.o2, r.s2) : null; return m2 != null && r.m0 != null && r.m != null && r.m0 < m2 - 1 && r.m < r.m0 - 1; },
       why: (r) => `이익률 ${pc(share(r.o2, r.s2))} → ${pc(r.m0)} → ${pc(r.m)}`, check: "제품 구성, 원가, 가격" },
     { key: "정체", sev: 2, label: "성장 정체", rule: "2년 연속 성장률 3% 미만", test: (r) => r.s2 > 0 && growth(r.s0, r.s2) < 3 && r.g < 3, why: (r) => `성장률 ${sg(growth(r.s0, r.s2))} → ${sg(r.g)}`, check: "시장 성숙, 사업 전환" },
+    { key: "인력감축", sev: 2, label: "인력 감축", rule: "임직원 전년 대비 −10% 이하", test: (r) => r.e0 > 0 && r.e1 != null && growth(r.e1, r.e0) <= -10, why: (r) => `임직원 ${num(r.e0)} → ${num(r.e1)}명(${sg(growth(r.e1, r.e0))})`, check: "구조조정·사업 축소 여부" },
     { key: "분기적자", sev: 1, label: "분기 연속 적자", rule: "최근 4개 분기 모두 영업적자(상장)", test: (r) => !!r.q && r.q.op.length >= 4 && r.q.op.slice(-4).every((v) => v != null && v < 0), why: () => "최근 4개 분기 모두 영업적자", check: "유동성" },
     { key: "이상", sev: 3, label: "데이터 이상", rule: "매출 5배 이상 변동 또는 ±200%", test: (r) => r.s1 / r.s0 >= 5 || r.s0 / r.s1 >= 5 || Math.abs(r.g) >= 200, why: (r) => `매출 ${won(r.s0)} → ${won(r.s1)}`, check: "단위·입력 오류" },
   ];
@@ -143,6 +148,7 @@
     "상위 집중도 = 상위 N개사 매출 ÷ 비교 대상 전체 매출",
     `기업 유형 = 성장률 ${HI_GROWTH}%·영업이익률 ${HI_MARGIN}% 기준 4분류`,
     "대형사 = 최근 매출 1조 원 이상(기본 집계에서 제외)",
+    "1인당 매출 = 매출 ÷ 연말 임직원 수(사업보고서 직원 현황), 임직원 증감은 두 해 모두 공시한 기업 합계",
   ];
 
   window.SB = {

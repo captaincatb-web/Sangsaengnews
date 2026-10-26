@@ -78,6 +78,8 @@
         A.g >= 0 && dm >= -0.3 ? "외형 성장과 수익성 유지가 함께 나타났습니다." : A.g >= 0 ? "매출은 늘었지만 수익성이 낮아져 원가·단가 점검이 필요합니다." : "외형이 줄어 업황 영향 여부 확인이 필요합니다."),
       bullet(`매출이 늘어난 업체 <b>${pc(share(A.up, A.n), 0)}</b>(${A.up}곳), 업체 중앙값 성장률 ${sg(A.medG)}(합계 ${sg(A.g)}).`,
         Math.abs(A.medG - A.g) < 3 ? "성장이 업체 전반에 고르게 퍼진 편입니다." : A.g > A.medG ? "일부 큰 기업이 합계를 끌어올린 것으로 보입니다." : "일반 업체가 큰 기업보다 더 크게 성장했습니다."),
+      A.eN ? bullet(`임직원 ${num(A.e0)} → <b>${num(A.e1)}명</b>(${sg(A.eg)}, ${A.eN}곳), 1인당 매출 ${A.prod.toFixed(1)}억원, 인원이 줄어든 업체 ${A.eDown}곳.`,
+        Math.abs(A.g - A.eg) < 1 ? "매출과 인력이 비슷하게 움직여 1인당 매출은 거의 그대로입니다." : A.g > A.eg ? "매출 증가율이 인력 증가율보다 높아 1인당 매출이 늘었습니다." : "인력 증가율이 매출 증가율보다 높아 1인당 매출이 줄었습니다.") : "",
       bullet(`상위 10개사 매출 비중 <b>${pc(conc(10), 0)}</b>, 영업적자 ${A.loss}곳(${pc(A.lossP, 0)}).`,
         conc(10) >= 40 ? `상위 10개사를 빼면 성장률 ${sg(stats(top.slice(10)).g)}로, 합계만으로 업계 전반을 판단하기 어렵습니다.` : ""),
     ];
@@ -129,7 +131,7 @@
       bullet(`매출 감소와 영업적자가 겹친 업체 <b>${weak.length}곳</b>${qPanel.length ? `, 최근 4분기 연속 적자(상장) ${q4loss.length}곳` : ""}.`, weak.length ? "상생협력 지원 우선 검토 대상이며, 일회성 요인 여부를 개별 확인해야 합니다." : ""),
     ].filter(Boolean);
     return `
-      <header class="sl-head"><div><p class="sl-tag">2 / 2 · 업종별·상장 여부별</p><h2>소부장 업종별 경쟁력 및 경영 격차</h2></div>
+      <header class="sl-head"><div><p class="sl-tag">2 / 2 · 업종별${L.n && U.n ? "·상장 여부별" : ""}</p><h2>소부장 업종별 경쟁력 및 경영 격차</h2></div>
         <p class="sl-meta">${esc(SB.describe(st))} · 분석대상 ${A.n}개사 · 업종 추정 ${est}곳 포함</p></header>
       <div class="sl-body two">
         <section class="sl-col"><h3>업종별 경영실적</h3><table class="sl-table">${head("구분")}<tbody>${kinds.map(([k, l]) => row(k, stats(l))).join("")}</tbody></table>

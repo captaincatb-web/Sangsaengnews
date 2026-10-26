@@ -548,3 +548,22 @@ body[data-view="company"] .db-filters, body[data-view="company"] .db-filter-togg
   .krds-header .gnb a { font-size: 14px; padding: 0 7px; }
 }
 .db-bigswitch { flex-wrap: wrap; column-gap: 6px; } .db-bigswitch span { white-space: nowrap; }
+
+/* 점검 4차: 임직원·정렬·작은 정리 */
+.db-qtbl td.half { text-align: center; }
+.db-qtbl td small { margin-left: 4px; font-size: 12px; font-weight: 400; color: var(--text-3); }
+#c-signal thead th button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+#c-signal thead th[aria-sort="descending"] button::after { content: " ▼"; font-size: 10px; }
+#c-signal thead th[aria-sort="ascending"] button::after { content: " ▲"; font-size: 10px; }
+.db-co-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1280px) { .db-co-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) { .db-co-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+details.db-foot summary { cursor: pointer; color: var(--text-2); font-weight: 700; width: max-content; }
+details.db-foot p { margin: 6px 0 0; }
+.krds-header .site-menu { display: none; border: 0; background: none; font: inherit; cursor: pointer; }
+@media (max-width: 860px) {
+  .krds-header .site-menu { display: inline-flex; margin-left: auto; }
+  .krds-header .site-menu + .btn-navi { margin-left: 0; }
+  .krds-header .gnb { display: none; }
+  .krds-header.open .gnb { display: block; }
+}
