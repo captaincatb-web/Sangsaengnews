@@ -73,9 +73,8 @@
       const s = qLabels.map((_, i) => sum(qPanel.map((r) => r.q.sales[i])));
       return { ltm: sum(s.slice(4)), prev: sum(s.slice(0, 4)) };
     })() : null;
-    const FS = SB.fullSample(recs, FY);
     const bullets = [
-      bullet(`${A.n}개사 합산 매출 <b>${jo(A.s1)}원</b>, 전년 대비 <b>${sg(A.g)}</b>(전체 표본 ${sg(FS.g)}), 영업이익률 ${pc(A.m0)} → <b>${pc(A.m)}</b>(${SB.fmt.pp(dm)}).`,
+      bullet(`${A.n}개사 합산 매출 <b>${jo(A.s1)}원</b>, 전년 대비 <b>${sg(A.g)}</b>, 영업이익률 ${pc(A.m0)} → <b>${pc(A.m)}</b>(${SB.fmt.pp(dm)}).`,
         A.g >= 0 && dm >= -0.3 ? "외형 성장과 수익성 유지가 함께 나타났습니다." : A.g >= 0 ? "매출은 늘었지만 수익성이 낮아져 원가·단가 점검이 필요합니다." : "외형이 줄어 업황 영향 여부 확인이 필요합니다."),
       bullet(`매출이 늘어난 업체 <b>${pc(share(A.up, A.n), 0)}</b>(${A.up}곳), 업체 중앙값 성장률 ${sg(A.medG)}(합계 ${sg(A.g)}).`,
         Math.abs(A.medG - A.g) < 3 ? "성장이 업체 전반에 고르게 퍼진 편입니다." : A.g > A.medG ? "일부 큰 기업이 합계를 끌어올린 것으로 보입니다." : "일반 업체가 큰 기업보다 더 크게 성장했습니다."),

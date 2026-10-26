@@ -234,7 +234,39 @@ def collect(api_key: str, corp_code: str, name: str, key: str | None) -> dict | 
             raise
         except Exception as e:  # 분기를 못 읽어도 연간은 저장한다
             print(f"[quarter] {corp_code} {name}: {e}")
+        if rec.get("q"):
+            try:
+                rec["qe"] = quarter_employees(api_key, corp_code, rec["q"]["labels"], dict(zip(rec["y"], rec.get("e") or [])))
+            except bcp.DartUnreachable:
+                raise
+            except Exception as e:
+                print(f"[quarter-employees] {corp_code} {name}: {e}")
     return rec
+
+
+def employee_total(api_key: str, corp_code: str, year: int, reprt_code: str) -> int | None:
+    data = bcp.call(api_key, "empSttus", corp_code=corp_code, bsns_year=str(year), reprt_code=reprt_code)
+    total = sum(bcp.to_number(r.get("sm")) or 0 for r in (data or {}).get("list", []))
+    return total or None
+
+
+def quarter_employees(api_key: str, corp_code: str, labels: list, annual: dict) -> dict:
+    """분기 라벨 중 2Q(반기보고서)·4Q(사업보고서) 시점의 임직원 수. 1Q·3Q 분기보고서는 직원 현황을 싣지 않는다."""
+    out = {}
+    for label in labels:
+        m = re.match(r"'(\d\d)\.(\d)Q$", label)
+        if not m:
+            continue
+        year, q = 2000 + int(m.group(1)), int(m.group(2))
+        if q == 2:
+            v = employee_total(api_key, corp_code, year, "11012")
+        elif q == 4:
+            v = annual.get(year)
+        else:
+            continue
+        if v:
+            out[label] = v
+    return out
 
 
 def main() -> int:

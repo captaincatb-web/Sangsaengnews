@@ -125,7 +125,7 @@
   // ---------- 01 Executive Overview ----------
   function kpis(rows, S, FS) {
     $("kpis").innerHTML = [
-      { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: `${delta(S.g, "동일 기업 기준")}<span class="vs db-sub2">전체 표본 ${sg(FS.g)} (${FS.n0}→${FS.n1}곳)</span>` },
+      { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: delta(S.g, "동일 기업 기준") },
       { icon: "ph-coins", label: "영업이익", value: won(S.o1), delta: S.og == null ? `<span class="vs">전년 적자</span>` : delta(S.og, "전년 대비") },
       { icon: "ph-percent", label: "영업이익률(합산)", value: pc(S.m), delta: `${delta(S.m - S.m0, `전년 ${pc(S.m0)}`, "pp")}<span class="vs db-sub2">업체 중앙값 ${pc(S.medM)}</span>` },
       { icon: "ph-check-circle", label: "흑자 업체 비중", value: pc(S.profit, 0), delta: `${delta(S.profit - S.profit0, "전년 대비", "pp")}<span class="vs db-sub2">영업적자 ${S.loss}곳</span>` },
@@ -191,13 +191,25 @@
     return comboChart(yrs, s, o, { values: true, bw: 34, label: "연도별 매출·영업이익·영업이익률" })
       + yearTable(yrs, s, o, e, e ? `임직원은 3년 모두 사업보고서로 공시한 ${PE.length}곳 합계입니다(감사보고서만 내는 비상장사는 공시하지 않음).` : "임직원 수는 사업보고서 제출 기업만 공시합니다. 다음 자동 갱신 후 표시됩니다.");
   }
+  // 분기 수치 표: 임직원은 반기말(2Q)·연말(4Q)만 공시돼 그 칸에만 들어간다
+  function quarterTable(labels, s, o, e, eNote) {
+    const m = s.map((v, i) => (v > 0 && o[i] != null ? share(o[i], v) : null));
+    const row = (k, vals, fmt) => `<tr><th scope="row">${k}</th>${vals.map((v) => `<td${typeof v === "number" && v < 0 ? ' class="down"' : ""}>${fmt(v)}</td>`).join("")}</tr>`;
+    return `<div class="db-qwrap"><table class="db-tbl db-ytbl db-qtbl"><thead><tr><th scope="col">구분</th>${labels.map((l) => `<th scope="col">${l}</th>`).join("")}</tr></thead><tbody>`
+      + row("매출", s, won) + row("영업이익", o, won) + row("영업이익률", m, (v) => pc(v)) + row("임직원", labels.map((l) => (e ? e[l] : null)), people)
+      + `</tbody></table></div><p class="db-mini">${eNote}</p>`;
+  }
   function trendChart(list) {
     const Q = SB.quarters(list);
     $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · 최근 8개 분기` : "";
     if (!Q.P.length) return `<p class="db-empty">이 조건에는 분기 실적이 있는 상장사가 없습니다. 비상장사는 분기 실적을 공시하지 않습니다.</p>`;
     const { labels, s, o } = Q, ltm = growth(sum(s.slice(4)), sum(s.slice(0, 4))), yoy = growth(s[7], s[3]);
     const short = W < 450 ? labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : labels;
+    // 임직원: 반기말·연말 인원이 모두 있는 기업만 더해 시점끼리 비교되게 한다
+    const eL = labels.filter((l) => /\.(2|4)Q$/.test(l)), PE = Q.P.filter((r) => r.qe && eL.every((l) => r.qe[l] != null));
+    const e = PE.length ? Object.fromEntries(eL.map((l) => [l, sum(PE.map((r) => r.qe[l]))])) : null;
     return comboChart(short, s, o, { bw: 12, label: "분기 매출·영업이익·영업이익률" })
+      + quarterTable(labels, s, o, e, e ? `임직원은 반기말(2Q)·연말(4Q)만 공시돼 그 분기에만 표시합니다(모두 공시한 ${PE.length}곳 합계). 1Q·3Q 분기보고서에는 직원 현황이 없습니다.` : "임직원은 반기말(2Q)·연말(4Q)만 공시합니다. 다음 자동 갱신 후 표시됩니다.")
       + note(`최근 분기(${labels[7]}) 매출 전년 동기 대비 <b class="${tone(yoy)}">${sg(yoy)}</b> · 최근 4분기 합계 ${won(sum(s.slice(4)))}원, 직전 4분기 대비 <b class="${tone(ltm)}">${sg(ltm)}</b>.`);
   }
   function kindScatter(rows) {
@@ -233,8 +245,8 @@
   }
   function insights(rows, S, FS) {
     const out = [];
-    out.push([Math.abs(FS.g - S.g) >= 2 ? "bad" : "", "ph-trend-up", `매출 성장률: 동일 기업 ${sg(S.g)} · 전체 표본 ${sg(FS.g)}`,
-      Math.abs(FS.g - S.g) >= 2 ? `차이 ${Math.abs(FS.g - S.g).toFixed(1)}%p는 수집 표본 변화(${FS.n0}→${FS.n1}곳) 영향입니다. 기존 기업의 실제 변화는 동일 기업 기준을 보세요.` : "두 기준의 차이가 작아 표본 변화 영향은 크지 않습니다."]);
+    out.push([S.g < 0 ? "bad" : "", "ph-trend-up", `매출 성장률 ${sg(S.g)} · 영업이익 ${S.og == null ? "전년 적자" : sg(S.og)}`,
+      `두 해 매출이 모두 있는 ${S.n}곳의 합계로 비교했습니다.`]);
     const sorted = rows.slice().sort((a, b) => b.s1 - a.s1), t10 = share(sum(sorted.slice(0, 10).map((r) => r.s1)), S.s1), rest = SB.stats(sorted.slice(10));
     out.push([t10 >= 40 ? "bad" : "", "ph-scales", `상위 10개사 매출 비중 ${pc(t10, 0)} · 업체 중앙값 성장률 ${sg(S.medG)}`,
       (t10 >= 40 ? `상위 10개사를 빼면 성장률 ${sg(rest.g)}, 이익률 ${pc(rest.m)}입니다. ` : "") + (S.g - S.medG > 5 ? "합계 성장은 큰 기업들이 이끌었습니다." : S.medG - S.g > 5 ? "일반 업체가 상위 기업보다 더 크게 성장했습니다." : "업체 중앙값과 합계 성장률이 비슷합니다.")]);
@@ -427,8 +439,44 @@
   $("c-rules").innerHTML = `<thead><tr><th>신호</th><th>규칙(확정)</th><th>확인할 사항</th></tr></thead><tbody>${SIGNALS.map((s) => `<tr><th scope="row">${s.label}</th><td>${s.rule}</td><td>${s.check}</td></tr>`).join("")}</tbody>`;
 
   // ---------- 05 기업 상세 ----------
-  $("co-list").innerHTML = recs.slice().sort((a, b) => a.n.localeCompare(b.n, "ko")).map((r) => `<option value="${esc(r.n)}"></option>`).join("");
-  $("co-q").addEventListener("change", () => { const r = recs.find((x) => x.n === $("co-q").value.trim()); if (r) { state.co = r.c; drawCompany(); syncUrl(); } });
+  // 기업 선택: 검색어로 거르고 매출이 큰 순서로 보여 주는 목록(브라우저 기본 자동완성은 모바일에서 잘 안 보인다)
+  const coAll = recs.map((r) => ({ r, key: r.n.replace(/\s/g, "").toLowerCase(), last: r.s.filter((v) => v != null).pop() || 0 }));
+  let coHits = [], coIdx = -1;
+  function coRender(all) {
+    const q = all ? "" : $("co-q").value.replace(/\s/g, "").toLowerCase(); // 처음 누르면 선택된 이름과 상관없이 전체 목록
+    coHits = coAll.filter((x) => !q || x.key.includes(q))
+      .sort((a, b) => (q ? (b.key.startsWith(q) - a.key.startsWith(q)) : 0) || b.last - a.last).slice(0, 80);
+    coIdx = coHits.length ? 0 : -1;
+    $("co-list").innerHTML = coHits.length
+      ? coHits.map((x, i) => `<li role="option" id="co-opt-${i}" data-i="${i}" aria-selected="${i === coIdx}"><b>${esc(x.r.n)}</b><span>${x.r.kind} · ${x.r.area} · ${won(x.last)}</span></li>`).join("")
+      : `<li class="empty">"${esc($("co-q").value)}"와 맞는 기업이 없습니다.</li>`;
+    $("co-list").hidden = false;
+    $("co-q").setAttribute("aria-expanded", "true");
+  }
+  function coClose() { $("co-list").hidden = true; $("co-q").setAttribute("aria-expanded", "false"); }
+  function coPick(i) {
+    const x = coHits[i];
+    if (!x) return;
+    state.co = x.r.c; coClose(); $("co-q").blur(); drawCompany(); syncUrl();
+  }
+  function coMove(d) {
+    if (!coHits.length) return;
+    coIdx = (coIdx + d + coHits.length) % coHits.length;
+    $("co-list").querySelectorAll("li[data-i]").forEach((li) => li.setAttribute("aria-selected", Number(li.dataset.i) === coIdx));
+    const el = $("co-opt-" + coIdx); if (el) el.scrollIntoView({ block: "nearest" });
+    $("co-q").setAttribute("aria-activedescendant", "co-opt-" + coIdx);
+  }
+  $("co-q").addEventListener("focus", () => { $("co-q").select(); coRender(true); });
+  $("co-q").addEventListener("input", () => coRender());
+  $("co-q").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); if ($("co-list").hidden) coRender(true); else coMove(1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); coMove(-1); }
+    else if (e.key === "Enter") { e.preventDefault(); coPick(coIdx); }
+    else if (e.key === "Escape") coClose();
+  });
+  $("co-list").addEventListener("mousedown", (e) => e.preventDefault()); // 누르는 동안 입력칸이 포커스를 잃지 않게
+  $("co-list").addEventListener("click", (e) => { const li = e.target.closest("li[data-i]"); if (li) coPick(Number(li.dataset.i)); });
+  $("co-q").addEventListener("blur", () => setTimeout(coClose, 150));
   function drawCompany() {
     const P = SB.panel(recs, state.fy);
     if (!state.co) state.co = (P.slice().sort((a, b) => b.s1 - a.s1)[0] || recs[0] || {}).c;
@@ -453,7 +501,7 @@
       <div class="db-co-kpis">${card(`${state.fy}년 매출`, r ? won(r.s1) : "-", r ? `${base.kind} ${peers.length}곳 중 ${salesRank}위` : "")}${card("매출 성장률", r ? sg(r.g) : "-", r ? `업종 ${rank("g", r.g)} · 중앙값 ${sg(med(peers.map((x) => x.g)))}` : "")}${card("영업이익률", r ? pc(r.m) : "-", r && r.m != null ? `업종 ${rank("m", r.m)} · 중앙값 ${pc(med(peers.map((x) => x.m)))}` : "")}${card("부채비율", r && r.debt != null ? pc(r.debt, 0) : "-", r && r.debt != null ? `업종 중앙값 ${pc(med(peers.map((x) => x.debt)), 0)}` : "자료 없음")}${card("기업 유형", r ? r.type : "-", `성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준`)}</div>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>연도별 실적</h2></div><div class="db-chart">${comboChart(base.y.map((y) => `${y}년`), base.s, base.o, { values: true, bw: 30, legend: true, label: "연도별 매출·영업이익·영업이익률" })}${yearTable(base.y.map((y) => `${y}년`), base.s, base.o, base.e, base.e ? "" : base.src === "감사보고서" ? "임직원 수: 감사보고서만 내는 회사라 공시하지 않습니다." : "임직원 수: 다음 자동 갱신 후 표시됩니다.")}</div></section>
-        <section class="db-card"><div class="db-card-head"><h2>분기별 실적 <small>임직원 수는 연간만 공시</small></h2></div>${base.q ? `<div class="db-chart">${comboChart(W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels, base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}</div>` : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
+        <section class="db-card"><div class="db-card-head"><h2>분기별 실적 <small>임직원은 반기말·연말만 공시</small></h2></div>${base.q ? (() => { const ql = W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels; return `<div class="db-chart">${comboChart(W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels, base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}${quarterTable(base.q.labels, base.q.sales, base.q.op, base.qe || null, base.qe ? "임직원은 반기말(2Q)·연말(4Q)만 공시돼 그 분기에만 표시합니다." : "임직원은 반기말(2Q)·연말(4Q)만 공시합니다. 다음 자동 갱신 후 표시됩니다.")}</div>`; })() : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
       </div>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>경영 변화 신호</h2></div>${sigs.length ? `<ul class="db-plain">${sigs.map((s) => `<li><span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span> ${esc(s.why(r))}<small> · 확인: ${s.check}</small></li>`).join("")}</ul>` : `<p class="db-empty">해당하는 신호가 없습니다.</p>`}</section>
