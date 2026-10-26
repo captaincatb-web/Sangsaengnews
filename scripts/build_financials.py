@@ -1,6 +1,6 @@
 """협력사 명단 전체의 연간·분기 재무(매출액·영업이익·당기순이익)를 모아 site/data/financials.js 를 만든다.
 
-대상: companies.js 의 1~3그룹(추가 기업 그룹 제외) + site/data/universe.js 의 협력사 명단.
+대상: site/data/universe.js 의 분석 대상사 명단(2026-10-26부터 이 명단만. 이전 명단은 backup/2026-10-26).
   - 명단의 회사 이름은 DART 회사 목록(corpCode)에서 이름이 정확히 같은 회사로 찾는다.
     같은 이름이 여럿이면 상장사 하나일 때만 고르고, 못 찾거나 모호하면 건너뛰고 로그에 남긴다.
   - 연간: 사업보고서 재무제표(개별) → 없으면 감사보고서 원문(외부감사 대상 비상장사).
@@ -45,12 +45,15 @@ def norm(name: str) -> str:
 
 # 명단은 한글 표기, DART 는 영문 표기인 회사가 많아 앞부분을 바꿔 한 번 더 찾는다
 ENGLISH = [("에스케이", "SK"), ("엘지", "LG"), ("오씨아이", "OCI"), ("에이치디", "HD"), ("케이씨", "KC"), ("에이피", "AP"),
-           ("지에스", "GS"), ("케이피엑스", "KPX"), ("디엘", "DL"), ("에이치엘", "HL"), ("케이티", "KT"), ("씨제이", "CJ")]
+           ("지에스", "GS"), ("케이피엑스", "KPX"), ("디엘", "DL"), ("에이치엘", "HL"), ("케이티", "KT"), ("씨제이", "CJ"),
+           ("엘엑스", "LX"), ("에이치피에스피", "HPSP"), ("케이엑스", "KX")]
 ALIAS = {"글로벌스탠다드테크놀로지": "GST", "원익IPS": "원익아이피에스"}
+# 명단 이름 → DART 회사명이 다를 때
+NAME_ALIAS = {"원익아이피에스": "원익IPS", "글로벌스탠다드테크놀로지": "GST"}
 
 
 def variants(name: str) -> list:
-    base = [name, PLANT_SUFFIX.sub("", name).strip()]
+    base = [name, PLANT_SUFFIX.sub("", name).strip()] + ([NAME_ALIAS[name]] if name in NAME_ALIAS else [])
     out = []
     for b in base:
         out.append(b)
@@ -209,13 +212,12 @@ def main() -> int:
         print("DART_API_KEY 환경변수가 없습니다.")
         return 1
     entries = universe_names()
-    key_of = {norm(e[0]): e[1] for e in entries}
-    targets = {code: (name, key_of.get(norm(ALIAS.get(name, name)))) for code, name in base_companies().items()}
+    targets = {}  # 명단에 있는 회사만 모은다(지정 기업 1~3그룹은 따로 더하지 않는다)
     corps = load_corp_list(api_key)
     found, missing, ambiguous = resolve(entries, corps)
     for code, (name, key) in found.items():
         targets[code] = (targets[code][0], targets[code][1] or key) if code in targets else (name, key)
-    print(f"대상 {len(targets)}곳 (기존 1~3그룹 {len(base_companies())}곳, 명단에서 찾음 {len(found)}곳)")
+    print(f"대상 {len(targets)}곳 (명단 {len(entries)}곳 중 찾음 {len(found)}곳)")
     print(f"명단에서 못 찾음 {len(missing)}곳: {', '.join(missing)}")
     print(f"이름이 겹쳐 건너뜀 {len(ambiguous)}곳: {', '.join(ambiguous)}")
 
