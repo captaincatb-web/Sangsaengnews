@@ -3,7 +3,7 @@
 @font-face { font-family: "Pretendard GOV"; font-weight: 700; font-display: swap; src: url("vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2") format("woff2"); }
 
 :root {
-  --bg: #f4f6fb; --card: #ffffff; --line: #e6e9f2; --text: #1d2433; --text-2: #4b5568; --text-3: #6b7486;
+  --bg: #f4f6fb; --card: #ffffff; --line: #e6e9f2; --text: #1d2433; --text-2: #4b5568; --text-3: #5e6779;
   --side: #0f1d3a; --side-2: #18294d; --side-text: #c9d3ea; --accent: #f5b70a; --accent-text: #1d2433;
   --blue: #3b6fe0; --green: #16a06a; --purple: #7c4ddb; --orange: #f08a1c; --teal: #12a3b8; --pink: #e0457b; --gray: #9aa3b5;
   --up: #12804f; --down: #c93a2e; --grid: #eef0f6; --shadow: 0 1px 2px rgb(16 24 40 / .04), 0 4px 16px rgb(16 24 40 / .05);
@@ -459,3 +459,92 @@ body.db { display: block; }
 .db-qwrap { overflow-x: auto; }
 .db-qtbl { min-width: 520px; }
 .db-qtbl td, .db-qtbl th { white-space: nowrap; }
+
+/* 핵심 지표: 첫 카드도 다른 카드와 같은 색(크기만 크게) */
+.db-kpi.hero, :root[data-theme="dark"] .db-kpi.hero { background: var(--card); border-color: var(--line); color: var(--text); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-kpi.hero { background: var(--card); border-color: var(--line); color: var(--text); } }
+.db-kpi.hero .lab, .db-kpi.hero .delta .vs, .db-kpi.hero strong small { color: var(--text-3); }
+.db-kpi.hero .lab i { color: var(--blue); }
+.db-kpi.hero .up { color: var(--up); } .db-kpi.hero .down { color: var(--down); }
+
+/* 점검 반영: 초점 표시·대비·빈 상태·다크 모드 */
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.krds-header :focus-visible { outline-color: var(--accent); }
+circle.pt:focus-visible { outline: none; stroke: var(--text); stroke-width: 3; }
+.db-lbl.fact { color: #2a56c6; }
+.db-lbl.read { color: #a35200; }
+.db-funnel-note { color: var(--up); }
+.db-card svg text.ax { fill: var(--text-3); font-size: 11px; }
+#c-signal td:nth-child(2) { white-space: nowrap; }
+.db-empty-panel { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; border: 1px dashed var(--line); border-radius: 12px; background: var(--card); }
+.db-empty-panel > i { font-size: 28px; color: var(--text-3); }
+.db-empty-panel p { margin: 2px 0 10px; color: var(--text-2); }
+.db-empty-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.db-empty-chips button { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 999px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; min-height: 36px; }
+.db-empty-chips button:last-child { background: var(--side); color: #fff; border-color: var(--side); }
+body.db-nodata #v-overview, body.db-nodata #v-industry, body.db-nodata #v-portfolio, body.db-nodata #v-signals { display: none !important; }
+:root[data-theme="dark"] .db-clear, :root[data-theme="dark"] .db-empty-chips button:last-child { background: #2a3d70; border-color: #3a5294; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-clear, :root:not([data-theme="light"]) .db-empty-chips button:last-child { background: #2a3d70; border-color: #3a5294; } :root:not([data-theme="light"]) .db-lbl.fact { color: #8fb0ff; } :root:not([data-theme="light"]) .db-lbl.read { color: #ffb366; } }
+:root[data-theme="dark"] .db-lbl.fact { color: #8fb0ff; } :root[data-theme="dark"] .db-lbl.read { color: #ffb366; }
+
+/* 점검 3차: 유형·신호 색 통일, 한 줄 결론, 라벨·대비 */
+:root { --up: #0d7344; --down: #b3261e; --stk-1: #2a56c6; --stk-2: #0b7d8e; --stk-3: #c3c9d6; --stk-4: var(--line); --hi: #1f3a7a; --warn-t: #9a4f00; }
+:root[data-theme="dark"] { --up: #4fd394; --down: #ff8c80; --stk-3: #44506b; --hi: #8fb0ff; --warn-t: #ffb366; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --up: #4fd394; --down: #ff8c80; --stk-3: #44506b; --hi: #8fb0ff; --warn-t: #ffb366; } }
+.db-headline { margin: 0; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; font-size: 15px; line-height: 1.55; color: var(--text-2); }
+.db-headline b { color: var(--text); }
+.db-headline a { margin-left: 6px; color: var(--blue); font-weight: 700; text-decoration: none; white-space: nowrap; }
+.db-headline a:hover { text-decoration: underline; }
+.db-bigswitch { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text-2); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.db-bigswitch:hover { color: var(--text); border-color: var(--text-3); }
+/* 유형 배지(목록) = 산점도·보고서와 같은 색 */
+.db-tag { font-size: 12px; }
+.db-tag.t0 { background: color-mix(in srgb, #16a06a 14%, transparent); color: #0d6b45; }
+.db-tag.t1 { background: color-mix(in srgb, #3b6fe0 14%, transparent); color: #2a56c6; }
+.db-tag.t2 { background: color-mix(in srgb, #f08a1c 16%, transparent); color: #8f4a00; }
+.db-tag.t3 { background: color-mix(in srgb, #c93a2e 13%, transparent); color: #a3271d; }
+/* 신호 심각도: 1 우선 확인(빨강) · 2 주의(주황) · 3 자료 점검(회색) */
+.db-tag.sev1 { background: color-mix(in srgb, #c93a2e 13%, transparent); color: #a3271d; }
+.db-tag.sev2 { background: color-mix(in srgb, #f08a1c 16%, transparent); color: #8f4a00; }
+.db-tag.sev3 { background: var(--grid); color: var(--text-2); }
+:root[data-theme="dark"] .db-tag.t0 { color: #5fd39a; } :root[data-theme="dark"] .db-tag.t1 { color: #8fb0ff; } :root[data-theme="dark"] .db-tag.t2, :root[data-theme="dark"] .db-tag.sev2 { color: #ffb366; } :root[data-theme="dark"] .db-tag.t3, :root[data-theme="dark"] .db-tag.sev1 { color: #ff8c80; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-tag.t0 { color: #5fd39a; } :root:not([data-theme="light"]) .db-tag.t1 { color: #8fb0ff; } :root:not([data-theme="light"]) .db-tag.t2, :root:not([data-theme="light"]) .db-tag.sev2 { color: #ffb366; } :root:not([data-theme="light"]) .db-tag.t3, :root:not([data-theme="light"]) .db-tag.sev1 { color: #ff8c80; } }
+.db-sev { font-size: 12px; font-weight: 400; color: var(--text-3); margin-left: 6px; }
+/* 신호 카드: 누르면 아래 목록을 거르는 버튼 */
+.db-sig-cards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
+.db-sig { position: relative; padding-right: 28px; transition: border-color .15s, background-color .15s; }
+.db-sig > i { position: absolute; right: 10px; top: 14px; font-size: 14px; color: var(--text-3); }
+.db-sig span { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
+.db-sig span .db-sev { margin: 0; }
+.db-sig em { font-size: 12px; }
+.db-sig:hover { background: color-mix(in srgb, var(--blue) 5%, var(--card)); }
+.db-sig:active { transform: translateY(1px); }
+.db-sig.sev1 b { color: var(--down); } .db-sig.sev2 b { color: var(--warn-t); }
+.db-sig.on { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue) inset; background: color-mix(in srgb, var(--blue) 7%, var(--card)); }
+/* 막대 목록 열 제목·강조 */
+.db-hbars li.hd { font-size: 12px; color: var(--text-3); margin-bottom: -4px; }
+.db-hbars li.hd b, .db-hbars li.hd em { font-weight: 400; color: var(--text-3); }
+.db-hbars li.hi .fill { background: var(--hi); }
+/* 집중도 막대: 흰 글씨는 진한 칸에만 */
+.db-stack span.s3, .db-stack span.s4 { color: var(--text); }
+/* 산점도: 범례 줄바꿈 방지, 사분면 이름은 점 위에 */
+.db-legend { flex-wrap: wrap; row-gap: 4px; } .db-legend li { white-space: nowrap; }
+.db-chart .qlab { font-weight: 700; paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+/* 작은 글씨 하한 12px */
+.db-chart .ax, .db-region .ax, .db-card svg text.ax { font-size: 12px; }
+.db-insights small { font-size: 12.5px; }
+.db-tbl tr.grp td, .db-big-kpi span { font-size: 12px; }
+abbr[title] { text-decoration: underline dotted; cursor: help; }
+/* 기업 상세는 필터와 무관: 필터 막대 숨김 */
+body[data-view="company"] .db-filters, body[data-view="company"] .db-filter-toggle { display: none !important; }
+@media (max-width: 860px) {
+  .db-top #sub { white-space: normal; overflow: visible; text-overflow: clip; font-size: 12px; line-height: 1.45; }
+  .db-headline { font-size: 14px; padding: 10px 12px; }
+  .db-sig-cards { display: grid; grid-auto-flow: column; grid-template-columns: none !important; grid-auto-columns: minmax(128px, 1fr); overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 2px 12px 4px; }
+  .db-sig-cards::-webkit-scrollbar { display: none; }
+  .db-sig em { display: none; }
+  .db-sig b { font-size: 20px; }
+  #c-signal tbody th a { display: inline-block; padding: 8px 0; }
+  .krds-header .gnb a { font-size: 14px; padding: 0 7px; }
+}
+.db-bigswitch { flex-wrap: wrap; column-gap: 6px; } .db-bigswitch span { white-space: nowrap; }

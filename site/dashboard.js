@@ -24,7 +24,8 @@
     fill("f-kind", [["all", "전체"], ...KINDS.map((k) => [k, k])], state.kind);
     fill("f-area", [["all", "전체"], ...AREAS.map((a) => [a, a])], state.area);
     fill("f-listed", [["all", "전체"], ["1", "상장"], ["0", "비상장"]], state.listed);
-    fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s])], state.size);
+    fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s === "1조 이상" && state.big === "exclude" ? "1조 이상(대형사 포함으로 전환)" : s])], state.size);
+    $("f-listed").closest("label").hidden = recs.every((r) => r.l) || recs.every((r) => !r.l); // 전부 상장(또는 비상장)이면 고를 게 없다
     fill("f-big", [["exclude", "제외(기본)"], ["include", "포함"], ["only", "대형사만"]], state.big);
     fill("f-legal", [["all", "전체"], ...["대기업", "중견", "중소", "미입력"].map((s) => [s, s])], state.legal);
     fill("f-trade", [["all", "전체"], ...["당사 거래", "비거래", "미입력"].map((s) => [s, s])], state.trade);
@@ -34,7 +35,11 @@
     const key = IDS[e.target.id];
     if (!key) return;
     state[key] = key === "fy" ? Number(e.target.value) : e.target.value;
+    // 모순되는 조합(1조 이상 + 대형사 제외)은 항상 0곳이므로 서로 맞춘다
+    if (key === "size" && state.size === "1조 이상" && state.big === "exclude") state.big = "include";
+    if (key === "big" && state.big === "exclude" && state.size === "1조 이상") state.size = "all";
     state.more = state.sigMore = false;
+    drawFilters();
     render();
   });
   $("filters").addEventListener("reset", (e) => {
@@ -57,6 +62,7 @@
   function showView(v) {
     if (!VIEWS.includes(v)) v = "overview";
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
+    document.body.dataset.view = v; // 기업 상세는 필터와 무관하므로 필터 막대를 숨긴다
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
     const fl = document.getElementById("filters"); // 화면을 바꾸면 모바일 필터 패널은 접는다
     if (fl.classList.contains("open")) { fl.classList.remove("open"); document.getElementById("filter-toggle").setAttribute("aria-expanded", false); }
@@ -84,11 +90,12 @@
   function hbarList(items, opt = {}) {
     const max = Math.max(...items.map((i) => i.v), 1);
     const mark = opt.mark != null ? `<span class="mark" style="left:${(opt.mark / max) * 100}%"></span>` : "";
-    return `<ul class="db-hbars${opt.wide ? " wide" : ""}">${items.map((i) => `<li class="${i.cls || ""}" data-tip="${esc(i.tip || "")}"><span class="nm">${i.link || esc(i.label)}</span><span class="track"><span class="fill" style="width:${(Math.max(0, i.v) / max) * 100}%"></span>${mark}</span><b>${i.right}</b><em class="${tone(i.g)}">${i.gText ?? sg(i.g)}</em></li>`).join("")}</ul>`;
+    const head = opt.head ? `<li class="hd" aria-hidden="true"><span></span><span></span><b>${opt.head[0]}</b><em>${opt.head[1]}</em></li>` : "";
+    return `<ul class="db-hbars${opt.wide ? " wide" : ""}">${head}${items.map((i) => `<li class="${i.cls || ""}" data-tip="${esc(i.tip || "")}"><span class="nm">${i.link || esc(i.label)}</span><span class="track"><span class="fill" style="width:${(Math.max(0, i.v) / max) * 100}%"></span>${mark}</span><b>${i.right}</b><em class="${tone(i.g)}">${i.gText ?? sg(i.g)}</em></li>`).join("")}</ul>`;
   }
   // 산점도: 가로 성장률, 세로 이익률. 점선은 확정 기준(성장 10%, 이익률 5%)
   function scatter(points, opt = {}) {
-    const H = opt.h || 300, L = 44, R = 14, T = 14, B = 34, pw = W - L - R, ph = H - T - B;
+    const H = opt.h || 300, L = 54, R = 14, T = 14, B = 34, pw = W - L - R, ph = H - T - B;
     const cxv = (v) => (opt.clipX ? Math.max(-opt.clipX, Math.min(opt.clipX, v)) : v), cyv = (v) => (opt.clipY ? Math.max(-opt.clipY, Math.min(opt.clipY, v)) : v);
     const xs = points.map((p) => cxv(p.x)), ys = points.map((p) => cyv(p.y));
     // fit: 점이 적을 때(업종 집단) 범위를 자료에 맞춰 좁혀 점이 겹치지 않게 한다. 기준선(성장 10%, 이익률 5%)은 늘 포함
@@ -100,11 +107,17 @@
     ticks(ymin, ymax, 4).forEach((v) => (g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${cy(v)}" y2="${cy(v)}"/><text class="ax" x="${L - 6}" y="${cy(v) + 4}" text-anchor="end">${v}%</text>`));
     ticks(xmin, xmax, 5).forEach((v) => (g += `<text class="ax" x="${cx(v)}" y="${H - 18}" text-anchor="middle">${v}%</text>`));
     g += `<line x1="${cx(SB.HI_GROWTH)}" x2="${cx(SB.HI_GROWTH)}" y1="${T}" y2="${T + ph}" stroke="var(--text-3)" stroke-dasharray="4 3"/><line x1="${L}" x2="${W - R}" y1="${cy(SB.HI_MARGIN)}" y2="${cy(SB.HI_MARGIN)}" stroke="var(--text-3)" stroke-dasharray="4 3"/>`;
-    g += `<text class="ax" x="${W - R}" y="${T + 10}" text-anchor="end">우량 성장형 ↗</text><text class="ax" x="${L + 4}" y="${T + ph - 4}">↙ 경영 취약형</text><text class="ax" x="${(L + W - R) / 2}" y="${H - 3}" text-anchor="middle">매출 성장률 →  (세로: 영업이익률)</text>`;
+    g += `<text class="ax" x="${(L + W - R) / 2}" y="${H - 3}" text-anchor="middle">매출 성장률 →</text><text class="ax" transform="translate(13 ${T + ph / 2}) rotate(-90)" text-anchor="middle">영업이익률 →</text>`;
+    // 사분면 이름은 점 위에 바탕색 테두리를 둘러 마지막에 그린다(점에 가리지 않게)
+    const qlab = `<text class="ax qlab" x="${W - R - 4}" y="${T + 12}" text-anchor="end">${TYPES[0]} ↗</text><text class="ax qlab" x="${L + 6}" y="${T + ph - 6}">↙ ${TYPES[3]}</text>`;
     const rmax = Math.max(...points.map((p) => p.size || 1)), placed = [];
+    // 기업 점은 왼쪽부터 놓아 화살표 키 이동 순서가 화면 순서와 같게 한다. Tab 정지는 첫 점 하나만
+    if (points.some((p) => p.co)) points = points.slice().sort((a, b) => cxv(a.x) - cxv(b.x));
+    let first = true;
     points.forEach((p) => {
       const r = opt.sized ? 6 + 16 * Math.sqrt((p.size || 0) / rmax) : 4.5;
-      g += `<circle cx="${cx(p.x)}" cy="${cy(p.y)}" r="${r}" fill="${p.color}" fill-opacity="${opt.sized ? 0.3 : 0.7}" stroke="${p.color}" stroke-width="1.2"${p.co ? ` data-co="${p.co}" class="pt"` : ""} data-tip="${esc(p.tip)}"/>`;
+      g += `<circle cx="${cx(p.x)}" cy="${cy(p.y)}" r="${r}" fill="${p.color}" fill-opacity="${opt.sized ? 0.3 : 0.7}" stroke="${p.color}" stroke-width="1.2"${p.co ? ` data-co="${p.co}" class="pt" tabindex="${first ? 0 : -1}" role="button" aria-label="${esc(p.tip)}"` : ""} data-tip="${esc(p.tip)}"/>`;
+      if (p.co) first = false;
       if (p.label) {
         // 이미 놓인 라벨과 겹치면 점 아래로 옮긴다
         // 위·아래·오른쪽·왼쪽 순으로 이미 놓인 라벨과 겹치지 않는 자리를 고른다
@@ -117,15 +130,19 @@
         g += `<text class="val" x="${s[0]}" y="${s[1]}" text-anchor="${s[2]}">${esc(p.label)}</text>`;
       }
     });
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "성장률과 이익률 분포")}">${g}</svg>`;
+    return `<svg viewBox="0 0 ${W} ${H}" role="${points.some((p) => p.co) ? "group" : "img"}" aria-label="${esc(opt.label || "성장률과 이익률 분포")}${points.some((p) => p.co) ? " · 화살표 키로 기업 이동, Enter로 열기" : ""}">${g}${qlab}</svg>`;
   }
   const KIND_COLOR = { 소재: "var(--blue)", 부품: "var(--teal)", 장비: "var(--orange)", "IT·서비스": "var(--purple)", [NA]: "var(--gray)" };
-  const TYPE_COLOR = { [TYPES[0]]: "var(--green)", [TYPES[1]]: "var(--blue)", [TYPES[2]]: "var(--orange)", [TYPES[3]]: "var(--down)" };
+  const TYPE_COLOR = SB.TYPE_COLOR;
+  const sevOf = (r) => Math.min(9, ...SB.signalsOf(r).map((s) => s.sev));
 
   // ---------- 01 Executive Overview ----------
   function kpis(rows, S, FS) {
+    // 기본은 대형사 제외: 빠진 규모를 첫 카드에 바로 보여 주고 누르면 포함으로 바꾼다
+    const BG = state.big === "exclude" ? SB.stats(SB.panel(recs.filter((r) => F.inBase(r) && SB.isBig(r)), state.fy)) : null;
+    const bigLine = BG && BG.n ? `<button type="button" class="db-bigswitch" data-big="include"><span>대형사 ${BG.n}곳(${won(BG.s1)}) 별도</span><span>포함 시 ${won(S.s1 + BG.s1)}</span><i class="ph ph-arrow-right" aria-hidden="true"></i></button>` : "";
     $("kpis").innerHTML = [
-      { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: delta(S.g, "동일 기업 기준") },
+      { hero: 1, icon: "ph-currency-krw", label: `${state.fy}년 합산 매출 · ${S.n}곳`, value: `${won(S.s1)}<small>원</small>`, delta: delta(S.g, "동일 기업 기준") + bigLine },
       { icon: "ph-coins", label: "영업이익", value: won(S.o1), delta: S.og == null ? `<span class="vs">전년 적자</span>` : delta(S.og, "전년 대비") },
       { icon: "ph-percent", label: "영업이익률(합산)", value: pc(S.m), delta: `${delta(S.m - S.m0, `전년 ${pc(S.m0)}`, "pp")}<span class="vs db-sub2">업체 중앙값 ${pc(S.medM)}</span>` },
       { icon: "ph-check-circle", label: "흑자 업체 비중", value: pc(S.profit, 0), delta: `${delta(S.profit - S.profit0, "전년 대비", "pp")}<span class="vs db-sub2">영업적자 ${S.loss}곳</span>` },
@@ -133,15 +150,21 @@
       { icon: "ph-scales", label: "상위 10개사 집중도", value: pc(SB.concentration(rows, 10), 0), delta: `<span class="vs">상위 50개사 ${pc(SB.concentration(rows, 50), 0)}</span>` },
     ].map(kpi).join("");
   }
+  // 개요 맨 위 한 줄 결론: 규모·수익성·우선 확인 대상
+  function headline(rows, S) {
+    const pri = rows.filter((r) => sevOf(r) === 1).length;
+    $("headline").innerHTML = `<b>${state.fy}년 ${S.n}곳 매출 ${won(S.s1)}원(${sg(S.g)}), 영업이익률 ${pc(S.m)}(${pp(S.m - S.m0)}).</b> ${pri ? `<a href="#signals">우선 확인 신호 ${pri}곳 보기 <i class="ph ph-arrow-right" aria-hidden="true"></i></a>` : "우선 확인 신호에 해당하는 기업은 없습니다."}`;
+  }
   const niceStep = (v) => { const e = Math.pow(10, Math.floor(Math.log10(v || 1))), f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; };
   // 매출·영업이익 막대(아래) + 영업이익률 선(위쪽 띠)
   function comboChart(labels, sales, ops, opt = {}) {
     const n = labels.length, H = 260, L = 50, R = 12, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 62; // 위 62px는 이익률 선, 아래는 막대
     const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null)), legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
     const vals = [...sales, ...ops].filter((v) => v != null), top = Math.max(...vals, 1) * (opt.values ? 1.12 : 1.02), bot = Math.min(0, ...vals);
-    const step = niceStep(top / 4), hi = Math.ceil(top / step) * step, lo = bot < 0 ? -Math.min(Math.max(-bot * 1.3, hi * (opt.values ? 0.14 : 0.06)), hi / 2) : 0, ticks = Math.round(hi / step); // 적자는 아래로 조금만 내린다
+    const e10 = Math.pow(10, Math.floor(Math.log10(top / 4 || 1))), maxT = opt.values ? 7 : 6; // 눈금이 너무 성기지 않게 가장 촘촘한 깔끔한 간격
+    const step = [1, 2, 2.5, 5, 10, 20, 25, 50].map((f) => f * e10).find((st) => Math.ceil(top / st) <= maxT) || niceStep(top / 4), hi = Math.ceil(top / step) * step, lo = bot < 0 ? -Math.min(Math.max(-bot * 1.3, hi * (opt.values ? 0.14 : 0.06)), hi / 2) : 0, ticks = Math.round(hi / step); // 적자는 아래로 조금만 내린다
     const bh = ph - band, y = (v) => T + band + bh - ((v - lo) / (hi - lo)) * bh;
-    const mv = margins.filter((v) => v != null), mHi = Math.max(...mv), mLo = Math.min(...mv), span = Math.max(mHi - mLo, 2);
+    const mv = margins.filter((v) => v != null), mLo = Math.min(0, ...mv), mHi = Math.max(...mv, mLo + 5), span = mHi - mLo; // 0을 기준으로 그려 작은 변화를 과장하지 않는다
     const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30); // 값 차이만 보이도록 띠 안에서 늘린다
     const slot = pw / n, bw = Math.min(opt.bw || 22, slot * 0.32), cx = (i) => L + slot * i + slot / 2;
     let g = "";
@@ -156,7 +179,7 @@
       if (s == null) { g += `<text class="ax" x="${x}" y="${y(0) - 6}" text-anchor="middle">결측</text><text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`; return; }
       g += `<rect x="${x - bw - 1}" y="${y(Math.max(s, 0))}" width="${bw}" height="${Math.abs(y(s) - y(0))}" rx="3" fill="var(--blue)"/>`;
       if (o != null) g += `<rect x="${x + 1}" y="${y(Math.max(o, 0))}" width="${bw}" height="${Math.max(1, Math.abs(y(o) - y(0)))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
-      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${y(Math.max(s, 0)) - 5}" text-anchor="middle">${won(s)}</text>${o != null ? `<text class="val" x="${x + bw / 2 + 1}" y="${o < 0 ? y(o) + 12 : y(o) - 5}" text-anchor="middle"${o < 0 ? ' fill="var(--down)"' : ""}>${won(o)}</text>` : ""}`;
+      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${y(Math.max(s, 0)) - 5}" text-anchor="middle">${won(s)}</text>`;
       g += `<text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`;
       g += `<rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}" data-tip="${l} 매출 ${won(s)} · 영업이익 ${won(o)} · 이익률 ${pc(margins[i])}"/>`;
     });
@@ -166,6 +189,8 @@
     return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
   }
   // 연도별 수치 표: 매출·영업이익·이익률·임직원, 마지막 열은 전년 대비
+  // 한 줄 안에서는 같은 단위(조 또는 억)로 맞춘다
+  const wonRow = (vals) => (Math.max(...vals.filter((v) => v != null).map(Math.abs), 0) >= 10000 ? (v) => (v == null ? "-" : `${(v / 10000).toFixed(1)}조`) : won);
   const people = (v) => (v == null ? "-" : `${Math.round(v).toLocaleString("ko-KR")}명`);
   function yearTable(years, s, o, e, eNote) {
     const n = years.length, last = n - 1, m = s.map((v, i) => (v > 0 && o[i] != null ? share(o[i], v) : null));
@@ -178,7 +203,7 @@
     const md = n > 1 && m[last] != null && m[last - 1] != null ? { txt: pp(m[last] - m[last - 1]), cls: tone(m[last] - m[last - 1]) } : { txt: "-" };
     const ed = n > 1 && e && e[last] != null && e[last - 1] > 0 ? (() => { const d = e[last] - e[last - 1]; return { txt: `${d > 0 ? "+" : ""}${d.toLocaleString("ko-KR")}명 (${sg(growth(e[last], e[last - 1]))})`, cls: tone(d) }; })() : { txt: "-" };
     return `<table class="db-tbl db-ytbl"><thead><tr><th scope="col">구분</th>${years.map((y) => `<th scope="col">${y}</th>`).join("")}<th scope="col">전년 대비</th></tr></thead><tbody>`
-      + row("매출", s, won, sd) + row("영업이익", o, won, od) + row("영업이익률", m, (v) => pc(v), md)
+      + row("매출", s, wonRow(s), sd) + row("영업이익", o, wonRow(o), od) + row("영업이익률", m, (v) => pc(v), md)
       + row("임직원", e || years.map(() => null), people, ed) + `</tbody></table>${eNote ? `<p class="db-mini">${eNote}</p>` : ""}`;
   }
   function yearlyChart(rows) {
@@ -196,15 +221,17 @@
     const m = s.map((v, i) => (v > 0 && o[i] != null ? share(o[i], v) : null));
     const row = (k, vals, fmt) => `<tr><th scope="row">${k}</th>${vals.map((v) => `<td${typeof v === "number" && v < 0 ? ' class="down"' : ""}>${fmt(v)}</td>`).join("")}</tr>`;
     return `<div class="db-qwrap"><table class="db-tbl db-ytbl db-qtbl"><thead><tr><th scope="col">구분</th>${labels.map((l) => `<th scope="col">${l}</th>`).join("")}</tr></thead><tbody>`
-      + row("매출", s, won) + row("영업이익", o, won) + row("영업이익률", m, (v) => pc(v)) + row("임직원", labels.map((l) => (e ? e[l] : null)), people)
+      + row("매출", s, wonRow(s)) + row("영업이익", o, wonRow(o)) + row("영업이익률", m, (v) => pc(v)) + row("임직원", labels.map((l) => (e ? e[l] : null)), people)
       + `</tbody></table></div><p class="db-mini">${eNote}</p>`;
   }
+  // 좁은 화면 분기 라벨: 해가 바뀌는 1Q와 첫 칸에만 연도를 남긴다
+  const qShort = (labels) => (W < 450 ? labels.map((l, i) => l.replace(/^'(\d\d)\.(\d)Q$/, (m, y, q) => (i === 0 || q === "1" ? m : `${q}Q`))) : labels);
   function trendChart(list) {
     const Q = SB.quarters(list);
     $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · 최근 8개 분기` : "";
     if (!Q.P.length) return `<p class="db-empty">이 조건에는 분기 실적이 있는 상장사가 없습니다. 비상장사는 분기 실적을 공시하지 않습니다.</p>`;
     const { labels, s, o } = Q, ltm = growth(sum(s.slice(4)), sum(s.slice(0, 4))), yoy = growth(s[7], s[3]);
-    const short = W < 450 ? labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : labels;
+    const short = qShort(labels);
     // 임직원: 반기말·연말 인원이 모두 있는 기업만 더해 시점끼리 비교되게 한다
     const eL = labels.filter((l) => /\.(2|4)Q$/.test(l)), PE = Q.P.filter((r) => r.qe && eL.every((l) => r.qe[l] != null));
     const e = PE.length ? Object.fromEntries(eL.map((l) => [l, sum(PE.map((r) => r.qe[l]))])) : null;
@@ -249,14 +276,14 @@
       `두 해 매출이 모두 있는 ${S.n}곳의 합계로 비교했습니다.`]);
     const sorted = rows.slice().sort((a, b) => b.s1 - a.s1), t10 = share(sum(sorted.slice(0, 10).map((r) => r.s1)), S.s1), rest = SB.stats(sorted.slice(10));
     out.push([t10 >= 40 ? "bad" : "", "ph-scales", `상위 10개사 매출 비중 ${pc(t10, 0)} · 업체 중앙값 성장률 ${sg(S.medG)}`,
-      (t10 >= 40 ? `상위 10개사를 빼면 성장률 ${sg(rest.g)}, 이익률 ${pc(rest.m)}입니다. ` : "") + (S.g - S.medG > 5 ? "합계 성장은 큰 기업들이 이끌었습니다." : S.medG - S.g > 5 ? "일반 업체가 상위 기업보다 더 크게 성장했습니다." : "업체 중앙값과 합계 성장률이 비슷합니다.")]);
+      (t10 >= 40 ? `상위 10개사를 빼면 성장률 ${sg(rest.g)}, 이익률 ${pc(rest.m)}입니다. ` : "") + (S.g - S.medG > 2 ? "합계 성장은 큰 기업들이 이끌었습니다." : S.medG - S.g > 2 ? "일반 업체가 상위 기업보다 더 크게 성장했습니다." : "업체 중앙값과 합계 성장률이 비슷합니다.")]);
     const tiers = window.SIZE_TIERS.map((t) => [t, SB.stats(rows.filter((r) => window.sizeTier(r.s1) === t))]).filter(([, s]) => s.n >= 5);
     if (tiers.length >= 2) {
       const a = tiers[0], b = tiers[tiers.length - 1];
       out.push([Math.abs(a[1].m - b[1].m) >= 3 ? "bad" : "", "ph-stack", `규모별 이익률: ${a[0]} ${pc(a[1].m)} · ${b[0]} ${pc(b[1].m)}`, `${b[0]} ${b[1].n}곳은 성장률 ${sg(b[1].g)}, 적자 비중 ${pc(b[1].lossP, 0)}입니다.`]);
     }
     const best = rows.filter((r) => r.type === TYPES[0]);
-    out.push(["good", "ph-rocket-launch", `우량 성장형 ${best.length}곳(${pc(share(best.length, S.n), 0)})`, best.length ? `대표: ${best.slice().sort((x, y) => y.s1 - x.s1).slice(0, 3).map((r) => r.n).join(", ")}` : "기준을 넘는 업체가 없습니다."]);
+    out.push(["good", "ph-rocket-launch", `${TYPES[0]} ${best.length}곳(${pc(share(best.length, S.n), 0)})`, best.length ? `대표: ${best.slice().sort((x, y) => y.s1 - x.s1).slice(0, 3).map((r) => r.n).join(", ")}` : "기준을 넘는 업체가 없습니다."]);
     return out.map(([c, ic, what, so]) => `<li><span class="ic ${c}"><i class="ph ${ic}" aria-hidden="true"></i></span><span><b>${what}</b><small>${so}</small></span></li>`).join("");
   }
 
@@ -267,7 +294,7 @@
     const best = items.filter((i) => i.label !== NA).sort((a, b) => b.g - a.g)[0];
     if (best) best.cls = "hi";
     const unk = items.find((i) => i.label === NA), est = rows.filter((r) => r.kindEst).length;
-    return hbarList(items) + note(`${best ? `성장은 <b>${best.label}</b>(${sg(best.g)})이 가장 빠릅니다. ` : ""}가운데는 매출 비중, 오른쪽은 성장률입니다. 업종 추정 ${est}곳${unk ? `, 미분류 ${unk.n}곳` : ""} 포함.`);
+    return hbarList(items, { head: ["비중", "성장률"] }) + note(`${best ? `성장은 <b>${best.label}</b>(${sg(best.g)})이 가장 빠릅니다. ` : ""}가운데는 매출 비중, 오른쪽은 성장률입니다. 업종 추정 ${est}곳${unk ? `, 미분류 ${unk.n}곳` : ""} 포함.`);
   }
   function regionCard(rows, S) {
     const items = AREAS.map((a) => { const rs = rows.filter((r) => r.area === a), st = SB.stats(rs); return { label: a, v: st.s1, right: won(st.s1), g: st.g, n: rs.length, tip: `${a} ${rs.length}곳 · 매출 ${won(st.s1)} · 영업이익률 ${pc(st.m)}` }; }).filter((i) => i.n);
@@ -275,24 +302,24 @@
     const top = items.slice().sort((a, b) => b.v - a.v)[0], worst = items.filter((i) => i.n >= 3).sort((a, b) => a.g - b.g)[0];
     top.cls = "hi";
     if (worst && worst.g < S.g - 5) worst.cls = "warn";
-    return hbarList(items) + (worst && worst.cls === "warn" ? note(`<b>${worst.label}</b> 권역 매출 ${sg(worst.g)}로 전체(${sg(S.g)})보다 크게 낮습니다.`, 1) : note(`<b>${top.label}</b> 권역이 매출의 ${pc(share(top.v, S.s1), 0)}를 차지합니다.`));
+    return hbarList(items, { head: ["매출", "성장률"] }) + (worst && worst.cls === "warn" ? note(`<b>${worst.label}</b> 권역 매출 ${sg(worst.g)}로 전체(${sg(S.g)})보다 크게 낮습니다.`, 1) : note(`<b>${top.label}</b> 권역이 매출의 ${pc(share(top.v, S.s1), 0)}를 차지합니다.`));
   }
   function summary(rows, S) {
     const tr = (label, st, foot) => `<tr>${foot ? `<td>${label}</td>` : `<th scope="row">${label}</th>`}<td>${st.n}</td><td>${won(st.s1)}</td><td>${pc(share(st.s1, S.s1), 0)}</td><td class="${tone(st.g)}">${sg(st.g)}</td><td>${pc(st.m)}</td><td>${pc(st.medM)}</td><td>${pc(st.lossP, 0)}</td></tr>`;
     const grp = (label, rs) => (rs.length ? tr(label, SB.stats(rs)) : "");
     const body = `<tr class="grp"><td colspan="8">업종</td></tr>` + KINDS.map((k) => grp(k, rows.filter((r) => r.kind === k))).join("")
-      + `<tr class="grp"><td colspan="8">상장 여부</td></tr>` + grp("상장", rows.filter((r) => r.l)) + grp("비상장", rows.filter((r) => !r.l))
+      + (rows.some((r) => r.l) && rows.some((r) => !r.l) ? `<tr class="grp"><td colspan="8">상장 여부</td></tr>` + grp("상장", rows.filter((r) => r.l)) + grp("비상장", rows.filter((r) => !r.l)) : "")
       + `<tr class="grp"><td colspan="8">매출 규모</td></tr>` + window.SIZE_TIERS.map((t) => grp(t, rows.filter((r) => window.sizeTier(r.s1) === t))).join("");
     return `<thead><tr><th>구분</th><th>업체</th><th>매출</th><th>비중</th><th>성장률</th><th>이익률(합산)</th><th>이익률 중앙값</th><th>적자 비중</th></tr></thead><tbody>${body}</tbody><tfoot>${tr("합계", S, true)}</tfoot>`;
   }
   function concCard(rows) {
     const c10 = SB.concentration(rows, 10), c50 = SB.concentration(rows, 50), c100 = SB.concentration(rows, 100);
     const seg = [["상위 10", c10], ["11~50위", c50 - c10], ["51~100위", c100 - c50], ["기타", 100 - c100]];
-    const colors = ["var(--blue)", "var(--teal)", "var(--gray)", "var(--line)"];
-    return `<div class="db-stack">${seg.map(([l, v], i) => `<span style="flex:${Math.max(v, 0.01)};background:${colors[i]}" data-tip="${l} ${pc(v, 0)}">${v >= 8 ? pc(v, 0) : ""}</span>`).join("")}</div>`
+    const colors = ["var(--stk-1)", "var(--stk-2)", "var(--stk-3)", "var(--stk-4)"];
+    return `<div class="db-stack">${seg.map(([l, v], i) => `<span class="s${i + 1}" style="flex:${Math.max(v, 0.01)};background:${colors[i]}" data-tip="${l} ${pc(v, 0)}">${v >= 8 ? pc(v, 0) : ""}</span>`).join("")}</div>`
       + `<ul class="db-legend stack">${seg.map(([l, v], i) => `<li><i style="background:${colors[i]}"></i>${l} <b>${pc(v, 0)}</b></li>`).join("")}</ul>`
       + concTrend(rows)
-      + note(`분석 대상 ${rows.length}곳 중 상위 10개사가 매출의 ${pc(c10, 0)}, 상위 100개사가 ${pc(c100, 0)}를 차지합니다. ${c10 >= 40 ? "소수 기업 의존도가 높습니다." : "특정 기업 쏠림은 크지 않습니다."}`, c10 >= 40);
+      + note(c10 >= 40 ? "소수 기업 의존도가 높습니다." : "특정 기업 쏠림은 크지 않습니다.", c10 >= 40);
   }
   // 같은 기업(3개년 매출 보유) 기준으로 해마다 집중도를 비교해 쏠림이 커지는지 본다. HHI = Σ(매출 비중%)²
   function concTrend(rows) {
@@ -303,8 +330,8 @@
       return { y, c10: share(sum(v.slice(0, 10)), tot), c50: share(sum(v.slice(0, 50)), tot), hhi: sum(v.map((x) => (x / tot * 100) ** 2)) };
     });
     const d = yrs[2].c10 - yrs[0].c10;
-    return `<table class="db-tbl db-conc-t"><thead><tr><th>연도</th><th>상위 10</th><th>상위 50</th><th>HHI</th></tr></thead><tbody>${yrs.map((x) => `<tr><th scope="row">${x.y}년</th><td>${pc(x.c10, 1)}</td><td>${pc(x.c50, 1)}</td><td>${Math.round(x.hhi).toLocaleString("ko-KR")}</td></tr>`).join("")}</tbody></table>`
-      + `<p class="db-mini">3개년 매출이 모두 있는 ${three.length}곳 기준. 상위 10개사 비중이 ${Math.abs(d) < 0.5 ? "거의 변하지 않았습니다" : `${pp(d)} ${d > 0 ? "높아져 쏠림이 커졌습니다" : "낮아져 쏠림이 줄었습니다"}`}. HHI 1,500 미만은 집중도가 낮은 구조로 봅니다.</p>`;
+    return `<table class="db-tbl db-conc-t"><thead><tr><th>연도</th><th>상위 10</th><th>상위 50</th><th><abbr title="허핀달-허쉬만 지수: 기업별 매출 비중(%) 제곱의 합">HHI</abbr></th></tr></thead><tbody>${yrs.map((x) => `<tr><th scope="row">${x.y}년</th><td>${pc(x.c10, 1)}</td><td>${pc(x.c50, 1)}</td><td>${Math.round(x.hhi).toLocaleString("ko-KR")}</td></tr>`).join("")}</tbody></table>`
+      + `<p class="db-mini">3개년 매출이 모두 있는 ${three.length}곳 기준. 상위 10개사 비중이 ${Math.abs(d) < 0.5 ? "거의 변하지 않았습니다" : `${pp(d)} ${d > 0 ? "높아져 쏠림이 커졌습니다" : "낮아져 쏠림이 줄었습니다"}`}. HHI(집중 지수)는 매출 비중을 제곱해 더한 값으로, 1,500 미만이면 집중도가 낮은 구조로 봅니다.</p>`;
   }
   function bigCard() {
     const big = SB.panel(recs.filter((r) => F.inBase(r) && SB.isBig(r)), state.fy), rest = SB.panel(recs.filter((r) => F.inBase(r) && !SB.isBig(r)), state.fy);
@@ -313,7 +340,7 @@
     const status = state.big === "exclude" ? "다른 지표에서는 제외돼 있습니다." : state.big === "only" ? "지금은 대형사만 보고 있습니다." : "다른 지표에 포함돼 있습니다.";
     return `<div class="db-big-kpi"><div><span>업체</span><b>${B.n}곳</b></div><div><span>매출</span><b>${won(B.s1)}</b></div><div><span>성장률</span><b class="${tone(B.g)}">${sg(B.g)}</b></div><div><span>이익률</span><b>${pc(B.m)}</b></div></div>`
       + note(`대형사가 전체 매출의 ${pc(share(B.s1, B.s1 + O.s1), 0)}를 차지합니다. 나머지 ${O.n}곳은 성장률 ${sg(O.g)}, 이익률 ${pc(O.m)}입니다. ${status}`)
-      + hbarList(list.slice(0, 8).map((r) => ({ label: r.n, link: coLink(r), v: r.s1, right: won(r.s1), g: r.g })), { wide: 1 });
+      + hbarList(list.map((r) => ({ label: r.n, link: coLink(r), v: r.s1, right: won(r.s1), g: r.g })), { wide: 1, head: ["매출", "성장률"] });
   }
 
   // ---------- 03 기업 포트폴리오 ----------
@@ -327,7 +354,7 @@
     const groups = KINDS.map((k) => [k, rows.filter((r) => r.kind === k)]).filter(([, rs]) => rs.length >= 5);
     if (!groups.length) return `<p class="db-empty">비교할 업종이 없습니다.</p>`;
     const draw = (title, key, lo, hi) => {
-      const L = 54, R = 16, rowH = 28, H = groups.length * rowH + 30, x = (v) => L + ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo)) * (W - L - R);
+      const L = 76, R = 16, rowH = 28, H = groups.length * rowH + 30, x = (v) => L + ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo)) * (W - L - R);
       let g = `<line x1="${x(0)}" x2="${x(0)}" y1="4" y2="${H - 22}" stroke="var(--line)"/>`;
       [lo, (lo + hi) / 2, hi].forEach((v) => (g += `<text class="ax" x="${x(v)}" y="${H - 6}" text-anchor="middle">${v}%</text>`));
       groups.forEach(([k, rs], i) => {
@@ -342,7 +369,7 @@
     const t = rows.slice().sort((a, b) => b.s1 - a.s1).slice(0, 10);
     if (!t.length) return `<p class="db-empty">자료가 없습니다.</p>`;
     const avg = sum(t.map((r) => r.s1)) / t.length, down = t.filter((r) => r.g < 0);
-    return hbarList(t.map((r, i) => ({ label: r.n, link: coLink(r), v: r.s1, right: won(r.s1), g: r.g, cls: i === 0 ? "hi" : r.g < 0 ? "warn" : "", tip: `${r.n} · ${r.kind} · 영업이익률 ${pc(r.m)}` })), { wide: 1, mark: avg })
+    return hbarList(t.map((r, i) => ({ label: r.n, link: coLink(r), v: r.s1, right: won(r.s1), g: r.g, cls: i === 0 ? "hi" : r.g < 0 ? "warn" : "", tip: `${r.n} · ${r.kind} · 영업이익률 ${pc(r.m)}` })), { wide: 1, mark: avg, head: ["매출", "성장률"] })
       + note(down.length ? `상위 10개사 중 <b>${down.map((r) => r.n).join(", ")}</b> 매출이 줄었습니다.` : "상위 10개사 모두 매출이 늘었습니다.", down.length);
   }
   // 고성장 기업: 전년 매출 100억 미만은 기저효과 표시
@@ -350,14 +377,14 @@
     const t = rows.filter((r) => r.g != null).sort((a, b) => b.g - a.g).slice(0, 10);
     if (!t.length) return `<p class="db-empty">자료가 없습니다.</p>`;
     const small = t.filter((r) => r.s0 < 100).length;
-    return hbarList(t.map((r) => ({ label: r.n, link: coLink(r) + (r.s0 < 100 ? '<small class="db-est" title="전년 매출 100억 미만">기저</small>' : ""), v: r.g, right: sg(r.g, 0), g: r.m, gText: pc(r.m, 0), tip: `${r.n} · 매출 ${won(r.s0)} → ${won(r.s1)}` })), { wide: 1 })
-      + note(`오른쪽은 영업이익률입니다. ${small ? `${small}곳은 전년 매출이 100억 미만이라 기저효과일 수 있습니다.` : "기저효과가 큰 소규모 기업은 없습니다."}`);
+    return hbarList(t.map((r) => ({ label: r.n, link: coLink(r) + (r.s0 < 100 ? '<small class="db-est" title="전년 매출 100억 미만">기저</small>' : ""), v: r.g, right: sg(r.g), g: r.m, gText: pc(r.m), tip: `${r.n} · 매출 ${won(r.s0)} → ${won(r.s1)}` })), { wide: 1, head: ["성장률", "이익률"] })
+      + note(`${small ? `${small}곳은 전년 매출이 100억 미만이라 기저효과일 수 있습니다.` : "기저효과가 큰 소규모 기업은 없습니다."}`);
   }
   function funnel(rows) {
     const steps = [["분석 업체", rows], ["매출 증가", rows.filter((r) => r.g > 0)], ["증가 + 흑자", rows.filter((r) => r.g > 0 && r.o1 > 0)], ["이익률 5%↑", rows.filter((r) => r.g > 0 && r.m >= 5)], ["우량 성장", rows.filter((r) => r.type === TYPES[0])]];
     const n0 = rows.length || 1;
     return `<ol class="db-funnel">${steps.map(([l, rs], i) => `<li data-tip="${l} ${rs.length}곳 (${pc(share(rs.length, n0), 0)})"><span>${l}</span><span class="bar"><span style="width:${Math.max(4, share(rs.length, n0))}%;opacity:${1 - i * 0.16}"></span></span><b>${rs.length}곳</b></li>`).join("")}</ol>`
-      + `<p class="db-funnel-note">우량 성장형(성장 ${SB.HI_GROWTH}%↑·이익률 ${SB.HI_MARGIN}%↑) ${pc(share(steps[4][1].length, n0), 0)}</p>`;
+      + `<p class="db-funnel-note">${TYPES[0]}(성장 ${SB.HI_GROWTH}%↑·이익률 ${SB.HI_MARGIN}%↑) ${pc(share(steps[4][1].length, n0), 0)}</p>`;
   }
   const CHIPS = ["전체", ...TYPES, "영업적자"];
   const BASE_COLS = [["n", "기업"], ["kind", "업종"], ["l", "상장"], ["area", "지역"], ["s1", "매출"], ["g", "성장률"], ["m", "영업이익률"], ["debt", "부채비율"], ["type", "유형"]];
@@ -371,7 +398,7 @@
     const total = rows.length;
     if (!state.more) rows = rows.slice(0, 15);
     const COLS = internal ? [...BASE_COLS, ["legal", "기업규모"], ["trade", "거래"], ["semi", "반도체 비중"]] : BASE_COLS;
-    const tag = (t) => `<span class="db-tag ${t === TYPES[0] ? "good" : t === TYPES[3] ? "bad" : ""}">${t}</span>`;
+    const tag = (t) => (SB.typeIdx(t) < 0 ? "-" : `<span class="db-tag t${SB.typeIdx(t)}">${t}</span>`);
     $("c-list").innerHTML = `<thead><tr>${COLS.map(([c, l]) => `<th scope="col" aria-sort="${c === k ? (state.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${c}">${l}</button></th>`).join("")}</tr></thead>`
       + `<tbody>${rows.map((r) => `<tr><th scope="row">${coLink(r)}</th><td data-label="업종">${r.kind}${r.kindEst ? '<small class="db-est" title="DART 업종코드·회사명으로 추정">추정</small>' : ""}</td><td data-label="상장">${r.l ? "상장" : "비상장"}</td><td data-label="지역">${r.area}</td><td data-label="매출">${won(r.s1)}</td><td data-label="성장률" class="${tone(r.g)}">${sg(r.g)}</td><td data-label="영업이익률" class="${r.m < 0 ? "down" : ""}">${pc(r.m)}</td><td data-label="부채비율">${r.debt == null ? "-" : pc(r.debt, 0)}</td><td data-label="유형">${tag(r.type)}</td>${internal ? `<td data-label="기업규모">${r.legal}</td><td data-label="거래">${r.trade}</td><td data-label="반도체 비중">${r.semi == null ? "-" : pc(r.semi, 0)}</td>` : ""}</tr>`).join("") || `<tr><td colspan="${COLS.length}" class="db-empty">검색 결과가 없습니다.</td></tr>`}</tbody>`;
     $("more").hidden = total <= 15;
@@ -410,18 +437,19 @@
   function drawSignals() {
     const hits = sigRows.map((r) => ({ r, h: SB.signalsOf(r) })).filter((x) => x.h.length);
     const count = (k) => hits.filter((x) => x.h.some((s) => s.key === k)).length;
-    $("c-sigcards").innerHTML = SIGNALS.map((s) => `<button type="button" class="db-sig${state.sig === s.key ? " on" : ""}" data-sig="${s.key}"><span>${s.label}</span><b>${count(s.key)}<small>곳</small></b><em>${s.rule}</em></button>`).join("");
-    $("sig-chips").innerHTML = [["전체", `전체 ${hits.length}`], ...SIGNALS.map((s) => [s.key, `${s.label} ${count(s.key)}`])]
-      .map(([k, l]) => `<button type="button" role="radio" aria-checked="${state.sig === k}" data-sig="${k}">${l}</button>`).join("");
+    // 카드 = 거르기 버튼. 해당 0곳인 신호는 숨기고, 심각도 순으로 놓는다
+    const card = (k, label, n, sub, sev) => `<button type="button" class="db-sig${sev ? ` sev${sev}` : ""}${state.sig === k ? " on" : ""}" data-sig="${k}" aria-pressed="${state.sig === k}"><span>${label}${sev ? `<small class="db-sev">${SB.SEV[sev]}</small>` : ""}</span><b>${n}<small>곳</small></b><em>${sub}</em><i class="ph ph-caret-right" aria-hidden="true"></i></button>`;
+    $("c-sigcards").innerHTML = card("전체", "전체", hits.length, "신호가 하나라도 있는 기업", 0)
+      + SIGNALS.slice().sort((a, b) => a.sev - b.sev).filter((s) => count(s.key) || state.sig === s.key).map((s) => card(s.key, s.label, count(s.key), s.rule, s.sev)).join("");
     let list = hits.filter((x) => state.sig === "전체" || x.h.some((s) => s.key === state.sig));
-    list.sort((a, b) => b.h.length - a.h.length || b.r.s1 - a.r.s1);
+    list.sort((a, b) => a.h[0].sev - b.h[0].sev || b.h.length - a.h.length || b.r.s1 - a.r.s1);
     const total = list.length;
     if (!state.sigMore) list = list.slice(0, 15);
     const kindMed = {};
     KINDS.forEach((k) => (kindMed[k] = med(sigRows.filter((x) => x.kind === k).map((x) => x.m))));
     $("c-signal").innerHTML = `<thead><tr><th>기업</th><th>업종</th><th>매출</th><th>이익률 / 업종 중앙값</th><th>신호</th><th>근거</th></tr></thead><tbody>`
       + (list.map(({ r, h }) => `<tr><th scope="row">${coLink(r)}</th><td data-label="업종">${r.kind}</td><td data-label="매출">${won(r.s1)}</td><td data-label="이익률 / 업종">${pc(r.m)} / ${pc(kindMed[r.kind])}</td>`
-        + `<td data-label="신호">${h.map((s) => `<span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span>`).join(" ")}</td><td class="db-why" data-label="근거">${h.map((s) => esc(s.why(r))).join(" · ")}</td></tr>`).join("")
+        + `<td data-label="신호">${h.map((s) => `<span class="db-tag sev${s.sev}">${s.label}</span>`).join(" ")}</td><td class="db-why" data-label="근거">${h.map((s) => esc(s.why(r))).join(" · ")}</td></tr>`).join("")
         || `<tr><td colspan="6" class="db-empty">해당 기업이 없습니다.</td></tr>`) + "</tbody>";
     $("sig-more").hidden = total <= 15;
     $("sig-more").textContent = state.sigMore ? "15곳만 보기" : `전체 ${total}곳 보기`;
@@ -433,10 +461,9 @@
     state.sigMore = false;
     drawSignals();
   };
-  $("sig-chips").addEventListener("click", pickSig);
   $("c-sigcards").addEventListener("click", pickSig);
   $("sig-more").addEventListener("click", () => { state.sigMore = !state.sigMore; drawSignals(); });
-  $("c-rules").innerHTML = `<thead><tr><th>신호</th><th>규칙(확정)</th><th>확인할 사항</th></tr></thead><tbody>${SIGNALS.map((s) => `<tr><th scope="row">${s.label}</th><td>${s.rule}</td><td>${s.check}</td></tr>`).join("")}</tbody>`;
+  $("c-rules").innerHTML = `<thead><tr><th>신호</th><th>규칙(확정)</th><th>확인할 사항</th></tr></thead><tbody>${SIGNALS.slice().sort((a, b) => a.sev - b.sev).map((s) => `<tr><th scope="row"><span class="db-tag sev${s.sev}">${s.label}</span> <small class="db-sev">${SB.SEV[s.sev]}</small></th><td>${s.rule}</td><td>${s.check}</td></tr>`).join("")}</tbody>`;
 
   // ---------- 05 기업 상세 ----------
   // 기업 선택: 검색어로 거르고 매출이 큰 순서로 보여 주는 목록(브라우저 기본 자동완성은 모바일에서 잘 안 보인다)
@@ -457,7 +484,8 @@
   function coPick(i) {
     const x = coHits[i];
     if (!x) return;
-    state.co = x.r.c; coClose(); $("co-q").blur(); drawCompany(); syncUrl();
+    state.co = x.r.c; coClose(); drawCompany(); syncUrl();
+    if (matchMedia("(pointer: coarse)").matches) $("co-q").blur();
   }
   function coMove(d) {
     if (!coHits.length) return;
@@ -479,12 +507,12 @@
   $("co-q").addEventListener("blur", () => setTimeout(coClose, 150));
   function drawCompany() {
     const P = SB.panel(recs, state.fy);
-    if (!state.co) state.co = (P.slice().sort((a, b) => b.s1 - a.s1)[0] || recs[0] || {}).c;
+    if (!state.co) state.co = (P.filter(F.inFilter).sort((a, b) => b.s1 - a.s1)[0] || P[0] || recs[0] || {}).c; // 처음엔 지금 조건의 매출 1위 기업
     const base = recs.find((r) => r.c === state.co);
     if (!base) { $("c-company").innerHTML = `<p class="db-empty">기업을 선택하세요.</p>`; return; }
     $("co-q").value = base.n;
     const r = P.find((x) => x.c === base.c), peers = P.filter((x) => x.kind === base.kind);
-    const rank = (key, v) => { if (v == null) return "-"; const vals = peers.map((x) => x[key]).filter((x) => x != null); return `상위 ${Math.max(1, Math.round((vals.filter((x) => x > v).length / vals.length) * 100) || 1)}%`; };
+    const rank = (key, v) => { if (v == null) return "-"; const vals = peers.map((x) => x[key]).filter((x) => x != null); const p = Math.round((vals.filter((x) => x > v).length / vals.length) * 100); return p <= 50 ? `상위 ${Math.max(1, p)}%` : `하위 ${Math.max(1, 100 - p)}%`; };
     const salesRank = r ? peers.slice().sort((a, b) => b.s1 - a.s1).findIndex((x) => x.c === r.c) + 1 : null;
     const sigs = r ? SB.signalsOf(r) : [];
     const missing = [];
@@ -501,10 +529,10 @@
       <div class="db-co-kpis">${card(`${state.fy}년 매출`, r ? won(r.s1) : "-", r ? `${base.kind} ${peers.length}곳 중 ${salesRank}위` : "")}${card("매출 성장률", r ? sg(r.g) : "-", r ? `업종 ${rank("g", r.g)} · 중앙값 ${sg(med(peers.map((x) => x.g)))}` : "")}${card("영업이익률", r ? pc(r.m) : "-", r && r.m != null ? `업종 ${rank("m", r.m)} · 중앙값 ${pc(med(peers.map((x) => x.m)))}` : "")}${card("부채비율", r && r.debt != null ? pc(r.debt, 0) : "-", r && r.debt != null ? `업종 중앙값 ${pc(med(peers.map((x) => x.debt)), 0)}` : "자료 없음")}${card("기업 유형", r ? r.type : "-", `성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준`)}</div>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>연도별 실적</h2></div><div class="db-chart">${comboChart(base.y.map((y) => `${y}년`), base.s, base.o, { values: true, bw: 30, legend: true, label: "연도별 매출·영업이익·영업이익률" })}${yearTable(base.y.map((y) => `${y}년`), base.s, base.o, base.e, base.e ? "" : base.src === "감사보고서" ? "임직원 수: 감사보고서만 내는 회사라 공시하지 않습니다." : "임직원 수: 다음 자동 갱신 후 표시됩니다.")}</div></section>
-        <section class="db-card"><div class="db-card-head"><h2>분기별 실적 <small>임직원은 반기말·연말만 공시</small></h2></div>${base.q ? (() => { const ql = W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels; return `<div class="db-chart">${comboChart(W < 450 ? base.q.labels.map((l) => l.replace(/^'(\d\d)\.(\d)Q$/, "$2Q")) : base.q.labels, base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}${quarterTable(base.q.labels, base.q.sales, base.q.op, base.qe || null, base.qe ? "임직원은 반기말(2Q)·연말(4Q)만 공시돼 그 분기에만 표시합니다." : "임직원은 반기말(2Q)·연말(4Q)만 공시합니다. 다음 자동 갱신 후 표시됩니다.")}</div>`; })() : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
+        <section class="db-card"><div class="db-card-head"><h2>분기별 실적 <small>임직원은 반기말·연말만 공시</small></h2></div>${base.q ? (() => `<div class="db-chart">${comboChart(qShort(base.q.labels), base.q.sales, base.q.op, { bw: 12, legend: true, label: "분기 매출·영업이익·영업이익률" })}${quarterTable(base.q.labels, base.q.sales, base.q.op, base.qe || null, base.qe ? "임직원은 반기말(2Q)·연말(4Q)만 공시돼 그 분기에만 표시합니다." : "임직원은 반기말(2Q)·연말(4Q)만 공시합니다. 다음 자동 갱신 후 표시됩니다.")}</div>`)() : `<p class="db-empty">${base.l ? "분기 실적이 없습니다." : "비상장사는 분기 실적을 공시하지 않아 연간만 표시합니다."}</p>`}</section>
       </div>
       <div class="db-grid r1">
-        <section class="db-card"><div class="db-card-head"><h2>경영 변화 신호</h2></div>${sigs.length ? `<ul class="db-plain">${sigs.map((s) => `<li><span class="db-tag ${s.key === "이상" ? "" : "bad"}">${s.label}</span> ${esc(s.why(r))}<small> · 확인: ${s.check}</small></li>`).join("")}</ul>` : `<p class="db-empty">해당하는 신호가 없습니다.</p>`}</section>
+        <section class="db-card"><div class="db-card-head"><h2>경영 변화 신호</h2></div>${sigs.length ? `<ul class="db-plain">${sigs.map((s) => `<li><span class="db-tag sev${s.sev}">${s.label}</span> ${esc(s.why(r))}<small> · 확인: ${s.check}</small></li>`).join("")}</ul>` : `<p class="db-empty">해당하는 신호가 없습니다.</p>`}</section>
         <section class="db-card"><div class="db-card-head"><h2>데이터 기준·결측</h2></div><ul class="db-plain"><li>개별(별도) 재무제표, ${base.src || "-"} 기준</li><li>비교 집단: ${base.kind} ${peers.length}곳(대형사 포함, 상단 필터와 무관)</li>${missing.length ? missing.map((m) => `<li class="down">결측: ${m}</li>`).join("") : "<li>결측 항목 없음</li>"}</ul></section>
       </div>`;
   }
@@ -533,13 +561,20 @@
     W = chartW();
     F = SB.makeFilter(state, internal);
     const list = recs.filter(F.inFilter), rows = SB.panel(list, state.fy), S = SB.stats(rows), FS = SB.fullSample(list, state.fy);
-    $("sub").textContent = `${SB.describe(state)} · 개별 기준 · 분석 ${S.n}곳 (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})`;
+    $("sub").textContent = `${SB.describe(state)} · 개별 기준 · 분석 ${S.n}곳${rows.some((r) => !r.l) && rows.some((r) => r.l) ? ` (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})` : ""}`;
     const ids = ["c-yearly", "c-trend", "c-kindsc", "c-changes", "c-insight", "c-mix", "c-region", "c-summary", "c-conc", "c-cosc", "c-box", "c-top", "c-fast", "c-funnel"];
+    document.body.classList.toggle("db-nodata", !rows.length);
+    $("empty-panel").hidden = !!rows.length;
     if (!rows.length) {
-      $("kpis").innerHTML = `<p class="db-empty">조건에 맞는 기업이 없습니다. 필터를 초기화해 보세요.</p>`;
       ids.forEach((id) => ($(id).innerHTML = ""));
+      $("kpis").innerHTML = $("headline").innerHTML = "";
+      ["yearly-sub", "trend-sub"].forEach((id) => ($(id).textContent = ""));
+      const NAMES = { fy: "기준 연도", kind: "업종", area: "지역", listed: "상장 여부", size: "매출 규모", big: "대형사", legal: "기업규모", trade: "거래 관계" };
+      const on = SB.FILTER_KEYS.filter((k) => k !== "fy" && String(state[k]) !== String(SB.DEFAULTS[k]));
+      $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>조건에 맞는 기업이 없습니다.</b><p>아래 조건 중 하나를 풀어 보세요.</p><div class="db-empty-chips">${on.map((k) => `<button type="button" data-unset="${k}">${NAMES[k]}: ${esc($(Object.keys(IDS).find((id) => IDS[id] === k)).selectedOptions[0]?.textContent || state[k])} <span aria-hidden="true">×</span></button>`).join("")}<button type="button" data-unset="all">필터 모두 초기화</button></div></div>`;
     } else {
       kpis(rows, S, FS);
+      headline(rows, S);
       $("c-yearly").innerHTML = yearlyChart(rows);
       $("c-trend").innerHTML = trendChart(list);
       $("c-kindsc").innerHTML = kindScatter(rows);
@@ -577,8 +612,41 @@
   let lastW = chartW();
   window.addEventListener("resize", () => { if (chartW() !== lastW) { lastW = chartW(); render(); } });
 
+  $("empty-panel").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-unset]");
+    if (!b) return;
+    if (b.dataset.unset === "all") { $("filters").requestSubmit ? $("clear").click() : $("filters").reset(); return; }
+    state[b.dataset.unset] = SB.DEFAULTS[b.dataset.unset];
+    drawFilters(); render();
+  });
+  // 차트 점(기업)도 키보드로: Tab으로 차트에 들어와 화살표로 옮기고 Enter로 연다
+  document.addEventListener("keydown", (e) => {
+    const el = e.target.closest && e.target.closest("circle[data-co]");
+    if (!el) return;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.dispatchEvent(new MouseEvent("click", { bubbles: true })); return; }
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: -1e9, End: 1e9 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const pts = [...el.ownerSVGElement.querySelectorAll("circle[data-co]")], to = pts[Math.max(0, Math.min(pts.length - 1, pts.indexOf(el) + d))];
+    el.setAttribute("tabindex", "-1"); to.setAttribute("tabindex", "0"); to.focus();
+  });
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-big]");
+    if (!b) return;
+    state.big = b.dataset.big;
+    drawFilters(); render();
+  });
   // 툴팁
   const tip = $("tip");
+  document.addEventListener("focusin", (e) => {
+    const el = e.target.closest && e.target.closest("[data-tip]");
+    if (!el || !el.dataset.tip) { tip.hidden = true; return; }
+    const b = el.getBoundingClientRect();
+    tip.textContent = el.dataset.tip; tip.hidden = false;
+    tip.style.left = `${Math.min(b.left, innerWidth - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${b.bottom + 8}px`;
+  });
+  document.addEventListener("focusout", () => (tip.hidden = true));
   document.addEventListener("mousemove", (e) => {
     const el = e.target.closest && e.target.closest("[data-tip]");
     if (!el || !el.dataset.tip) { tip.hidden = true; return; }
