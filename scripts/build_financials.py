@@ -94,24 +94,50 @@ def load_corp_list(api_key: str) -> list:
              "stock_code": (e.findtext("stock_code") or "").strip()} for e in root.iter("list")]
 
 
-def resolve(entries: list, corps: list) -> tuple:
-    """명단 → ({고유번호: (이름, 명단키)}, 못 찾은 이름들, 모호한 이름들)."""
+def bizr_of(api_key: str, corp_code: str) -> str:
+    company = bcp.call(api_key, "company", corp_code=corp_code) or {}
+    return re.sub(r"\D", "", company.get("bizr_no") or "")
+
+
+def resolve(entries: list, corps: list, api_key: str | None = None) -> tuple:
+    """명단 → ({고유번호: (이름, 명단키)}, 못 찾은 이름들, 모호한 이름들, 사업자번호 확인 결과).
+
+    사업자등록번호가 있으면 이름 후보의 DART 회사 정보(bizr_no)와 맞춰 고른다. 지점·공장 번호(가운데 85)는
+    본사 번호와 달라 맞출 수 없으므로 이름 규칙(같은 이름 중 상장사 하나)으로 고른다."""
     by_name = {}
     for c in corps:
         by_name.setdefault(norm(c["name"]), []).append(c)
-    found, missing, ambiguous = {}, [], []
-    for name, key, _sites in entries:
+    found, missing, ambiguous, checked = {}, [], [], {"일치": 0, "지점번호": 0, "불일치": []}
+    for entry in entries:
+        name, key = entry[0], entry[1]
+        biz = re.sub(r"\D", "", entry[3]) if len(entry) > 3 and entry[3] else ""
         hits = next((by_name[v] for v in variants(name) if v in by_name), [])
-        listed = [c for c in hits if c["stock_code"]]
-        if len(hits) > 1 and len(listed) == 1:
-            hits = listed
-        if not hits:
+        if not hits and biz:  # 이름이 조금 달라도 앞부분이 같은 회사를 후보로 둔다
+            n = variants(name)[0]
+            hits = [c for k, cs in by_name.items() if len(n) >= 2 and (k.startswith(n) or n.startswith(k)) and len(k) >= 2 for c in cs][:8]
+        pick = None
+        if biz and api_key and hits and biz[3:5] != "85":
+            pick = next((c for c in hits[:8] if bizr_of(api_key, c["corp_code"]) == biz), None)
+            if pick:
+                checked["일치"] += 1
+            else:
+                checked["불일치"].append(name)
+        if not pick:
+            if biz and biz[3:5] == "85":
+                checked["지점번호"] += 1
+            exact = next((by_name[v] for v in variants(name) if v in by_name), [])
+            listed = [c for c in exact if c["stock_code"]]
+            cand = listed if len(exact) > 1 and len(listed) == 1 else exact
+            if len(cand) == 1:
+                pick = cand[0]
+            elif len(cand) > 1:
+                ambiguous.append(name)
+                continue
+        if not pick:
             missing.append(name)
-        elif len(hits) > 1:
-            ambiguous.append(name)
-        else:
-            found.setdefault(hits[0]["corp_code"], (name, key))
-    return found, missing, ambiguous
+            continue
+        found.setdefault(pick["corp_code"], (name, key))
+    return found, missing, ambiguous, checked
 
 
 # ---------- 분기 ----------
@@ -214,12 +240,14 @@ def main() -> int:
     entries = universe_names()
     targets = {}  # 명단에 있는 회사만 모은다(지정 기업 1~3그룹은 따로 더하지 않는다)
     corps = load_corp_list(api_key)
-    found, missing, ambiguous = resolve(entries, corps)
+    found, missing, ambiguous, checked = resolve(entries, corps, api_key)
     for code, (name, key) in found.items():
         targets[code] = (targets[code][0], targets[code][1] or key) if code in targets else (name, key)
     print(f"대상 {len(targets)}곳 (명단 {len(entries)}곳 중 찾음 {len(found)}곳)")
     print(f"명단에서 못 찾음 {len(missing)}곳: {', '.join(missing)}")
     print(f"이름이 겹쳐 건너뜀 {len(ambiguous)}곳: {', '.join(ambiguous)}")
+    print(f"사업자번호 확인: 일치 {checked['일치']}곳, 지점·공장 번호라 이름으로 매칭 {checked['지점번호']}곳, "
+          f"번호가 맞는 후보 없음(이름으로 매칭 시도) {len(checked['불일치'])}곳: {', '.join(checked['불일치'])}")
 
     started, records = time.monotonic(), {}
     stop = [False]
