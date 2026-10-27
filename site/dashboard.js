@@ -244,16 +244,20 @@
       + (() => { const pv = years.map((_, i) => (e && e[i] > 0 && sE[i] != null ? sE[i] / e[i] : null)); return pv.some((v) => v != null) ? row("1인당 매출", pv, (v) => (v == null ? "-" : `${v.toFixed(1)}억`), n > 1 ? gr(pv[last], pv[last - 1]) : { txt: "-" }) : ""; })()
       + `</tbody></table>${eNote ? `<p class="db-mini">${eNote}</p>` : ""}`;
   }
+  // 기준 연도까지 최대 3년: 자료가 있는 해만 쓴다(예: 2024년 기준이면 수집된 2023·2024년)
   function yearlyChart(rows) {
-    const fy = state.fy, P = rows.filter((r) => r.s2 > 0 && r.o2 != null && r.o0 != null && r.o1 != null);
-    $("yearly-sub").textContent = P.length ? `3년 실적이 모두 있는 ${P.length}곳` : "";
-    if (!P.length) return `<p class="db-empty">이 조건에는 3년 실적이 모두 있는 기업이 없습니다.</p>`;
-    const s = [sum(P.map((r) => r.s2)), sum(P.map((r) => r.s0)), sum(P.map((r) => r.s1))], o = [sum(P.map((r) => r.o2)), sum(P.map((r) => r.o0)), sum(P.map((r) => r.o1))];
-    const PE = P.filter((r) => r.e2 > 0 && r.e0 > 0 && r.e1 > 0), e = PE.length ? [sum(PE.map((r) => r.e2)), sum(PE.map((r) => r.e0)), sum(PE.map((r) => r.e1))] : null;
-    const sE = [sum(PE.map((r) => r.s2)), sum(PE.map((r) => r.s0)), sum(PE.map((r) => r.s1))];
-    const yrs = [fy - 2, fy - 1, fy].map((y) => `${y}년`);
+    const fy = state.fy, at = (r, k, y) => SB.at(r, r[k], y);
+    const Y = [fy - 2, fy - 1, fy].filter((y) => rows.some((r) => at(r, "s", y) > 0));
+    const P = Y.length ? rows.filter((r) => Y.every((y) => at(r, "s", y) > 0 && at(r, "o", y) != null)) : [];
+    $("yearly-sub").textContent = P.length ? `${Y.length}년 실적이 모두 있는 ${P.length}곳` : "";
+    if (!P.length) return `<p class="db-empty">이 조건에는 연도별 실적이 모두 있는 기업이 없습니다.</p>`;
+    const tot = (list, k) => Y.map((y) => sum(list.map((r) => at(r, k, y))));
+    const s = tot(P, "s"), o = tot(P, "o");
+    const PE = P.filter((r) => Y.every((y) => at(r, "e", y) > 0)), e = PE.length ? tot(PE, "e") : null, sE = tot(PE, "s");
+    const yrs = Y.map((y) => `${y}년`);
     return comboChart(yrs, s, o, { values: true, bw: 34, label: "연도별 매출·영업이익·영업이익률" })
-      + yearTable(yrs, s, o, e, e ? `임직원은 3년 모두 사업보고서로 공시한 ${PE.length}곳 합계입니다(감사보고서만 내는 비상장사는 공시하지 않음).` : "임직원 수는 사업보고서 제출 기업만 공시합니다. 다음 자동 갱신 후 표시됩니다.", sE);
+      + yearTable(yrs, s, o, e, e ? `임직원은 ${Y.length}년 모두 사업보고서로 공시한 ${PE.length}곳 합계입니다(감사보고서만 내는 비상장사는 공시하지 않음).` : "임직원 수는 사업보고서 제출 기업만 공시합니다. 다음 자동 갱신 후 표시됩니다.", sE)
+      + (Y.length < 3 ? `<p class="db-mini">${fy - 2}년 실적은 수집 범위(최근 3개 사업연도) 밖이라 ${Y[0]}년부터 표시합니다.</p>` : "");
   }
   // 분기 수치 표: 임직원은 반기말(2Q)·연말(4Q)만 공시돼 그 칸에만 들어간다
   function quarterTable(labels, s, o, e, eNote) {
