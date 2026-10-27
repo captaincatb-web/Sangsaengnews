@@ -183,7 +183,19 @@
     const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null));
     const legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
     // 두 축의 눈금 수를 맞춰 격자선을 함께 쓴다
-    const { k, ax: [A, O] } = fitAxes(sales, ops);
+    const { k, ax: [A] } = fitAxes(sales, ops);
+    // 영업이익 축: 0에서 시작하고, 영업이익 막대가 같은 시점 매출 막대 높이의 60%를 넘지 않게 범위를 넓힌다
+    const O = (() => {
+      const hs = (i) => Math.max(0.05, (sales[i] - A.lo) / (A.step * k));
+      const req = Math.max(1, ...ops.map((o, i) => (o > 0 && sales[i] != null ? o / (0.6 * hs(i)) : 0)));
+      const mn = Math.min(0, ...ops.filter((x) => x != null)), mx = Math.max(0, ...ops.filter((x) => x != null));
+      const e10 = Math.pow(10, Math.floor(Math.log10(req / k)));
+      for (const f of [1, 2, 2.5, 5, 10, 20, 25, 50, 100]) {
+        const step = f * e10, lo = mn < 0 ? -Math.ceil((-mn * 1.15) / step) * step : 0;
+        if (step * k >= req && lo + step * k >= mx) return { lo, step };
+      }
+      return { lo: 0, step: niceStep(req / k) };
+    })();
     const bh = ph - band, mk = (ax) => { const hi = ax.lo + ax.step * k; return (v) => T + band + bh - ((v - ax.lo) / (hi - ax.lo)) * bh; };
     const yS = mk(A), yO = mk(O), base = (ax) => (ax.lo < 0 ? 0 : ax.lo); // 막대는 0(축 안에 있으면) 또는 축 하한에서 시작
     const mv = margins.filter((v) => v != null), mLo = Math.min(0, ...mv), mHi = Math.max(...mv, mLo + 5), span = mHi - mLo; // 0을 기준으로 그려 작은 변화를 과장하지 않는다
