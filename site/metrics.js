@@ -27,7 +27,7 @@
   const TYPE_COLOR = { [TYPES[0]]: "#16a06a", [TYPES[1]]: "#3b6fe0", [TYPES[2]]: "#f08a1c", [TYPES[3]]: "#c93a2e" };
   const typeIdx = (t) => TYPES.indexOf(t);
   const typeOf = (g, m) => (g >= HI_GROWTH ? (m >= HI_MARGIN ? TYPES[0] : TYPES[2]) : m >= HI_MARGIN ? TYPES[1] : TYPES[3]);
-  const BIG = "1조 이상"; // 대형사: 최근 매출 1조 원 이상, 기본 집계에서 제외
+  const BIG = "1조 이상"; // 대형사: 최근 매출 1조 원 이상, 기본 포함(필터로 제외·대형사만 가능)
 
   // ---------- 기업 데이터 ----------
   const segs = window.COMPANY_SEGMENTS || {};
@@ -48,7 +48,7 @@
   const DEFAULT_FY = Number(Object.keys(yearCount).sort((a, b) => yearCount[b] - yearCount[a] || b - a)[0]) || new Date().getFullYear() - 1;
 
   // ---------- 필터 ----------
-  const DEFAULTS = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", big: "exclude", legal: "all", trade: "all" };
+  const DEFAULTS = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", big: "include", legal: "all", trade: "all" };
   const FILTER_KEYS = Object.keys(DEFAULTS);
   const isBig = (r) => r.tier === BIG;
   const makeFilter = (st, internal) => {
@@ -147,7 +147,7 @@
     "적자 기업 비중 = 영업이익 < 0 기업 수 ÷ 영업이익이 있는 기업 수",
     "상위 집중도 = 상위 N개사 매출 ÷ 비교 대상 전체 매출",
     `기업 유형 = 성장률 ${HI_GROWTH}%·영업이익률 ${HI_MARGIN}% 기준 4분류`,
-    "대형사 = 최근 매출 1조 원 이상(기본 집계에서 제외)",
+    "대형사 = 최근 매출 1조 원 이상(기본 포함, 필터로 제외 가능)",
     "1인당 매출 = 매출 ÷ 연말 임직원 수(사업보고서 직원 현황), 임직원 증감은 두 해 모두 공시한 기업 합계",
   ];
 

@@ -75,11 +75,11 @@
       <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
       <div class="db-grid r1">
         <section class="db-card" aria-labelledby="t-yearly">
-          <div class="db-card-head"><h2 id="t-yearly">연도별 실적 추이 <small id="yearly-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div>
+          <div class="db-card-head"><h2 id="t-yearly">연도별 실적 추이 <small id="yearly-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div>
           <div class="db-chart" id="c-yearly"></div>
         </section>
         <section class="db-card" aria-labelledby="t-trend">
-          <div class="db-card-head"><h2 id="t-trend">분기 실적 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div>
+          <div class="db-card-head"><h2 id="t-trend">분기 실적 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div>
           <div class="db-chart" id="c-trend"></div>
         </section>
       </div>
@@ -88,11 +88,15 @@
           <div class="db-card-head"><h2 id="t-kindsc">업종별 성장률 × 수익성 <small>점 크기 = 매출</small></h2></div>
           <div class="db-chart" id="c-kindsc"></div>
         </section>
-        <section class="db-card" aria-labelledby="t-insight">
-          <div class="db-card-head"><h2 id="t-insight">핵심 인사이트</h2></div>
-          <ul class="db-insights" id="c-insight"></ul>
+        <section class="db-card" aria-labelledby="t-cosc2">
+          <div class="db-card-head"><h2 id="t-cosc2">성장률 × 영업이익률 분포 <small>점을 누르면 기업 상세</small></h2><ul class="db-legend" id="cosc2-legend"></ul></div>
+          <div class="db-chart" id="c-cosc2"></div>
         </section>
       </div>
+      <section class="db-card" aria-labelledby="t-insight">
+        <div class="db-card-head"><h2 id="t-insight">핵심 인사이트</h2></div>
+        <ul class="db-insights wide" id="c-insight"></ul>
+      </section>
       <section class="db-card" aria-labelledby="t-changes">
         <div class="db-card-head"><h2 id="t-changes">주요 변화 3건 <small>관측 사실과 해석을 나눠 표기</small></h2></div>
         <ol class="db-changes cols" id="c-changes"></ol>

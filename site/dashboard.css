@@ -567,3 +567,10 @@ details.db-foot p { margin: 6px 0 0; }
   .krds-header .gnb { display: none; }
   .krds-header.open .gnb { display: block; }
 }
+
+/* 경영 개요 개편: 기업 분포 차트, 넓은 인사이트, 이중 축 */
+.db-insights.wide { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px 24px; }
+.db-chart .axl { fill: var(--stk-1); } .db-chart .axr { fill: var(--up); }
+:root[data-theme="dark"] .db-chart .axl { fill: #8fb0ff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-chart .axl { fill: #8fb0ff; } }
+.db-axnote { margin-top: 2px; }
