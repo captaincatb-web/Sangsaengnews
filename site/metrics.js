@@ -20,7 +20,8 @@
 
   // ---------- 분류 기준(확정) ----------
   const NA = "미분류";
-  const KINDS = ["소재", "부품", "장비", "IT·서비스", NA], AREAS = ["서울", "경기", "충청", "경상", "전라", "기타"];
+  const EXCLUDED_KINDS = ["수요", "IT·서비스"]; // 분석에서 뺀 업종: 수요기업, IT·서비스(7곳, 소부장이 아님)
+  const KINDS = ["소재", "부품", "장비", NA], AREAS = ["서울", "경기", "충청", "경상", "전라", "기타"];
   const HI_GROWTH = 10, HI_MARGIN = 5;
   const TYPES = ["고성장·고수익", "저성장·고수익", "고성장·저수익", "저성장·저수익"]; // 판정이 아닌 위치 표시(중립 명칭)
   // 유형 색: 대시보드·보고서가 같은 색을 쓴다(저성장·저수익은 살펴볼 집단이라 경고색)
@@ -42,7 +43,7 @@
   const recs = (window.COMPANY_FINANCIALS || []).map((r) => {
     const cl = window.classifyCompany(r, segs), last = r.s.filter((v) => v != null).pop();
     return { ...r, kind: cl.kind, kindEst: cl.est, area: areaOf(r), tier: last != null ? window.sizeTier(last) : "-", hasProfile: profileCodes.has(r.c), legal: "미입력", trade: "미입력", semi: null };
-  }).filter((r) => r.kind !== "수요");
+  }).filter((r) => !EXCLUDED_KINDS.includes(r.kind));
   const yearCount = {};
   recs.forEach((r) => r.y.length && (yearCount[r.y[r.y.length - 1]] = (yearCount[r.y[r.y.length - 1]] || 0) + 1));
   const DEFAULT_FY = Number(Object.keys(yearCount).sort((a, b) => yearCount[b] - yearCount[a] || b - a)[0]) || new Date().getFullYear() - 1;
