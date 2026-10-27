@@ -221,7 +221,7 @@
     const pts = margins.map((m, i) => (m == null ? null : [cx(i), ym(m), m])).filter(Boolean);
     g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>`;
     pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pc(p[2])}</text>`));
-    return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg><p class="db-mini db-axnote">세로축은 0이 아닌 값 범위로 표시합니다(왼쪽 매출 · 오른쪽 영업이익).</p>`;
+    return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
   }
   // 연도별 수치 표: 매출·영업이익·이익률·임직원, 마지막 열은 전년 대비
   // 한 줄 안에서는 같은 단위(조 또는 억)로 맞춘다
