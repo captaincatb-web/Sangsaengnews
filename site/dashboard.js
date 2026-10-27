@@ -106,10 +106,12 @@
     let g = "";
     ticks(ymin, ymax, 4).forEach((v) => (g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${cy(v)}" y2="${cy(v)}"/><text class="ax" x="${L - 6}" y="${cy(v) + 4}" text-anchor="end">${v}%</text>`));
     ticks(xmin, xmax, 5).forEach((v) => (g += `<text class="ax" x="${cx(v)}" y="${H - 18}" text-anchor="middle">${v}%</text>`));
-    g += `<line x1="${cx(SB.HI_GROWTH)}" x2="${cx(SB.HI_GROWTH)}" y1="${T}" y2="${T + ph}" stroke="var(--text-3)" stroke-dasharray="4 3"/><line x1="${L}" x2="${W - R}" y1="${cy(SB.HI_MARGIN)}" y2="${cy(SB.HI_MARGIN)}" stroke="var(--text-3)" stroke-dasharray="4 3"/>`;
+    // 기준선: 기본은 유형 기준(성장 10%·이익률 5%), opt.zero면 0%(매출 증감·흑자/적자 경계)
+    const [rx, ry] = opt.zero ? [0, 0] : [SB.HI_GROWTH, SB.HI_MARGIN];
+    g += `<line x1="${cx(rx)}" x2="${cx(rx)}" y1="${T}" y2="${T + ph}" stroke="var(--text-3)" stroke-dasharray="4 3"/><line x1="${L}" x2="${W - R}" y1="${cy(ry)}" y2="${cy(ry)}" stroke="var(--text-3)" stroke-dasharray="4 3"/>`;
     g += `<text class="ax" x="${(L + W - R) / 2}" y="${H - 3}" text-anchor="middle">매출 성장률 →</text><text class="ax" transform="translate(13 ${T + ph / 2}) rotate(-90)" text-anchor="middle">영업이익률 →</text>`;
     // 사분면 이름은 점 위에 바탕색 테두리를 둘러 마지막에 그린다(점에 가리지 않게)
-    const qlab = `<text class="ax qlab" x="${W - R - 4}" y="${T + 12}" text-anchor="end">${TYPES[0]} ↗</text><text class="ax qlab" x="${L + 6}" y="${T + ph - 6}">↙ ${TYPES[3]}</text>`;
+    const qlab = opt.zero ? "" : `<text class="ax qlab" x="${W - R - 4}" y="${T + 12}" text-anchor="end">${TYPES[0]} ↗</text><text class="ax qlab" x="${L + 6}" y="${T + ph - 6}">↙ ${TYPES[3]}</text>`;
     const rmax = Math.max(...points.map((p) => p.size || 1)), placed = [];
     // 기업 점은 왼쪽부터 놓아 화살표 키 이동 순서가 화면 순서와 같게 한다. Tab 정지는 첫 점 하나만
     if (points.some((p) => p.co)) points = points.slice().sort((a, b) => cxv(a.x) - cxv(b.x));
@@ -379,11 +381,12 @@
   }
 
   // ---------- 03 기업 포트폴리오 ----------
-  function coScatter(rows, legendId = "cosc-legend") {
+  function coScatter(rows, legendId = "cosc-legend", zero = false) {
     const pts = rows.filter((r) => r.m != null).map((r) => ({ x: r.g, y: r.m, color: TYPE_COLOR[r.type], co: r.c, tip: `${r.n} · 성장 ${sg(r.g)} · 이익률 ${pc(r.m)} · ${r.type}` }));
     $(legendId).innerHTML = TYPES.map((t) => `<li><i class="dot" style="background:${TYPE_COLOR[t]}"></i>${t} ${rows.filter((r) => r.type === t).length}</li>`).join("");
     if (!pts.length) return `<p class="db-empty">자료가 없습니다.</p>`;
-    return scatter(pts, { clipX: 80, clipY: 40, label: "기업별 성장률과 영업이익률" }) + note("성장률 ±80%, 이익률 ±40% 밖의 값은 가장자리에 표시합니다.");
+    return scatter(pts, { clipX: 80, clipY: 40, zero, label: "기업별 성장률과 영업이익률" })
+      + note(`${zero ? `점선은 0%(오른쪽은 매출 증가, 위는 영업흑자)입니다. 점 색은 기업 유형(성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준)입니다. ` : ""}성장률 ±80%, 이익률 ±40% 밖의 값은 가장자리에 표시합니다.`);
   }
   function boxCard(rows) {
     const groups = KINDS.map((k) => [k, rows.filter((r) => r.kind === k)]).filter(([, rs]) => rs.length >= 5);
@@ -632,7 +635,7 @@
       $("c-summary").innerHTML = summary(rows, S);
       $("c-conc").innerHTML = concCard(rows);
       $("c-cosc").innerHTML = coScatter(rows);
-      $("c-cosc2").innerHTML = coScatter(rows, "cosc2-legend");
+      $("c-cosc2").innerHTML = coScatter(rows, "cosc2-legend", true);
       $("c-box").innerHTML = boxCard(rows);
       $("c-top").innerHTML = top10(rows);
       $("c-fast").innerHTML = fastCard(rows);
