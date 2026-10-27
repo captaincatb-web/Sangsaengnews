@@ -26,7 +26,7 @@
     fill("f-listed", [["all", "전체"], ["1", "상장"], ["0", "비상장"]], state.listed);
     fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s === "1조 이상" && state.big === "exclude" ? "1조 이상(대형사 포함으로 전환)" : s])], state.size);
     $("f-listed").closest("label").hidden = recs.every((r) => r.l) || recs.every((r) => !r.l); // 전부 상장(또는 비상장)이면 고를 게 없다
-    fill("f-big", [["exclude", "제외(기본)"], ["include", "포함"], ["only", "대형사만"]], state.big);
+    fill("f-big", [["include", "포함(기본)"], ["exclude", "제외"], ["only", "대형사만"]], state.big);
     fill("f-legal", [["all", "전체"], ...["대기업", "중견", "중소", "미입력"].map((s) => [s, s])], state.legal);
     fill("f-trade", [["all", "전체"], ...["당사 거래", "비거래", "미입력"].map((s) => [s, s])], state.trade);
   }
@@ -157,36 +157,57 @@
   }
   const niceStep = (v) => { const e = Math.pow(10, Math.floor(Math.log10(v || 1))), f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; };
   // 매출·영업이익 막대(아래) + 영업이익률 선(위쪽 띠)
+  // 값 범위에 맞춘 축: 0부터가 아니라 값 주변으로(예: 86.5~94.5조 → 80~100조). 양수만 있으면 0 아래로는 내리지 않는다
+  // 두 축(매출·영업이익)이 같은 격자선을 쓰도록 눈금 수 k를 함께 고르고, 빈 공간이 가장 적은 k를 택한다
+  function fitAxes(...series) {
+    const base = series.map((vals) => {
+      const v = vals.filter((x) => x != null);
+      if (!v.length) return { lo0: 0, top: 1 };
+      const mn = Math.min(...v), mx = Math.max(...v), pad = Math.max((mx - mn) * 0.5, Math.abs(mx) * 0.05, 1);
+      return { lo0: mn >= 0 ? Math.max(0, mn - pad) : mn - pad, top: mx + pad };
+    });
+    const fit = (b, k) => {
+      const e10 = Math.pow(10, Math.floor(Math.log10((b.top - b.lo0) / k || 1)));
+      for (const f of [1, 2, 2.5, 5, 10, 20, 25, 50]) { const step = f * e10, lo = Math.floor(b.lo0 / step) * step; if (lo + step * k >= b.top) return { lo, step, waste: (step * k) / (b.top - b.lo0) }; }
+      return null;
+    };
+    let best = null;
+    [3, 4, 5].forEach((k) => { const ax = base.map((b) => fit(b, k)); if (ax.every(Boolean)) { const w = ax.reduce((t, x) => t + x.waste, 0); if (!best || w < best.w) best = { k, ax, w }; } });
+    return best;
+  }
+  // 매출 막대(왼쪽 축) + 영업이익 막대(오른쪽 축) + 영업이익률 선(위쪽 띠)
   function comboChart(labels, sales, ops, opt = {}) {
-    const n = labels.length, H = 260, L = 50, R = 12, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 62; // 위 62px는 이익률 선, 아래는 막대
-    const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null)), legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
-    const vals = [...sales, ...ops].filter((v) => v != null), top = Math.max(...vals, 1) * (opt.values ? 1.12 : 1.02), bot = Math.min(0, ...vals);
-    const e10 = Math.pow(10, Math.floor(Math.log10(top / 4 || 1))), maxT = opt.values ? 7 : 6; // 눈금이 너무 성기지 않게 가장 촘촘한 깔끔한 간격
-    const step = [1, 2, 2.5, 5, 10, 20, 25, 50].map((f) => f * e10).find((st) => Math.ceil(top / st) <= maxT) || niceStep(top / 4), hi = Math.ceil(top / step) * step, lo = bot < 0 ? -Math.min(Math.max(-bot * 1.3, hi * (opt.values ? 0.14 : 0.06)), hi / 2) : 0, ticks = Math.round(hi / step); // 적자는 아래로 조금만 내린다
-    const bh = ph - band, y = (v) => T + band + bh - ((v - lo) / (hi - lo)) * bh;
+    const n = labels.length, H = 260, L = 50, R = 50, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 62; // 위 62px는 이익률 선, 아래는 막대
+    const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null));
+    const legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
+    // 두 축의 눈금 수를 맞춰 격자선을 함께 쓴다
+    const { k, ax: [A, O] } = fitAxes(sales, ops);
+    const bh = ph - band, mk = (ax) => { const hi = ax.lo + ax.step * k; return (v) => T + band + bh - ((v - ax.lo) / (hi - ax.lo)) * bh; };
+    const yS = mk(A), yO = mk(O), base = (ax) => (ax.lo < 0 ? 0 : ax.lo); // 막대는 0(축 안에 있으면) 또는 축 하한에서 시작
     const mv = margins.filter((v) => v != null), mLo = Math.min(0, ...mv), mHi = Math.max(...mv, mLo + 5), span = mHi - mLo; // 0을 기준으로 그려 작은 변화를 과장하지 않는다
-    const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30); // 값 차이만 보이도록 띠 안에서 늘린다
+    const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30);
     const slot = pw / n, bw = Math.min(opt.bw || 22, slot * 0.32), cx = (i) => L + slot * i + slot / 2;
     let g = "";
     g += `<text class="ax" x="${L - 6}" y="${T + 12}" text-anchor="end">이익률</text><line class="grid" x1="${L}" x2="${W - R}" y1="${T + band - 4}" y2="${T + band - 4}" stroke-dasharray="2 3"/>`;
-    for (let i = 0; i <= ticks; i++) {
-      const v = step * i;
-      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${won(v)}</text>`;
+    const fS = wonRow([A.lo, A.lo + A.step * k]), fO = wonRow([O.lo, O.lo + O.step * k]); // 한 축은 같은 단위(조 또는 억)
+    for (let i = 0; i <= k; i++) {
+      const vs = A.lo + A.step * i, vo = O.lo + O.step * i, yy = yS(vs);
+      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text class="ax axl" x="${L - 6}" y="${yy + 4}" text-anchor="end">${fS(vs)}</text><text class="ax axr" x="${W - R + 6}" y="${yy + 4}">${fO(vo)}</text>`;
     }
-    if (lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
+    if (O.lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${yO(0)}" y2="${yO(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
     labels.forEach((l, i) => {
       const x = cx(i), s = sales[i], o = ops[i];
-      if (s == null) { g += `<text class="ax" x="${x}" y="${y(0) - 6}" text-anchor="middle">결측</text><text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`; return; }
-      g += `<rect x="${x - bw - 1}" y="${y(Math.max(s, 0))}" width="${bw}" height="${Math.abs(y(s) - y(0))}" rx="3" fill="var(--blue)"/>`;
-      if (o != null) g += `<rect x="${x + 1}" y="${y(Math.max(o, 0))}" width="${bw}" height="${Math.max(1, Math.abs(y(o) - y(0)))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
-      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${y(Math.max(s, 0)) - 5}" text-anchor="middle">${won(s)}</text>`;
+      if (s == null) { g += `<text class="ax" x="${x}" y="${yS(base(A)) - 6}" text-anchor="middle">결측</text><text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`; return; }
+      g += `<rect x="${x - bw - 1}" y="${Math.min(yS(s), yS(base(A)))}" width="${bw}" height="${Math.max(1, Math.abs(yS(s) - yS(base(A))))}" rx="3" fill="var(--blue)"/>`;
+      if (o != null) g += `<rect x="${x + 1}" y="${Math.min(yO(o), yO(base(O)))}" width="${bw}" height="${Math.max(1, Math.abs(yO(o) - yO(base(O))))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
+      if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${yS(s) - 5}" text-anchor="middle">${won(s)}</text>`;
       g += `<text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`;
       g += `<rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}" data-tip="${l} 매출 ${won(s)} · 영업이익 ${won(o)} · 이익률 ${pc(margins[i])}"/>`;
     });
     const pts = margins.map((m, i) => (m == null ? null : [cx(i), ym(m), m])).filter(Boolean);
     g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>`;
     pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pc(p[2])}</text>`));
-    return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
+    return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg><p class="db-mini db-axnote">세로축은 0이 아닌 값 범위로 표시합니다(왼쪽 매출 · 오른쪽 영업이익).</p>`;
   }
   // 연도별 수치 표: 매출·영업이익·이익률·임직원, 마지막 열은 전년 대비
   // 한 줄 안에서는 같은 단위(조 또는 억)로 맞춘다
@@ -358,9 +379,9 @@
   }
 
   // ---------- 03 기업 포트폴리오 ----------
-  function coScatter(rows) {
+  function coScatter(rows, legendId = "cosc-legend") {
     const pts = rows.filter((r) => r.m != null).map((r) => ({ x: r.g, y: r.m, color: TYPE_COLOR[r.type], co: r.c, tip: `${r.n} · 성장 ${sg(r.g)} · 이익률 ${pc(r.m)} · ${r.type}` }));
-    $("cosc-legend").innerHTML = TYPES.map((t) => `<li><i class="dot" style="background:${TYPE_COLOR[t]}"></i>${t} ${rows.filter((r) => r.type === t).length}</li>`).join("");
+    $(legendId).innerHTML = TYPES.map((t) => `<li><i class="dot" style="background:${TYPE_COLOR[t]}"></i>${t} ${rows.filter((r) => r.type === t).length}</li>`).join("");
     if (!pts.length) return `<p class="db-empty">자료가 없습니다.</p>`;
     return scatter(pts, { clipX: 80, clipY: 40, label: "기업별 성장률과 영업이익률" }) + note("성장률 ±80%, 이익률 ±40% 밖의 값은 가장자리에 표시합니다.");
   }
@@ -588,7 +609,7 @@
     F = SB.makeFilter(state, internal);
     const list = recs.filter(F.inFilter), rows = SB.panel(list, state.fy), S = SB.stats(rows), FS = SB.fullSample(list, state.fy);
     $("sub").textContent = `${SB.describe(state)} · 개별 기준 · 분석 ${S.n}곳${rows.some((r) => !r.l) && rows.some((r) => r.l) ? ` (상장 ${rows.filter((r) => r.l).length} · 비상장 ${rows.filter((r) => !r.l).length})` : ""}`;
-    const ids = ["c-yearly", "c-trend", "c-kindsc", "c-changes", "c-insight", "c-mix", "c-region", "c-summary", "c-conc", "c-cosc", "c-box", "c-top", "c-fast", "c-funnel"];
+    const ids = ["c-yearly", "c-trend", "c-kindsc", "c-cosc2", "c-changes", "c-insight", "c-mix", "c-region", "c-summary", "c-conc", "c-cosc", "c-box", "c-top", "c-fast", "c-funnel"];
     document.body.classList.toggle("db-nodata", !rows.length);
     $("empty-panel").hidden = !!rows.length;
     if (!rows.length) {
@@ -611,6 +632,7 @@
       $("c-summary").innerHTML = summary(rows, S);
       $("c-conc").innerHTML = concCard(rows);
       $("c-cosc").innerHTML = coScatter(rows);
+      $("c-cosc2").innerHTML = coScatter(rows, "cosc2-legend");
       $("c-box").innerHTML = boxCard(rows);
       $("c-top").innerHTML = top10(rows);
       $("c-fast").innerHTML = fastCard(rows);
