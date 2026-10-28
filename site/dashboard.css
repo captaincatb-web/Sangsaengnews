@@ -583,3 +583,7 @@ details.db-foot p { margin: 6px 0 0; }
 .db-range-in em { font-style: normal; color: var(--text-3); }
 @media (max-width: 860px) { .db-range { flex-basis: 100%; } .db-range-in input { flex: 1; width: auto; font-size: 16px; } }
 .db-range-in { min-width: 0; grid-column: 2; } .db-range-in input { min-width: 0; }
+
+/* 디자인 개편(dashboard.theme.css)에서만 보이는 새 요소: 테마 파일을 빼면 원래 화면으로 돌아간다 */
+.th-only { display: none; }
+.slot .colbg { fill: transparent; pointer-events: none; }

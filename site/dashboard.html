@@ -9,7 +9,9 @@
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/phosphor/style.css">
-  <link rel="stylesheet" href="dashboard.css?v=202610280828">
+  <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+  <link rel="stylesheet" href="dashboard.css?v=202610281320">
+  <link rel="stylesheet" href="dashboard.theme.css?v=202610281320">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -43,6 +45,7 @@
         <li><a href="#report" data-view="report"><i class="ph ph-presentation-chart" aria-hidden="true"></i><span class="l">경영진 보고서</span><span class="s" aria-hidden="true">보고서</span></a></li>
       </ul>
     </nav>
+    <div class="db-need th-only" id="need" hidden><p class="db-need-t">확인 필요</p><ul id="need-list"></ul></div>
     <p class="db-refresh"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i><span>최근 갱신<br><b id="updated">-</b></span></p>
   </aside>
 
@@ -51,6 +54,10 @@
       <div>
         <h1>소부장 협력사 경영 대시보드</h1>
         <p id="sub">반도체 소재·부품·장비 협력사의 실적과 경쟁력</p>
+      </div>
+      <div class="th-tools th-only">
+        <div class="gs"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="gs-q" type="search" role="combobox" aria-expanded="false" aria-controls="gs-list" aria-autocomplete="list" aria-label="기업 검색" placeholder="기업 검색" autocomplete="off"><ul id="gs-list" class="db-combo-list gs-list" role="listbox" aria-label="검색 결과" hidden></ul></div>
+        <button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button>
       </div>
       <button class="db-lock" type="button" id="lock-btn"></button>
       <button class="db-filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters"></button>
@@ -229,15 +236,15 @@
 
   <div class="db-tip" id="tip" role="tooltip" hidden></div>
 
-  <script src="data/companies.js?v=202610280828"></script>
-  <script src="data/segments.js?v=202610280828"></script>
-  <script src="data/universe.js?v=202610280828"></script>
-  <script src="data/attrs.js?v=202610280828"></script>
-  <script src="data/financials.js?v=202610280828"></script>
-  <script src="data/classify.js?v=202610280828"></script>
-  <script src="metrics.js?v=202610280828"></script>
-  <script src="data/internal.enc.js?v=202610280828"></script>
-  <script src="internal.js?v=202610280828"></script>
-  <script src="dashboard.js?v=202610280828"></script>
+  <script src="data/companies.js?v=202610281320"></script>
+  <script src="data/segments.js?v=202610281320"></script>
+  <script src="data/universe.js?v=202610281320"></script>
+  <script src="data/attrs.js?v=202610281320"></script>
+  <script src="data/financials.js?v=202610281320"></script>
+  <script src="data/classify.js?v=202610281320"></script>
+  <script src="metrics.js?v=202610281320"></script>
+  <script src="data/internal.enc.js?v=202610281320"></script>
+  <script src="internal.js?v=202610281320"></script>
+  <script src="dashboard.js?v=202610281320"></script>
 </body>
 </html>
