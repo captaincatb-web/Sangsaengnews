@@ -60,6 +60,8 @@
         <label class="db-sel"><i class="ph ph-map-pin" aria-hidden="true"></i><span>지역</span><select id="f-area"></select></label>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>상장 여부</span><select id="f-listed"></select></label>
         <label class="db-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>매출 규모</span><select id="f-size"></select></label>
+        <div class="db-sel db-range" id="w-srange" hidden><i class="ph ph-arrows-left-right" aria-hidden="true"></i><span>매출 범위(억 원)</span>
+          <div class="db-range-in"><input id="f-smin" type="number" inputmode="numeric" min="0" step="100" placeholder="최소" aria-label="매출 최소(억 원)"><em>~</em><input id="f-smax" type="number" inputmode="numeric" min="0" step="100" placeholder="최대" aria-label="매출 최대(억 원)"></div></div>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>대형사(1조↑)</span><select id="f-big"></select></label>
         <label class="db-sel" id="w-legal" hidden><i class="ph ph-identification-badge" aria-hidden="true"></i><span>기업규모</span><select id="f-legal"></select></label>
         <label class="db-sel" id="w-trade" hidden><i class="ph ph-handshake" aria-hidden="true"></i><span>거래 관계</span><select id="f-trade"></select></label>

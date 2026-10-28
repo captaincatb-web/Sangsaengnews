@@ -42,19 +42,22 @@
   };
   const recs = (window.COMPANY_FINANCIALS || []).map((r) => {
     const cl = window.classifyCompany(r, segs), last = r.s.filter((v) => v != null).pop();
-    return { ...r, kind: cl.kind, kindEst: cl.est, area: areaOf(r), tier: last != null ? window.sizeTier(last) : "-", hasProfile: profileCodes.has(r.c), legal: "미입력", trade: "미입력", semi: null };
+    return { ...r, last: last ?? null, kind: cl.kind, kindEst: cl.est, area: areaOf(r), tier: last != null ? window.sizeTier(last) : "-", hasProfile: profileCodes.has(r.c), legal: "미입력", trade: "미입력", semi: null };
   }).filter((r) => !EXCLUDED_KINDS.includes(r.kind));
   const yearCount = {};
   recs.forEach((r) => r.y.length && (yearCount[r.y[r.y.length - 1]] = (yearCount[r.y[r.y.length - 1]] || 0) + 1));
   const DEFAULT_FY = Number(Object.keys(yearCount).sort((a, b) => yearCount[b] - yearCount[a] || b - a)[0]) || new Date().getFullYear() - 1;
 
   // ---------- 필터 ----------
-  const DEFAULTS = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", big: "include", legal: "all", trade: "all" };
+  const DEFAULTS = { fy: DEFAULT_FY, kind: "all", area: "all", listed: "all", size: "all", smin: "", smax: "", big: "include", legal: "all", trade: "all" };
   const FILTER_KEYS = Object.keys(DEFAULTS);
   const isBig = (r) => r.tier === BIG;
+  // 직접 입력한 매출 범위(억 원). 빈 칸이면 그쪽 제한 없음
+  const inRange = (v, lo, hi) => v != null && (lo === "" || v >= Number(lo)) && (hi === "" || v <= Number(hi));
+  const eok = (v) => (Number(v) >= 10000 ? `${(Number(v) / 10000).toLocaleString("ko-KR")}조` : `${Number(v).toLocaleString("ko-KR")}억`);
   const makeFilter = (st, internal) => {
     const inBase = (r) => (st.kind === "all" || r.kind === st.kind) && (st.area === "all" || r.area === st.area)
-      && (st.listed === "all" || String(r.l) === st.listed) && (st.size === "all" || r.tier === st.size)
+      && (st.listed === "all" || String(r.l) === st.listed) && (st.size === "all" || (st.size === "custom" ? inRange(r.last, st.smin, st.smax) : r.tier === st.size))
       && (!internal || ((st.legal === "all" || r.legal === st.legal) && (st.trade === "all" || r.trade === st.trade)));
     const inFilter = (r) => inBase(r) && (st.big === "include" || (st.big === "only" ? isBig(r) : !isBig(r)));
     return { inBase, inFilter };
@@ -70,7 +73,8 @@
     if (st.kind !== "all") parts.push(`업종 ${st.kind}`);
     if (st.area !== "all") parts.push(`지역 ${st.area}`);
     if (st.listed !== "all") parts.push(st.listed === "1" ? "상장사" : "비상장사");
-    if (st.size !== "all") parts.push(`매출 ${st.size}`);
+    if (st.size === "custom") parts.push(st.smin !== "" && st.smax !== "" ? `매출 ${eok(st.smin)}~${eok(st.smax)}` : st.smin !== "" ? `매출 ${eok(st.smin)} 이상` : st.smax !== "" ? `매출 ${eok(st.smax)} 이하` : "매출 직접 입력(범위 없음)");
+    else if (st.size !== "all") parts.push(`매출 ${st.size}`);
     parts.push(st.big === "exclude" ? "대형사(매출 1조↑) 제외" : st.big === "only" ? "대형사만" : "대형사 포함");
     return parts.join(" · ");
   };
