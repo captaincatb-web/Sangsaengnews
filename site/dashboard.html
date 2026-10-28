@@ -9,7 +9,7 @@
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/phosphor/style.css">
-  <link rel="stylesheet" href="dashboard.css?v=202610280822">
+  <link rel="stylesheet" href="dashboard.css?v=202610280828">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -60,6 +60,8 @@
         <label class="db-sel"><i class="ph ph-map-pin" aria-hidden="true"></i><span>지역</span><select id="f-area"></select></label>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>상장 여부</span><select id="f-listed"></select></label>
         <label class="db-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>매출 규모</span><select id="f-size"></select></label>
+        <div class="db-sel db-range" id="w-srange" hidden><i class="ph ph-arrows-left-right" aria-hidden="true"></i><span>매출 범위(억 원)</span>
+          <div class="db-range-in"><input id="f-smin" type="number" inputmode="numeric" min="0" step="100" placeholder="최소" aria-label="매출 최소(억 원)"><em>~</em><input id="f-smax" type="number" inputmode="numeric" min="0" step="100" placeholder="최대" aria-label="매출 최대(억 원)"></div></div>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>대형사(1조↑)</span><select id="f-big"></select></label>
         <label class="db-sel" id="w-legal" hidden><i class="ph ph-identification-badge" aria-hidden="true"></i><span>기업규모</span><select id="f-legal"></select></label>
         <label class="db-sel" id="w-trade" hidden><i class="ph ph-handshake" aria-hidden="true"></i><span>거래 관계</span><select id="f-trade"></select></label>
@@ -227,15 +229,15 @@
 
   <div class="db-tip" id="tip" role="tooltip" hidden></div>
 
-  <script src="data/companies.js?v=202610280822"></script>
-  <script src="data/segments.js?v=202610280822"></script>
-  <script src="data/universe.js?v=202610280822"></script>
-  <script src="data/attrs.js?v=202610280822"></script>
-  <script src="data/financials.js?v=202610280822"></script>
-  <script src="data/classify.js?v=202610280822"></script>
-  <script src="metrics.js?v=202610280822"></script>
-  <script src="data/internal.enc.js?v=202610280822"></script>
-  <script src="internal.js?v=202610280822"></script>
-  <script src="dashboard.js?v=202610280822"></script>
+  <script src="data/companies.js?v=202610280828"></script>
+  <script src="data/segments.js?v=202610280828"></script>
+  <script src="data/universe.js?v=202610280828"></script>
+  <script src="data/attrs.js?v=202610280828"></script>
+  <script src="data/financials.js?v=202610280828"></script>
+  <script src="data/classify.js?v=202610280828"></script>
+  <script src="metrics.js?v=202610280828"></script>
+  <script src="data/internal.enc.js?v=202610280828"></script>
+  <script src="internal.js?v=202610280828"></script>
+  <script src="dashboard.js?v=202610280828"></script>
 </body>
 </html>

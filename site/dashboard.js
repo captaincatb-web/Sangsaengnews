@@ -24,17 +24,21 @@
     fill("f-kind", [["all", "전체"], ...KINDS.map((k) => [k, k])], state.kind);
     fill("f-area", [["all", "전체"], ...AREAS.map((a) => [a, a])], state.area);
     fill("f-listed", [["all", "전체"], ["1", "상장"], ["0", "비상장"]], state.listed);
-    fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s === "1조 이상" && state.big === "exclude" ? "1조 이상(대형사 포함으로 전환)" : s])], state.size);
+    fill("f-size", [["all", "전체"], ...window.SIZE_TIERS.map((s) => [s, s === "1조 이상" && state.big === "exclude" ? "1조 이상(대형사 포함으로 전환)" : s]), ["custom", "직접 입력"]], state.size);
+    $("w-srange").hidden = state.size !== "custom";
+    $("f-smin").value = state.smin; $("f-smax").value = state.smax;
     $("f-listed").closest("label").hidden = recs.every((r) => r.l) || recs.every((r) => !r.l); // 전부 상장(또는 비상장)이면 고를 게 없다
     fill("f-big", [["include", "포함(기본)"], ["exclude", "제외"], ["only", "대형사만"]], state.big);
     fill("f-legal", [["all", "전체"], ...["대기업", "중견", "중소", "미입력"].map((s) => [s, s])], state.legal);
     fill("f-trade", [["all", "전체"], ...["당사 거래", "비거래", "미입력"].map((s) => [s, s])], state.trade);
   }
-  const IDS = { "f-fy": "fy", "f-kind": "kind", "f-area": "area", "f-listed": "listed", "f-size": "size", "f-big": "big", "f-legal": "legal", "f-trade": "trade" };
+  const IDS = { "f-fy": "fy", "f-kind": "kind", "f-area": "area", "f-listed": "listed", "f-size": "size", "f-smin": "smin", "f-smax": "smax", "f-big": "big", "f-legal": "legal", "f-trade": "trade" };
   $("filters").addEventListener("change", (e) => {
     const key = IDS[e.target.id];
     if (!key) return;
-    state[key] = key === "fy" ? Number(e.target.value) : e.target.value;
+    state[key] = key === "fy" ? Number(e.target.value) : key === "smin" || key === "smax" ? (e.target.value === "" ? "" : String(Math.max(0, Math.round(Number(e.target.value))))) : e.target.value;
+    if (key === "size" && state.size !== "custom") state.smin = state.smax = "";
+    if (key === "size" && state.size === "custom") setTimeout(() => $("f-smin").focus(), 0);
     // 모순되는 조합(1조 이상 + 대형사 제외)은 항상 0곳이므로 서로 맞춘다
     if (key === "size" && state.size === "1조 이상" && state.big === "exclude") state.big = "include";
     if (key === "big" && state.big === "exclude" && state.size === "1조 이상") state.size = "all";
@@ -635,7 +639,7 @@
       ids.forEach((id) => ($(id).innerHTML = ""));
       $("kpis").innerHTML = $("headline").innerHTML = "";
       ["yearly-sub", "trend-sub"].forEach((id) => ($(id).textContent = ""));
-      const NAMES = { fy: "기준 연도", kind: "업종", area: "지역", listed: "상장 여부", size: "매출 규모", big: "대형사", legal: "기업규모", trade: "거래 관계" };
+      const NAMES = { fy: "기준 연도", kind: "업종", area: "지역", listed: "상장 여부", size: "매출 규모", smin: "매출 최소", smax: "매출 최대", big: "대형사", legal: "기업규모", trade: "거래 관계" };
       const on = SB.FILTER_KEYS.filter((k) => k !== "fy" && String(state[k]) !== String(SB.DEFAULTS[k]));
       $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>조건에 맞는 기업이 없습니다.</b><p>아래 조건 중 하나를 풀어 보세요.</p><div class="db-empty-chips">${on.map((k) => `<button type="button" data-unset="${k}">${NAMES[k]}: ${esc($(Object.keys(IDS).find((id) => IDS[id] === k)).selectedOptions[0]?.textContent || state[k])} <span aria-hidden="true">×</span></button>`).join("")}<button type="button" data-unset="all">필터 모두 초기화</button></div></div>`;
     } else {
@@ -669,7 +673,7 @@
 
   // 좁은 화면: 필터를 접어 두고, 적용된 조건 수만 보여 준다
   function updateFilterCount() {
-    const n = SB.FILTER_KEYS.filter((k) => String(state[k]) !== String(SB.DEFAULTS[k])).length;
+    const n = SB.FILTER_KEYS.filter((k) => k !== "smin" && k !== "smax" && String(state[k]) !== String(SB.DEFAULTS[k])).length; // 직접 입력 범위는 '매출 규모' 하나로 센다
     $("filter-toggle").innerHTML = `<i class="ph ph-sliders-horizontal" aria-hidden="true"></i>필터${n ? ` <b>${n}</b>` : ""}`;
   }
   $("filter-toggle").addEventListener("click", () => {

@@ -574,3 +574,12 @@ details.db-foot p { margin: 6px 0 0; }
 :root[data-theme="dark"] .db-chart .axl { fill: #8fb0ff; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-chart .axl { fill: #8fb0ff; } }
 .db-axnote { margin-top: 2px; }
+
+/* 매출 직접 입력 */
+.db-range::after { content: none; }
+.db-range-in { display: flex; align-items: center; gap: 6px; }
+.db-range-in input { width: 84px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font: inherit; font-weight: 700; background: var(--bg); color: var(--text); font-variant-numeric: tabular-nums; }
+.db-range-in input:focus { outline: none; border-color: var(--blue); }
+.db-range-in em { font-style: normal; color: var(--text-3); }
+@media (max-width: 860px) { .db-range { flex-basis: 100%; } .db-range-in input { flex: 1; width: auto; font-size: 16px; } }
+.db-range-in { min-width: 0; grid-column: 2; } .db-range-in input { min-width: 0; }
