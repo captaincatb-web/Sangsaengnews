@@ -1,0 +1,259 @@
+/* 소부장 협력사 경영 대시보드 — 디자인 개편 테마(v2)
+ * 기존 dashboard.css 위에 덧입히는 파일입니다. 이 파일을 불러오는 한 줄(dashboard.html)만 지우면 이전 디자인으로 돌아갑니다.
+ * 참고: 밝고 따뜻한 바탕, 둥근 카드, 차분한 청록 포인트, 정돈된 사이드바, 부드러운 호버·전환.
+ * 데이터 색(유형·업종·상승/하락)은 보고서와 맞춰야 하므로 바꾸지 않고, 화면 틀(바탕·카드·메뉴·버튼)에만 포인트 색을 씁니다. */
+
+/* ---------- 색 ---------- */
+:root {
+  --bg: #f5f2ea; --card: #fffdf9; --line: #e8e2d6;
+  --text: #1c2824; --text-2: #46524c; --text-3: #5f6a64;
+  --brand: #1f6f66; --brand-ink: #ffffff; --brand-soft: #e1eeea; --brand-line: #bcd9d2;
+  --side: #1f4b44; --side-2: #2a5d54; --side-text: #46524c;
+  --accent: var(--brand); --accent-text: #ffffff;
+  --grid: #efeadf;
+  --shadow: 0 1px 2px rgb(40 50 40 / .04), 0 8px 24px rgb(40 50 40 / .05);
+  --shadow-hi: 0 2px 4px rgb(40 50 40 / .06), 0 16px 36px rgb(40 50 40 / .10);
+  --r-card: 20px; --r-ctl: 14px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1512; --card: #151d1a; --line: #25312c;
+    --text: #e7efe9; --text-2: #b8c5be; --text-3: #8c9a92;
+    --brand: #5fb8a8; --brand-ink: #0e1512; --brand-soft: #1b2d28; --brand-line: #2f5047;
+    --side: #2c6f63; --side-2: #368274; --side-text: #b8c5be;
+    --grid: #1e2925; --shadow: none; --shadow-hi: 0 8px 28px rgb(0 0 0 / .35);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1512; --card: #151d1a; --line: #25312c;
+  --text: #e7efe9; --text-2: #b8c5be; --text-3: #8c9a92;
+  --brand: #5fb8a8; --brand-ink: #0e1512; --brand-soft: #1b2d28; --brand-line: #2f5047;
+  --side: #2c6f63; --side-2: #368274; --side-text: #b8c5be;
+  --grid: #1e2925; --shadow: none; --shadow-hi: 0 8px 28px rgb(0 0 0 / .35);
+}
+
+/* ---------- 바탕 ---------- */
+body.db {
+  background:
+    radial-gradient(1100px 520px at 6% -8%, color-mix(in srgb, var(--brand) 13%, transparent), transparent 62%),
+    radial-gradient(900px 480px at 100% 0%, color-mix(in srgb, #e08a4f 12%, transparent), transparent 58%),
+    var(--bg);
+  background-attachment: fixed;
+}
+a { color: inherit; }
+.db-link { color: var(--brand); }
+
+/* ---------- 사이트 머리글(밝게) ---------- */
+.krds-header { background: var(--card); color: var(--text); border-bottom: 1px solid var(--line); }
+.krds-header .head-inner { padding: 12px 32px 8px; }
+.krds-header .brand { color: var(--text); }
+.krds-header .brand-mark { border: 0; background: var(--brand); color: var(--brand-ink); border-radius: 12px; }
+.krds-header .brand-name { font-size: 19px; letter-spacing: -.02em; }
+.krds-header .brand-name small { color: var(--text-3); }
+.krds-header .btn-navi { color: var(--text-2); border-radius: 12px; }
+.krds-header .btn-navi:hover { background: var(--brand-soft); color: var(--brand); }
+.krds-header .gnb { border-top: 0; padding: 0 32px 10px; }
+.krds-header .gnb ul { gap: 6px; }
+.krds-header .gnb a { height: 38px; padding: 0 16px; border-radius: 999px; color: var(--text-2); font-size: 14.5px; transition: background-color .2s, color .2s; }
+.krds-header .gnb a:hover { background: var(--grid); color: var(--text); }
+.krds-header .gnb a[aria-current="page"] { background: var(--brand-soft); color: var(--brand); }
+.krds-header .gnb a[aria-current="page"]::after { content: none; }
+.krds-header :focus-visible { outline-color: var(--brand); }
+
+/* ---------- 사이드바 ---------- */
+.db-side { background: color-mix(in srgb, var(--card) 72%, transparent); border-right: 1px solid var(--line); }
+.db-nav { gap: 4px; }
+.db-nav a { padding: 11px 14px; border-radius: var(--r-ctl); color: var(--text-2); transition: background-color .2s, color .2s; }
+.db-nav a i { transition: color .2s; }
+.db-nav a:hover { background: var(--grid); color: var(--text); }
+.db-nav a[aria-current="true"] { background: transparent; color: var(--brand-ink); font-weight: 700; box-shadow: none; }
+.db-nav:not(.th-ready) a[aria-current="true"] { background: var(--brand); } /* 알약 위치를 계산하기 전 첫 프레임 */
+.db-nav a[aria-current="true"]::before { content: none; }
+.db-nav a[aria-current="true"] i { color: var(--brand-ink); }
+/* 선택 표시 알약: 누른 메뉴로 미끄러져 이동한다(위치는 JS 가 --py·--ph·--px·--pw 로 알려 준다) */
+.db-nav { position: relative; }
+.db-nav::before { content: ""; position: absolute; left: 0; right: 0; top: var(--py, 0); height: var(--ph, 0); border-radius: var(--r-ctl); background: var(--brand); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 28%, transparent); opacity: 0; pointer-events: none; transition: top .4s var(--ease), height .4s var(--ease), left .4s var(--ease), width .4s var(--ease), opacity .2s; }
+.db-nav.th-ready::before { opacity: 1; }
+.db-nav li { position: relative; z-index: 1; }
+.db-refresh { color: var(--text-3); border-top-color: var(--line); }
+.db-refresh b { color: var(--text-2); }
+@media (min-width: 861px) {
+  .db-need.th-only { display: block; margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .db-need-t { margin: 0 14px 6px; font-size: 12px; font-weight: 700; color: var(--text-3); letter-spacing: .02em; }
+  .db-need ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .db-need a { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 12px; font-size: 13.5px; color: var(--text-2); text-decoration: none; transition: background-color .2s, color .2s; }
+  .db-need a:hover { background: var(--grid); color: var(--text); }
+  .db-need a i { font-size: 17px; color: var(--text-3); }
+  .db-need a b { margin-left: auto; min-width: 24px; text-align: center; padding: 1px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+}
+
+/* ---------- 본문 머리(제목·검색·필터) ---------- */
+.db-main { padding: 26px 32px 36px; gap: 20px; }
+.db-top { align-items: center; gap: 12px 14px; }
+.db-top > div:first-child { flex: 1 1 320px; min-width: 0; }
+.db-top h1 { font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
+.db-top #sub { margin-top: 4px; font-size: 13.5px; color: var(--text-3); }
+.th-tools.th-only { display: flex; align-items: center; gap: 10px; }
+.gs { position: relative; display: flex; align-items: center; gap: 8px; width: 270px; height: 46px; padding: 0 14px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r-ctl); box-shadow: var(--shadow); transition: border-color .2s, box-shadow .2s; }
+.gs:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
+.gs i { font-size: 18px; color: var(--text-3); }
+.gs input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
+.gs-list { left: auto; right: 0; min-width: 320px; top: calc(100% + 8px); border-radius: 16px; }
+.th-icon { width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--card); color: var(--text-2); font-size: 20px; cursor: pointer; box-shadow: var(--shadow); transition: background-color .2s, color .2s, transform .2s var(--ease); }
+.th-icon:hover { background: var(--brand-soft); color: var(--brand); transform: translateY(-1px); }
+.db-filters { flex-basis: 100%; gap: 10px; }
+.db-sel { border-radius: var(--r-ctl); padding: 7px 14px; background: var(--card); box-shadow: var(--shadow); transition: border-color .2s, box-shadow .2s; }
+.db-sel:hover { border-color: var(--brand-line); }
+.db-sel:focus-within { border-color: var(--brand); }
+.db-clear { border-radius: var(--r-ctl); background: var(--side); transition: background-color .2s, transform .2s var(--ease); }
+.db-clear:hover { background: var(--side-2); transform: translateY(-1px); }
+.db-lock { border-radius: var(--r-ctl); }
+
+/* ---------- 한 줄 결론 ---------- */
+.db-headline { border: 0; border-radius: var(--r-card); padding: 16px 22px; font-size: 15.5px; background: color-mix(in srgb, var(--brand) 9%, var(--card)); box-shadow: var(--shadow); }
+.db-headline a { color: var(--brand); }
+
+/* ---------- KPI 카드 ---------- */
+.db-kpis { gap: 16px; }
+.db-kpi { --tint: #2f8f7f; border: 1px solid color-mix(in srgb, var(--tint) 18%, var(--line)); border-radius: var(--r-card); padding: 18px 18px 14px; background: color-mix(in srgb, var(--tint) 13%, var(--card)); box-shadow: var(--shadow); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s; }
+.db-kpi:nth-child(1) { --tint: #2f8f7f; } .db-kpi:nth-child(2) { --tint: #e08a4f; } .db-kpi:nth-child(3) { --tint: #d6b13a; }
+.db-kpi:nth-child(4) { --tint: #4a78d0; } .db-kpi:nth-child(5) { --tint: #c8607a; } .db-kpi:nth-child(6) { --tint: #7a9a4a; }
+.db-kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-hi); border-color: color-mix(in srgb, var(--tint) 40%, var(--line)); }
+.db-kpi p, .db-kpi .lab { color: var(--text-2); }
+.db-kpi .lab i, .db-kpi.hero .lab i { color: var(--tint); }
+.db-kpi strong { font-size: 25px; letter-spacing: -.02em; }
+.db-kpi.hero strong { font-size: 34px; }
+.db-kpi .delta, .db-kpi .delta .vs, .db-kpi strong small, .db-kpi.hero .delta .vs, .db-kpi.hero strong small { color: var(--text-2); }
+.db-kpi.hero, :root[data-theme="dark"] .db-kpi.hero { background: color-mix(in srgb, var(--tint) 13%, var(--card)); border-color: color-mix(in srgb, var(--tint) 18%, var(--line)); color: var(--text); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-kpi.hero { background: color-mix(in srgb, var(--tint) 13%, var(--card)); border-color: color-mix(in srgb, var(--tint) 18%, var(--line)); color: var(--text); } }
+.db-bigswitch { border-radius: 999px; background: color-mix(in srgb, var(--card) 70%, transparent); transition: background-color .2s, border-color .2s; }
+.db-bigswitch:hover { background: var(--card); border-color: var(--brand-line); color: var(--brand); }
+
+/* ---------- 카드·간격 ---------- */
+.db-view, .db-grid { gap: 20px; }
+.db-card { border-radius: var(--r-card); padding: 20px 22px; border-color: var(--line); box-shadow: var(--shadow); transition: box-shadow .3s var(--ease), border-color .3s; }
+.db-card:hover { box-shadow: var(--shadow-hi); border-color: var(--brand-line); }
+.db-card-head { margin-bottom: 12px; }
+.db-card h2 { font-size: 16.5px; letter-spacing: -.01em; }
+.db-card h2 small { font-size: 12.5px; color: var(--text-3); }
+.db-note { border-radius: 12px; background: color-mix(in srgb, var(--brand) 6%, var(--grid)); }
+.db-empty-panel { border-radius: var(--r-card); }
+
+/* ---------- 차트 ---------- */
+.db-strip.th-only { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 2px 0 10px; padding: 12px 16px; min-height: 56px; border-radius: 16px; border: 1px solid var(--line); background: color-mix(in srgb, var(--brand) 7%, var(--card)); }
+.db-strip .st-l { margin-right: auto; font-size: 17px; letter-spacing: -.01em; }
+.db-strip .st-b { display: grid; gap: 1px; padding-left: 10px; border-left: 3px solid var(--c); font-size: 12px; color: var(--text-2); }
+.db-strip .st-b b { font-size: 17px; color: var(--text); font-variant-numeric: tabular-nums; }
+.db-chart line.grid, .db-region line.grid { stroke: var(--line); stroke-dasharray: 3 5; }
+.slot .colbg { fill: var(--brand); opacity: 0; transition: opacity .2s; pointer-events: none; }
+.slot:hover .colbg { opacity: .10; }
+.db-chart .bar { rx: 6px; transform-box: fill-box; transform-origin: 50% 100%; transition: filter .2s; animation: th-grow .75s var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
+.db-chart .bar.neg { transform-origin: 50% 0; }
+.slot:hover .bar { filter: brightness(1.07) saturate(1.05); }
+@keyframes th-grow { from { transform: scaleY(.02); opacity: .35; } to { transform: none; opacity: 1; } }
+.db-chart circle.pt { transition: stroke-width .15s, fill-opacity .15s; }
+.db-chart circle.pt:hover { fill-opacity: 1; }
+.db-hbars .fill { transition: width .6s var(--ease); }
+
+/* ---------- 칩·표·목록 ---------- */
+.db-chips button { transition: background-color .2s, color .2s, border-color .2s; }
+.db-chips button:hover { border-color: var(--brand-line); color: var(--brand); }
+.db-chips button[aria-checked="true"] { background: var(--side); border-color: var(--side); color: #fff; }
+.db-search { border-radius: var(--r-ctl); }
+.db-tbl th, .db-tbl td { padding-top: 10px; padding-bottom: 10px; }
+.db-tbl thead th { background: color-mix(in srgb, var(--brand) 5%, var(--grid)); }
+.db-tbl thead th:first-child { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+.db-tbl thead th:last-child { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+.db-tbl tbody tr { transition: background-color .15s; }
+.db-tbl tbody tr:hover { background: color-mix(in srgb, var(--brand) 6%, transparent); }
+.db-insights li { padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, var(--brand) 4%, var(--card)); border: 1px solid var(--line); transition: border-color .2s, transform .25s var(--ease); }
+.db-insights li:hover { border-color: var(--brand-line); transform: translateY(-2px); }
+.db-insights .ic { border-radius: 12px; }
+.db-changes li { border-radius: 16px; transition: border-color .2s, transform .25s var(--ease); }
+.db-changes li:hover { border-color: var(--brand-line); transform: translateY(-2px); }
+.db-sig { border-radius: var(--r-card); transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .2s, background-color .2s; }
+.db-sig:hover { transform: translateY(-3px); box-shadow: var(--shadow-hi); }
+.db-sig.on { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand) inset; background: color-mix(in srgb, var(--brand) 8%, var(--card)); }
+.db-co-kpis div { border-radius: 18px; transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.db-co-kpis div:hover { transform: translateY(-2px); box-shadow: var(--shadow-hi); }
+.db-btn { border-radius: var(--r-ctl); }
+.db-combo input { border-radius: var(--r-ctl); }
+.db-combo input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
+.db-combo-list li[aria-selected="true"], .db-combo-list li:hover { background: var(--brand-soft); }
+.db-combo-list { border-radius: 16px; }
+.db-range-in input:focus { border-color: var(--brand); }
+
+/* ---------- 어두운 화면에서 남아 있던 파란 고정색 정리 ---------- */
+:root[data-theme="dark"] .db-clear, :root[data-theme="dark"] .db-empty-chips button:last-child { background: var(--side); border-color: var(--side-2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .db-clear, :root:not([data-theme="light"]) .db-empty-chips button:last-child { background: var(--side); border-color: var(--side-2); } }
+.db-empty-chips button:last-child { background: var(--side); border-color: var(--side); }
+
+/* ---------- 화면 전환 ---------- */
+.db-view:not([hidden]) { animation: th-fade .38s var(--ease) both; }
+@keyframes th-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ---------- 모바일: 떠 있는 하단 탭 ---------- */
+@media (max-width: 860px) {
+  .krds-header .head-inner { padding: 10px 16px 8px; }
+  .krds-header .site-menu { color: var(--text-2); }
+  .krds-header .gnb { padding: 0 8px 8px; }
+  .krds-header .gnb a { height: 38px; padding: 0 12px; }
+  .db-main { padding: 0 14px 20px; gap: 16px; }
+  .db-top { background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom-color: var(--line); }
+  .db-top h1 { font-size: 18px; }
+  .gs { display: none; }
+  .th-tools.th-only { gap: 6px; }
+  .th-icon { width: 40px; height: 40px; border-radius: 12px; }
+  .db-side { left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 26px; padding: 6px; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgb(20 30 25 / .20); }
+  .db-nav a { border-radius: 20px; color: var(--text-2); }
+  .db-nav a[aria-current="true"] { background: transparent; color: var(--brand-ink); box-shadow: none; }
+  .db-nav:not(.th-ready) a[aria-current="true"] { background: var(--brand); }
+  .db-nav a[aria-current="true"] i { color: var(--brand-ink); }
+  .db-nav::before { top: 0; bottom: 0; height: auto; left: var(--px, 0); right: auto; width: var(--pw, 0); border-radius: 20px; box-shadow: none; }
+  body.db { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+  .db-card { padding: 16px; border-radius: 18px; }
+  .db-kpi { border-radius: 18px; }
+  .db-kpi.hero strong { font-size: 30px; }
+  .db-headline { padding: 12px 16px; border-radius: 18px; }
+}
+
+/* ---------- 움직임을 줄이는 설정 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .db-chart .bar, .db-view:not([hidden]) { animation: none; }
+  .db-kpi, .db-card, .db-sig, .db-insights li, .db-changes li, .db-co-kpis div, .th-icon, .db-clear, .db-hbars .fill { transition: none; }
+  .db-kpi:hover, .db-sig:hover, .db-insights li:hover, .db-changes li:hover, .db-co-kpis div:hover { transform: none; }
+}
+
+/* ---------- 클릭 반응 ---------- */
+/* 눌림: 누르는 순간 살짝 작아졌다가 돌아온다 */
+.db-nav a, .db-chips button, .db-clear, .th-icon, .db-btn, .db-bigswitch, .db-sig, .db-filter-toggle, .db-link, .db-empty-chips button, .db-need a { position: relative; overflow: hidden; transition-property: transform, background-color, color, border-color, box-shadow; }
+.db-nav a:active, .db-chips button:active, .db-clear:active, .th-icon:active, .db-btn:active, .db-bigswitch:active, .db-filter-toggle:active, .db-link:active, .db-empty-chips button:active, .db-need a:active { transform: scale(.96); transition-duration: .08s; }
+.db-sig:active { transform: translateY(-1px) scale(.975); transition-duration: .08s; }
+.db-kpi:active, .db-co-kpis div:active { transform: translateY(-1px) scale(.985); transition-duration: .08s; }
+/* 물결: 누른 자리에서 퍼진다 */
+.th-ripple { position: absolute; border-radius: 50%; background: currentColor; opacity: .22; transform: scale(0); pointer-events: none; animation: th-ripple .65s var(--ease) forwards; }
+@keyframes th-ripple { to { transform: scale(1); opacity: 0; } }
+/* 선택한 항목은 톡 튀어나오듯 자리잡는다 */
+.db-sig.on { animation: th-pop .45s var(--ease); }
+@keyframes th-pop { 0% { transform: scale(.95); } 55% { transform: scale(1.025); } 100% { transform: none; } }
+/* 차트 막대를 누르면 그 칸이 고정되고 요약 띠가 튄다 */
+.slot.pin .colbg { opacity: .15; stroke: var(--brand); stroke-width: 1.5; stroke-opacity: .55; }
+.slot.pin .bar { filter: brightness(1.08) saturate(1.1); }
+.db-strip.pulse { animation: th-pulse .5s var(--ease); }
+.db-strip.pinned .st-l::after { content: "고정 · 다시 누르면 해제"; margin-left: 10px; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 11.5px; font-weight: 400; letter-spacing: 0; vertical-align: 2px; }
+@keyframes th-pulse { 0% { transform: scale(.985); box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 30%, transparent); } 60% { transform: scale(1.005); box-shadow: 0 0 0 8px transparent; } 100% { transform: none; } }
+/* 표: 정렬·검색·펼침으로 다시 그려질 때 행이 부드럽게 나타난다 */
+.db-tbl tbody tr { animation: th-row .32s var(--ease) both; }
+@keyframes th-row { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+/* 기업 상세: 기업을 고르면 내용이 부드럽게 바뀐다 */
+#c-company > * { animation: th-fade .38s var(--ease) both; }
+/* 화면 모드 버튼: 누르면 한 바퀴 돌고, 색은 부드럽게 바뀐다 */
+.th-icon.spin i { animation: th-spin .6s var(--ease); }
+@keyframes th-spin { from { transform: rotate(-200deg) scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+html.th-switch *, html.th-switch *::before, html.th-switch *::after { transition: background-color .45s ease, color .45s ease, border-color .45s ease, fill .45s ease, stroke .45s ease !important; }
+@media (prefers-reduced-motion: reduce) {
+  .th-ripple, .db-sig.on, .db-strip.pulse, .db-tbl tbody tr, #c-company > *, .th-icon.spin i { animation: none; }
+  .db-nav::before { transition: none; }
+  .db-nav a:active, .db-chips button:active, .db-clear:active, .th-icon:active, .db-btn:active, .db-sig:active, .db-kpi:active { transform: none; }
+}

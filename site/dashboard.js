@@ -74,6 +74,7 @@
     if (v === "report") loadPreview();
     syncUrl();
     window.scrollTo({ top: 0 });
+    movePill();
   }
   window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
   document.addEventListener("click", (e) => {
@@ -206,6 +207,10 @@
     const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30);
     const slot = pw / n, bw = Math.min(opt.bw || 22, slot * 0.32), cx = (i) => L + slot * i + slot / 2;
     let g = "";
+    // 마우스를 올리면 그 칸을 강조하고 위 요약 띠에 값을 보여 주기 위한 정보(실제 데이터 값만)
+    const stripOf = (i) => `<b class="st-l">${labels[i]}</b><span class="st-b" style="--c:var(--blue)">매출 <b>${won(sales[i])}</b></span><span class="st-b" style="--c:var(--green)">영업이익 <b>${won(ops[i])}</b></span><span class="st-b" style="--c:var(--orange)">이익률 <b>${pc(margins[i])}</b></span>`;
+    const lastI = (() => { for (let i = n - 1; i >= 0; i--) if (sales[i] != null) return i; return -1; })();
+    const strip = lastI >= 0 ? `<div class="db-strip th-only" aria-live="polite">${stripOf(lastI)}</div>` : "";
     g += `<text class="ax" x="${L - 6}" y="${T + 12}" text-anchor="end">이익률</text><line class="grid" x1="${L}" x2="${W - R}" y1="${T + band - 4}" y2="${T + band - 4}" stroke-dasharray="2 3"/>`;
     const fS = wonRow([A.lo, A.lo + A.step * k]), fO = wonRow([O.lo, O.lo + O.step * k]); // 한 축은 같은 단위(조 또는 억)
     for (let i = 0; i <= k; i++) {
@@ -216,16 +221,17 @@
     labels.forEach((l, i) => {
       const x = cx(i), s = sales[i], o = ops[i];
       if (s == null) { g += `<text class="ax" x="${x}" y="${yS(base(A)) - 6}" text-anchor="middle">결측</text><text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`; return; }
-      g += `<rect x="${x - bw - 1}" y="${Math.min(yS(s), yS(base(A)))}" width="${bw}" height="${Math.max(1, Math.abs(yS(s) - yS(base(A))))}" rx="3" fill="var(--blue)"/>`;
-      if (o != null) g += `<rect x="${x + 1}" y="${Math.min(yO(o), yO(base(O)))}" width="${bw}" height="${Math.max(1, Math.abs(yO(o) - yO(base(O))))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
+      g += `<g class="slot" style="--i:${i}" data-strip="${esc(stripOf(i))}"><rect class="colbg" x="${x - slot / 2 + 2}" y="${T}" width="${slot - 4}" height="${ph}" rx="10"/>`;
+      g += `<rect class="bar${s < 0 ? " neg" : ""}" x="${x - bw - 1}" y="${Math.min(yS(s), yS(base(A)))}" width="${bw}" height="${Math.max(1, Math.abs(yS(s) - yS(base(A))))}" rx="3" fill="var(--blue)"/>`;
+      if (o != null) g += `<rect class="bar${o < 0 ? " neg" : ""}" x="${x + 1}" y="${Math.min(yO(o), yO(base(O)))}" width="${bw}" height="${Math.max(1, Math.abs(yO(o) - yO(base(O))))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
       if (opt.values) g += `<text class="val" x="${x - bw / 2 - 1}" y="${yS(s) - 5}" text-anchor="middle">${won(s)}</text>`;
       g += `<text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${l}</text>`;
-      g += `<rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}" data-tip="${l} 매출 ${won(s)} · 영업이익 ${won(o)} · 이익률 ${pc(margins[i])}"/>`;
+      g += `<rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}" data-tip="${l} 매출 ${won(s)} · 영업이익 ${won(o)} · 이익률 ${pc(margins[i])}"/></g>`;
     });
     const pts = margins.map((m, i) => (m == null ? null : [cx(i), ym(m), m])).filter(Boolean);
     g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>`;
     pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pc(p[2])}</text>`));
-    return `${legend}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
+    return `${legend}${strip}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opt.label}">${g}</svg>`;
   }
   // 연도별 수치 표: 매출·영업이익·이익률·임직원, 마지막 열은 전년 대비
   // 한 줄 안에서는 같은 단위(조 또는 억)로 맞춘다
@@ -641,7 +647,7 @@
       ["yearly-sub", "trend-sub"].forEach((id) => ($(id).textContent = ""));
       const NAMES = { fy: "기준 연도", kind: "업종", area: "지역", listed: "상장 여부", size: "매출 규모", smin: "매출 최소", smax: "매출 최대", big: "대형사", legal: "기업규모", trade: "거래 관계" };
       const on = SB.FILTER_KEYS.filter((k) => k !== "fy" && String(state[k]) !== String(SB.DEFAULTS[k]));
-      $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>조건에 맞는 기업이 없습니다.</b><p>아래 조건 중 하나를 풀어 보세요.</p><div class="db-empty-chips">${on.map((k) => `<button type="button" data-unset="${k}">${NAMES[k]}: ${esc($(Object.keys(IDS).find((id) => IDS[id] === k)).selectedOptions[0]?.textContent || state[k])} <span aria-hidden="true">×</span></button>`).join("")}<button type="button" data-unset="all">필터 모두 초기화</button></div></div>`;
+      $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>조건에 맞는 기업이 없습니다.</b><p>아래 조건 중 하나를 풀어 보세요.</p><div class="db-empty-chips">${on.map((k) => `<button type="button" data-unset="${k}">${NAMES[k]}: ${esc(k === "smin" || k === "smax" ? `${Number(state[k]).toLocaleString("ko-KR")}억` : $(Object.keys(IDS).find((id) => IDS[id] === k)).selectedOptions?.[0]?.textContent || state[k])} <span aria-hidden="true">×</span></button>`).join("")}<button type="button" data-unset="all">필터 모두 초기화</button></div></div>`;
     } else {
       kpis(rows, S, FS);
       headline(rows, S);
@@ -662,7 +668,7 @@
       $("c-funnel").innerHTML = funnel(rows);
     }
     $("c-big").innerHTML = bigCard();
-    sigRows = rows; drawSignals();
+    sigRows = rows; drawSignals(); needList();
     listRows = rows; drawList();
     drawReport(S);
     if (!$("v-company").hidden) drawCompany();
@@ -688,6 +694,7 @@
     if (!b) return;
     if (b.dataset.unset === "all") { $("filters").requestSubmit ? $("clear").click() : $("filters").reset(); return; }
     state[b.dataset.unset] = SB.DEFAULTS[b.dataset.unset];
+    if (b.dataset.unset === "size") state.smin = state.smax = ""; // 직접 입력 범위도 함께 푼다
     drawFilters(); render();
   });
   // 차트 점(기업)도 키보드로: Tab으로 차트에 들어와 화살표로 옮기고 Enter로 연다
@@ -738,6 +745,132 @@
     const csv = "﻿" + out.map((row) => row.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
     Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })), download: "소부장_실적_모판.csv" }).click();
   });
+
+  // ---------- 디자인 개편 요소(dashboard.theme.css 에서만 보임) ----------
+  // 사이드바 '확인 필요': 지금 조건에서 위험 신호 기업 수(이미 계산하는 값). 누르면 위험 신호 화면에서 그 신호로 거른다
+  function needList() {
+    const box = $("need"), ul = $("need-list");
+    if (!box || !ul) return;
+    const hits = sigRows.map((r) => ({ r, h: SB.signalsOf(r) })).filter((x) => x.h.length);
+    const c = (k) => hits.filter((x) => x.h.some((s) => s.key === k)).length;
+    const items = [["전체", "우선 확인 대상", hits.filter((x) => x.h[0].sev === 1).length, "ph-warning-diamond"],
+      ["급감", "매출 급감", c("급감"), "ph-trend-down"], ["적자전환", "적자 전환", c("적자전환"), "ph-chart-line-down"],
+      ["적자지속", "적자 지속", c("적자지속"), "ph-arrow-down-right"], ["인력감축", "인력 감축", c("인력감축"), "ph-users-three"]].filter((x, i) => i === 0 || x[2] > 0);
+    box.hidden = !sigRows.length;
+    ul.innerHTML = items.map(([k, l, n, ic]) => `<li><a href="#signals" data-need="${k}"><i class="ph ${ic}" aria-hidden="true"></i><span>${l}</span><b>${n}</b></a></li>`).join("");
+  }
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-need]");
+    if (!a) return;
+    e.preventDefault();
+    state.sig = a.dataset.need; state.sigMore = false;
+    drawSignals();
+    if (location.hash === "#signals") showView("signals"); else location.hash = "signals";
+  });
+  // 차트 위 요약 띠: 마우스를 올린(또는 누른) 연도·분기의 값을 보여 주고, 벗어나면 가장 최근 값으로 돌아간다
+  document.addEventListener("mouseover", (e) => {
+    const g = e.target.closest && e.target.closest("g.slot");
+    if (!g) return;
+    const st = g.closest(".db-chart") && g.closest(".db-chart").querySelector(".db-strip");
+    if (!st) return;
+    if (!st.dataset.def) st.dataset.def = st.innerHTML;
+    st.innerHTML = g.dataset.strip;
+  });
+  document.addEventListener("mouseout", (e) => {
+    const g = e.target.closest && e.target.closest("g.slot");
+    if (!g || (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("g.slot"))) return;
+    const st = g.closest(".db-chart") && g.closest(".db-chart").querySelector(".db-strip");
+    if (st && st.dataset.def) st.innerHTML = st.classList.contains("pinned") ? st.dataset.pinHtml : st.dataset.def;
+  });
+  // ---------- 클릭 반응(dashboard.theme.css 가 있을 때만 동작) ----------
+  const themed = () => !!getComputedStyle(document.documentElement).getPropertyValue("--brand").trim();
+  const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 메뉴: 선택 표시(알약)가 누른 메뉴로 미끄러지듯 이동한다
+  function movePill() {
+    const ul = $("views-nav"), a = ul && ul.querySelector('a[aria-current="true"]');
+    if (!a || !themed()) return;
+    const u = ul.getBoundingClientRect(), r = a.getBoundingClientRect();
+    ul.style.setProperty("--py", `${r.top - u.top}px`); ul.style.setProperty("--ph", `${r.height}px`);
+    ul.style.setProperty("--px", `${r.left - u.left}px`); ul.style.setProperty("--pw", `${r.width}px`);
+    ul.classList.add("th-ready");
+  }
+  window.addEventListener("resize", movePill);
+  window.addEventListener("load", movePill);
+  // 버튼·메뉴·칩을 누르면 누른 자리에서 물결이 퍼진다
+  const RIPPLE = ".db-nav a, .db-chips button, .db-clear, .th-icon, .db-btn, .db-bigswitch, .db-sig, .db-filter-toggle, .db-link, .db-empty-chips button, .db-need a";
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button > 0 || !themed() || calm()) return;
+    const t = e.target.closest && e.target.closest(RIPPLE);
+    if (!t) return;
+    const r = t.getBoundingClientRect(), d = Math.max(r.width, r.height) * 1.6, s = document.createElement("span");
+    s.className = "th-ripple";
+    s.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+    t.appendChild(s);
+    setTimeout(() => s.remove(), 700);
+  });
+  // 차트 막대(연도·분기)를 누르면 그 값이 고정된다. 한 번 더 누르면 해제
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest && e.target.closest("g.slot");
+    if (!g || !themed()) return;
+    const box = g.closest(".db-chart"), st = box && box.querySelector(".db-strip");
+    if (!st) return;
+    if (!st.dataset.def) st.dataset.def = st.innerHTML;
+    const was = g.classList.contains("pin");
+    box.querySelectorAll("g.slot.pin").forEach((x) => x.classList.remove("pin"));
+    if (was) { st.classList.remove("pinned"); st.innerHTML = st.dataset.def; }
+    else { g.classList.add("pin"); st.classList.add("pinned"); st.dataset.pinHtml = g.dataset.strip; st.innerHTML = g.dataset.strip; }
+    st.classList.remove("pulse"); void st.offsetWidth; st.classList.add("pulse");
+  });
+  // 위쪽 기업 검색: 이름 일부를 쓰면 후보 8곳, 고르면 기업 상세로 이동
+  const gsQ = $("gs-q"), gsL = $("gs-list");
+  let gsHits = [], gsIdx = 0;
+  function gsRender() {
+    const q = gsQ.value.replace(/\s/g, "").toLowerCase();
+    gsHits = q ? coAll.filter((x) => x.key.includes(q)).sort((a, b) => (b.key.startsWith(q) - a.key.startsWith(q)) || b.last - a.last).slice(0, 8) : [];
+    gsIdx = 0;
+    gsL.innerHTML = gsHits.length ? gsHits.map((x, i) => `<li role="option" id="gs-opt-${i}" data-i="${i}" aria-selected="${i === 0}"><b>${esc(x.r.n)}</b><span>${x.r.kind} · ${won(x.last)}</span></li>`).join("") : q ? `<li class="empty">"${esc(gsQ.value)}"와 맞는 기업이 없습니다.</li>` : "";
+    gsL.hidden = !q;
+    gsQ.setAttribute("aria-expanded", String(!!q));
+  }
+  function gsPick(i) {
+    const x = gsHits[i];
+    if (!x) return;
+    state.co = x.r.c; gsQ.value = ""; gsRender(); gsQ.blur();
+    if (location.hash === "#company") showView("company"); else location.hash = "company";
+  }
+  if (gsQ) {
+    gsQ.addEventListener("input", gsRender);
+    gsQ.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") { gsQ.value = ""; gsRender(); }
+      else if (e.key === "Enter") { e.preventDefault(); gsPick(gsIdx); }
+      else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!gsHits.length) return;
+        gsIdx = (gsIdx + (e.key === "ArrowDown" ? 1 : -1) + gsHits.length) % gsHits.length;
+        gsL.querySelectorAll("li[data-i]").forEach((li) => li.setAttribute("aria-selected", Number(li.dataset.i) === gsIdx));
+        gsQ.setAttribute("aria-activedescendant", "gs-opt-" + gsIdx);
+      }
+    });
+    gsL.addEventListener("mousedown", (e) => e.preventDefault());
+    gsL.addEventListener("click", (e) => { const li = e.target.closest("li[data-i]"); if (li) gsPick(Number(li.dataset.i)); });
+    gsQ.addEventListener("blur", () => setTimeout(() => { gsL.hidden = true; gsQ.setAttribute("aria-expanded", "false"); }, 150));
+  }
+  // 화면 모드(밝게·어둡게): 고르면 이 브라우저에 기억한다
+  const themeBtn = $("theme-btn");
+  if (themeBtn) {
+    const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const paint = () => { const d = cur() === "dark"; themeBtn.innerHTML = `<i class="ph ph-${d ? "sun" : "moon"}" aria-hidden="true"></i>`; themeBtn.setAttribute("aria-pressed", String(d)); themeBtn.title = d ? "밝은 화면으로" : "어두운 화면으로"; };
+    themeBtn.addEventListener("click", () => {
+      const t = cur() === "dark" ? "light" : "dark";
+      const root = document.documentElement;
+      root.classList.add("th-switch"); setTimeout(() => root.classList.remove("th-switch"), 600); // 색이 부드럽게 바뀐다
+      root.dataset.theme = t;
+      try { localStorage.setItem("sobujang:theme", t); } catch (e) { /* 저장 불가 환경 */ }
+      paint();
+      themeBtn.classList.remove("spin"); void themeBtn.offsetWidth; themeBtn.classList.add("spin");
+    });
+    paint();
+  }
 
   // 좁은 화면: 사이트 메뉴는 접어 두고 '메뉴' 버튼으로 연다(대시보드 메뉴는 아래 탭)
   $("site-menu").addEventListener("click", () => {
