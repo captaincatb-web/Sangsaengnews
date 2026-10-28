@@ -24,6 +24,6 @@
     return byCode ? { kind: byCode[1], sub: "", est: true } : { kind: "미분류", sub: "", est: false };
   };
   // 법적 기업규모가 입력되기 전까지 쓰는 매출 규모 구간(억원)
-  window.SIZE_TIERS = ["1조 이상", "1천억~1조", "1천억 미만"];
-  window.sizeTier = (sales) => (sales >= 10000 ? "1조 이상" : sales >= 1000 ? "1천억~1조" : "1천억 미만");
+  window.SIZE_TIERS = ["1조 이상", "5천억~1조", "5천억 미만"];
+  window.sizeTier = (sales) => (sales >= 10000 ? "1조 이상" : sales >= 5000 ? "5천억~1조" : "5천억 미만");
 })();
