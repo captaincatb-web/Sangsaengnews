@@ -1,0 +1,61 @@
+/* 경영 현황 보고: 1280×720 슬라이드를 화면 너비에 맞춰 줄여 보여 준다 */
+.rp-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.rp-basis { font-size: 14px; color: var(--text-3); margin-left: 4px; }
+.rp-stage { position: relative; width: 100%; margin: 0 0 20px; overflow-x: auto; overflow-y: hidden; border-radius: 12px; box-shadow: var(--card-shadow); border: 1px solid var(--line); background: #fff; }
+.slide { position: absolute; flex: none; top: 0; left: 0; width: 1280px; height: 720px; transform-origin: top left; box-sizing: border-box; padding: 28px 40px 22px; background: #fff; color: #1e2124; display: flex; flex-direction: column; gap: 14px; font-size: 15px; }
+.slide h2 { margin: 0; font-size: 28px; letter-spacing: -.02em; color: #131416; }
+.slide h3 { margin: 0 0 8px; font-size: 16px; color: #131416; }
+.slide h3 small { font-weight: 400; color: #58616a; font-size: 13px; margin-left: 6px; }
+.sl-head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #0f1d3a; padding-bottom: 10px; }
+.sl-tag { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: #3b6fe0; }
+.sl-meta { margin: 0; font-size: 13px; color: #58616a; }
+.sl-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.rp-kpi { background: #f3f4f8; border-radius: 12px; padding: 12px 16px; }
+.rp-kpi p { margin: 0; font-size: 13px; color: #58616a; }
+.rp-kpi strong { display: block; font-size: 28px; line-height: 1.2; margin: 2px 0; font-variant-numeric: tabular-nums; }
+.rp-kpi span { font-size: 13px; color: #464c53; }
+.slide .up { color: #0e7a43; } .slide .down { color: #c2362b; }
+.sl-body { display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; flex: 1; min-height: 0; }
+.sl-body.two { grid-template-columns: 1.25fr 1fr; }
+.sl-col h3:not(:first-child) { margin-top: 14px; }
+.sl-col svg { width: 100%; height: auto; display: block; }
+.slide .ax { fill: #58616a; font-size: 11px; } .slide .mv { fill: #16a06a; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 4px; }
+.sl-note { margin: 4px 0 0; font-size: 13px; color: #464c53; }
+.rp-empty { color: #58616a; }
+.rp-stack { display: flex; height: 26px; border-radius: 6px; overflow: hidden; }
+.rp-stack span { color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.rp-legend { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 13px; color: #464c53; }
+.rp-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+.sl-foot { background: #eff3fd; border-radius: 12px; padding: 12px 18px; }
+.sl-foot h3 { color: #0f1d3a; }
+.sl-foot ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14.5px; line-height: 1.5; }
+.sl-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.sl-table th, .sl-table td { padding: 7px 6px; border-bottom: 1px solid #e3e5ee; text-align: right; white-space: nowrap; }
+.sl-table thead th { background: #f3f4f8; color: #464c53; font-weight: 700; }
+.sl-table th:first-child { text-align: left; }
+.rp-quad { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 8px; position: relative; padding: 0 0 22px 22px; height: 330px; }
+.rp-q { border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.rp-q p { margin: 0; font-weight: 700; font-size: 15px; } .rp-q p small { display: block; font-weight: 400; font-size: 12px; color: #464c53; }
+.rp-q strong { font-size: 26px; } .rp-q strong em { font-size: 14px; font-weight: 400; font-style: normal; color: #464c53; }
+.rp-q span { font-size: 12px; color: #464c53; line-height: 1.4; }
+/* 유형 색은 대시보드와 같다(metrics.js TYPE_COLOR): 고성장·고수익 초록, 저성장·고수익 파랑, 고성장·저수익 주황, 저성장·저수익 빨강 */
+.rp-q.t0 { background: #dcf1e7; } .rp-q.t1 { background: #e1e9fb; } .rp-q.t2 { background: #fdeed8; } .rp-q.t3 { background: #fbe4e1; }
+.rp-q.t0 p { color: #0d6b45; } .rp-q.t1 p { color: #2a56c6; } .rp-q.t2 p { color: #9a4f00; } .rp-q.t3 p { color: #a3271d; }
+.rp-axis { position: absolute; font-size: 12px; color: #58616a; }
+.rp-axis.y { left: 0; top: 50%; transform: translate(-50%, 0) rotate(-90deg); transform-origin: center; white-space: nowrap; margin-left: 6px; }
+.rp-axis.x { left: 22px; right: 0; bottom: 0; text-align: center; }
+@media print {
+  .krds-header, .page-head, .guide, .krds-footer, .skip { display: none !important; }
+  .rp-stage { box-shadow: none; border: 0; margin: 0; page-break-after: always; }
+  @page { size: 1280px 720px; margin: 0; }
+}
+.rp-lb { display: inline-block; font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 4px; margin-right: 4px; vertical-align: 1px; }
+.rp-lb.f { background: #e3ebfb; color: #2c5bc9; } .rp-lb.r { background: #fdefdc; color: #b4630d; margin-left: 2px; }
+.rp-formulas { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.rp-embed .krds-header, .rp-embed .page-head, .rp-embed .guide, .rp-embed .krds-footer, .rp-embed .skip { display: none !important; }
+.rp-embed main { padding-top: 12px; }
+.rp-mhint { display: none; }
+@media (max-width: 639px) {
+  .rp-mhint { display: flex; gap: 6px; align-items: center; margin: 0 0 8px; font-size: 13px; color: var(--text-3, #6d7882); }
+  .rp-stage { margin-bottom: 12px; }
+}
