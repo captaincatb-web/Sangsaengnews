@@ -67,9 +67,15 @@ a { color: inherit; }
 .db-nav a { padding: 11px 14px; border-radius: var(--r-ctl); color: var(--text-2); transition: background-color .2s, color .2s; }
 .db-nav a i { transition: color .2s; }
 .db-nav a:hover { background: var(--grid); color: var(--text); }
-.db-nav a[aria-current="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 700; box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 28%, transparent); }
+.db-nav a[aria-current="true"] { background: transparent; color: var(--brand-ink); font-weight: 700; box-shadow: none; }
+.db-nav:not(.th-ready) a[aria-current="true"] { background: var(--brand); } /* 알약 위치를 계산하기 전 첫 프레임 */
 .db-nav a[aria-current="true"]::before { content: none; }
 .db-nav a[aria-current="true"] i { color: var(--brand-ink); }
+/* 선택 표시 알약: 누른 메뉴로 미끄러져 이동한다(위치는 JS 가 --py·--ph·--px·--pw 로 알려 준다) */
+.db-nav { position: relative; }
+.db-nav::before { content: ""; position: absolute; left: 0; right: 0; top: var(--py, 0); height: var(--ph, 0); border-radius: var(--r-ctl); background: var(--brand); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 28%, transparent); opacity: 0; pointer-events: none; transition: top .4s var(--ease), height .4s var(--ease), left .4s var(--ease), width .4s var(--ease), opacity .2s; }
+.db-nav.th-ready::before { opacity: 1; }
+.db-nav li { position: relative; z-index: 1; }
 .db-refresh { color: var(--text-3); border-top-color: var(--line); }
 .db-refresh b { color: var(--text-2); }
 @media (min-width: 861px) {
@@ -201,8 +207,10 @@ a { color: inherit; }
   .th-icon { width: 40px; height: 40px; border-radius: 12px; }
   .db-side { left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); border: 1px solid var(--line); border-radius: 26px; padding: 6px; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 10px 30px rgb(20 30 25 / .20); }
   .db-nav a { border-radius: 20px; color: var(--text-2); }
-  .db-nav a[aria-current="true"] { background: var(--brand); color: var(--brand-ink); box-shadow: none; }
+  .db-nav a[aria-current="true"] { background: transparent; color: var(--brand-ink); box-shadow: none; }
+  .db-nav:not(.th-ready) a[aria-current="true"] { background: var(--brand); }
   .db-nav a[aria-current="true"] i { color: var(--brand-ink); }
+  .db-nav::before { top: 0; bottom: 0; height: auto; left: var(--px, 0); right: auto; width: var(--pw, 0); border-radius: 20px; box-shadow: none; }
   body.db { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
   .db-card { padding: 16px; border-radius: 18px; }
   .db-kpi { border-radius: 18px; }
@@ -215,4 +223,37 @@ a { color: inherit; }
   .db-chart .bar, .db-view:not([hidden]) { animation: none; }
   .db-kpi, .db-card, .db-sig, .db-insights li, .db-changes li, .db-co-kpis div, .th-icon, .db-clear, .db-hbars .fill { transition: none; }
   .db-kpi:hover, .db-sig:hover, .db-insights li:hover, .db-changes li:hover, .db-co-kpis div:hover { transform: none; }
+}
+
+/* ---------- 클릭 반응 ---------- */
+/* 눌림: 누르는 순간 살짝 작아졌다가 돌아온다 */
+.db-nav a, .db-chips button, .db-clear, .th-icon, .db-btn, .db-bigswitch, .db-sig, .db-filter-toggle, .db-link, .db-empty-chips button, .db-need a { position: relative; overflow: hidden; transition-property: transform, background-color, color, border-color, box-shadow; }
+.db-nav a:active, .db-chips button:active, .db-clear:active, .th-icon:active, .db-btn:active, .db-bigswitch:active, .db-filter-toggle:active, .db-link:active, .db-empty-chips button:active, .db-need a:active { transform: scale(.96); transition-duration: .08s; }
+.db-sig:active { transform: translateY(-1px) scale(.975); transition-duration: .08s; }
+.db-kpi:active, .db-co-kpis div:active { transform: translateY(-1px) scale(.985); transition-duration: .08s; }
+/* 물결: 누른 자리에서 퍼진다 */
+.th-ripple { position: absolute; border-radius: 50%; background: currentColor; opacity: .22; transform: scale(0); pointer-events: none; animation: th-ripple .65s var(--ease) forwards; }
+@keyframes th-ripple { to { transform: scale(1); opacity: 0; } }
+/* 선택한 항목은 톡 튀어나오듯 자리잡는다 */
+.db-sig.on { animation: th-pop .45s var(--ease); }
+@keyframes th-pop { 0% { transform: scale(.95); } 55% { transform: scale(1.025); } 100% { transform: none; } }
+/* 차트 막대를 누르면 그 칸이 고정되고 요약 띠가 튄다 */
+.slot.pin .colbg { opacity: .15; stroke: var(--brand); stroke-width: 1.5; stroke-opacity: .55; }
+.slot.pin .bar { filter: brightness(1.08) saturate(1.1); }
+.db-strip.pulse { animation: th-pulse .5s var(--ease); }
+.db-strip.pinned .st-l::after { content: "고정 · 다시 누르면 해제"; margin-left: 10px; padding: 2px 8px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 11.5px; font-weight: 400; letter-spacing: 0; vertical-align: 2px; }
+@keyframes th-pulse { 0% { transform: scale(.985); box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 30%, transparent); } 60% { transform: scale(1.005); box-shadow: 0 0 0 8px transparent; } 100% { transform: none; } }
+/* 표: 정렬·검색·펼침으로 다시 그려질 때 행이 부드럽게 나타난다 */
+.db-tbl tbody tr { animation: th-row .32s var(--ease) both; }
+@keyframes th-row { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+/* 기업 상세: 기업을 고르면 내용이 부드럽게 바뀐다 */
+#c-company > * { animation: th-fade .38s var(--ease) both; }
+/* 화면 모드 버튼: 누르면 한 바퀴 돌고, 색은 부드럽게 바뀐다 */
+.th-icon.spin i { animation: th-spin .6s var(--ease); }
+@keyframes th-spin { from { transform: rotate(-200deg) scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+html.th-switch *, html.th-switch *::before, html.th-switch *::after { transition: background-color .45s ease, color .45s ease, border-color .45s ease, fill .45s ease, stroke .45s ease !important; }
+@media (prefers-reduced-motion: reduce) {
+  .th-ripple, .db-sig.on, .db-strip.pulse, .db-tbl tbody tr, #c-company > *, .th-icon.spin i { animation: none; }
+  .db-nav::before { transition: none; }
+  .db-nav a:active, .db-chips button:active, .db-clear:active, .th-icon:active, .db-btn:active, .db-sig:active, .db-kpi:active { transform: none; }
 }

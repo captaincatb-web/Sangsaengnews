@@ -74,6 +74,7 @@
     if (v === "report") loadPreview();
     syncUrl();
     window.scrollTo({ top: 0 });
+    movePill();
   }
   window.addEventListener("hashchange", () => showView(location.hash.slice(1)));
   document.addEventListener("click", (e) => {
@@ -779,7 +780,46 @@
     const g = e.target.closest && e.target.closest("g.slot");
     if (!g || (e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("g.slot"))) return;
     const st = g.closest(".db-chart") && g.closest(".db-chart").querySelector(".db-strip");
-    if (st && st.dataset.def) st.innerHTML = st.dataset.def;
+    if (st && st.dataset.def) st.innerHTML = st.classList.contains("pinned") ? st.dataset.pinHtml : st.dataset.def;
+  });
+  // ---------- 클릭 반응(dashboard.theme.css 가 있을 때만 동작) ----------
+  const themed = () => !!getComputedStyle(document.documentElement).getPropertyValue("--brand").trim();
+  const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 메뉴: 선택 표시(알약)가 누른 메뉴로 미끄러지듯 이동한다
+  function movePill() {
+    const ul = $("views-nav"), a = ul && ul.querySelector('a[aria-current="true"]');
+    if (!a || !themed()) return;
+    const u = ul.getBoundingClientRect(), r = a.getBoundingClientRect();
+    ul.style.setProperty("--py", `${r.top - u.top}px`); ul.style.setProperty("--ph", `${r.height}px`);
+    ul.style.setProperty("--px", `${r.left - u.left}px`); ul.style.setProperty("--pw", `${r.width}px`);
+    ul.classList.add("th-ready");
+  }
+  window.addEventListener("resize", movePill);
+  window.addEventListener("load", movePill);
+  // 버튼·메뉴·칩을 누르면 누른 자리에서 물결이 퍼진다
+  const RIPPLE = ".db-nav a, .db-chips button, .db-clear, .th-icon, .db-btn, .db-bigswitch, .db-sig, .db-filter-toggle, .db-link, .db-empty-chips button, .db-need a";
+  document.addEventListener("pointerdown", (e) => {
+    if (e.button > 0 || !themed() || calm()) return;
+    const t = e.target.closest && e.target.closest(RIPPLE);
+    if (!t) return;
+    const r = t.getBoundingClientRect(), d = Math.max(r.width, r.height) * 1.6, s = document.createElement("span");
+    s.className = "th-ripple";
+    s.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+    t.appendChild(s);
+    setTimeout(() => s.remove(), 700);
+  });
+  // 차트 막대(연도·분기)를 누르면 그 값이 고정된다. 한 번 더 누르면 해제
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest && e.target.closest("g.slot");
+    if (!g || !themed()) return;
+    const box = g.closest(".db-chart"), st = box && box.querySelector(".db-strip");
+    if (!st) return;
+    if (!st.dataset.def) st.dataset.def = st.innerHTML;
+    const was = g.classList.contains("pin");
+    box.querySelectorAll("g.slot.pin").forEach((x) => x.classList.remove("pin"));
+    if (was) { st.classList.remove("pinned"); st.innerHTML = st.dataset.def; }
+    else { g.classList.add("pin"); st.classList.add("pinned"); st.dataset.pinHtml = g.dataset.strip; st.innerHTML = g.dataset.strip; }
+    st.classList.remove("pulse"); void st.offsetWidth; st.classList.add("pulse");
   });
   // 위쪽 기업 검색: 이름 일부를 쓰면 후보 8곳, 고르면 기업 상세로 이동
   const gsQ = $("gs-q"), gsL = $("gs-list");
@@ -822,9 +862,12 @@
     const paint = () => { const d = cur() === "dark"; themeBtn.innerHTML = `<i class="ph ph-${d ? "sun" : "moon"}" aria-hidden="true"></i>`; themeBtn.setAttribute("aria-pressed", String(d)); themeBtn.title = d ? "밝은 화면으로" : "어두운 화면으로"; };
     themeBtn.addEventListener("click", () => {
       const t = cur() === "dark" ? "light" : "dark";
-      document.documentElement.dataset.theme = t;
+      const root = document.documentElement;
+      root.classList.add("th-switch"); setTimeout(() => root.classList.remove("th-switch"), 600); // 색이 부드럽게 바뀐다
+      root.dataset.theme = t;
       try { localStorage.setItem("sobujang:theme", t); } catch (e) { /* 저장 불가 환경 */ }
       paint();
+      themeBtn.classList.remove("spin"); void themeBtn.offsetWidth; themeBtn.classList.add("spin");
     });
     paint();
   }
