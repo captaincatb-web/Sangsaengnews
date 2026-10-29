@@ -616,6 +616,8 @@ def fetch_price(stock_code: str, corp_cls: str) -> dict | None:
     except Exception as e:  # yfinance 는 네트워크·형식 오류를 다양한 예외로 던진다
         print(f"[price] {stock_code} 조회 실패: {e}")
         return None
+    # 장중·휴장일에는 마지막 행 종가가 빈 값(NaN)일 수 있어 값이 있는 행만 쓴다
+    hist = hist.dropna(subset=["Close"]) if not hist.empty else hist
     if hist.empty:
         return None
     return {"price": round(float(hist["Close"].iloc[-1])), "date": hist.index[-1].strftime("%Y-%m-%d")}

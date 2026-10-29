@@ -42,7 +42,7 @@
   };
   const recs = (window.COMPANY_FINANCIALS || []).map((r) => {
     const cl = window.classifyCompany(r, segs), last = r.s.filter((v) => v != null).pop();
-    return { ...r, last: last ?? null, kind: cl.kind, kindEst: cl.est, area: areaOf(r), tier: last != null ? window.sizeTier(last) : "-", hasProfile: profileCodes.has(r.c), legal: "미입력", trade: "미입력", semi: null };
+    return { ...r, last: last ?? null, kind: cl.kind, sub: cl.sub || "", kindEst: cl.est, area: areaOf(r), tier: last != null ? window.sizeTier(last) : "-", hasProfile: profileCodes.has(r.c), legal: "미입력", trade: "미입력", semi: null };
   }).filter((r) => !EXCLUDED_KINDS.includes(r.kind));
   const yearCount = {};
   recs.forEach((r) => r.y.length && (yearCount[r.y[r.y.length - 1]] = (yearCount[r.y[r.y.length - 1]] || 0) + 1));

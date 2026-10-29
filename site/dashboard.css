@@ -343,7 +343,7 @@ a { color: inherit; }
   .db-side { position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 20; padding: 0 4px calc(4px + env(safe-area-inset-bottom)); overflow: visible; box-shadow: 0 -4px 16px rgb(0 0 0 / .18); }
   .db-brand { display: none; }
   .db-side nav { flex: 1; }
-  .db-nav { flex: 1; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; }
+  .db-nav { flex: 1; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; /* 메뉴 수만큼 칸을 나눈다(대시보드 7·해외 비교 5·국내 실적 3) */ }
   .db-nav a { flex-direction: column; gap: 2px; padding: 7px 0 5px; min-height: 52px; justify-content: center; border-radius: 0; font-size: 11px; line-height: 1.2; text-align: center; }
   .db-nav a i { display: block; font-size: 21px; }
   .db-nav a .l { display: none; }
@@ -653,10 +653,10 @@ details.db-foot p { margin: 6px 0 0; }
 @media (max-width: 860px) { .cm-2 { grid-template-columns: 1fr; } }
 .cm-2 .mk-in select { width: 170px; }
 @media (max-width: 860px) {
-  #kpis:not(.dm-kpis), #kpis-s, #kpis-d { grid-template-columns: 1fr; }
-  #kpis .db-kpi strong, #kpis-s .db-kpi strong, #kpis-d .db-kpi strong { font-size: 24px; }
+  .cm-page #kpis-s, .cm-page #kpis-d { grid-template-columns: 1fr; }
+  .cm-page #kpis-s .db-kpi strong, .cm-page #kpis-d .db-kpi strong { font-size: 24px; }
 }
-@media (min-width: 861px) { #kpis:not(.dm-kpis), #kpis-s, #kpis-d { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 861px) { .cm-page #kpis-s, .cm-page #kpis-d { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* ---------- 국내 소부장 실적(domestic.html) ---------- */
 .dm-tools { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }
@@ -677,3 +677,7 @@ details.db-foot p { margin: 6px 0 0; }
 .cm-legend-st { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 10px; padding: 0; font-size: 12px; color: var(--text-3); align-items: center; }
 #kpis-c { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 860px) { #kpis-c { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cm-page .db-legend { flex-wrap: wrap; row-gap: 4px; }
+.cm-page .db-legend li { white-space: normal; min-width: 0; }
+.dm-tools .db-btn { flex: 0 0 auto; width: auto; }
+@media (max-width: 860px) { .dm-tools { flex-wrap: nowrap; } .dm-tools .mk-in { flex: 1 1 auto; min-width: 0; } }

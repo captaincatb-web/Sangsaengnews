@@ -13,6 +13,7 @@ on:
       - "scripts/build_peers.py"
       - "scripts/peers_sec.py"
       - "scripts/build_market.py"
+      - "scripts/peers_master.csv"
       - "scripts/company_highlights.py"
       - ".github/workflows/pages.yml"
   schedule:
@@ -59,7 +60,7 @@ jobs:
           collect=true
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
             # 해외 비교·시장 정보 수집기는 매번 따로 돌리므로 바뀌어도 DART 전체 수집을 다시 하지 않는다
-            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers|peers_sec|build_market)\.py$' || true)
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers\.py|peers_sec\.py|build_market\.py|peers_master\.csv)$' || true)
             echo "$changed"
             if ! echo "$changed" | grep -qE '^(scripts/|requirements\.txt$|site/data/(companies|universe)\.js$)'; then collect=false; fi
           fi
@@ -122,6 +123,31 @@ jobs:
             site/data/profiles.js
             site/data/financials.js
           key: site-data-${{ github.run_id }}
+
+      # 새로 수집하다 한쪽이 실패하면, 실패한 쪽은 지난번 저장 값으로 되돌린다(기본 틀 파일이 배포되지 않게)
+      - name: Keep fresh results before fallback
+        if: ${{ steps.need.outputs.collect == 'true' && (steps.profiles.outcome == 'failure' || steps.financials.outcome == 'failure') }}
+        run: |
+          mkdir -p /tmp/fresh
+          [ "${{ steps.profiles.outcome }}" = "success" ] && cp site/data/profiles.js /tmp/fresh/ || true
+          [ "${{ steps.financials.outcome }}" = "success" ] && cp site/data/financials.js /tmp/fresh/ || true
+
+      - name: Restore previous data for failed collection
+        id: fallback
+        if: ${{ steps.need.outputs.collect == 'true' && (steps.profiles.outcome == 'failure' || steps.financials.outcome == 'failure') }}
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            site/data/profiles.js
+            site/data/financials.js
+          key: site-data-${{ github.run_id }}
+          restore-keys: site-data-
+
+      - name: Put fresh results back
+        if: ${{ steps.need.outputs.collect == 'true' && (steps.profiles.outcome == 'failure' || steps.financials.outcome == 'failure') }}
+        run: |
+          cp /tmp/fresh/*.js site/data/ 2>/dev/null || true
+          echo "이전 값으로 대체: profiles=${{ steps.profiles.outcome }}, financials=${{ steps.financials.outcome }}, 복원 키=${{ steps.fallback.outputs.cache-matched-key }}"
 
       # 해외 비교 기업(DART·SEC·야후)과 시장 정보(네이버증권). 매번 새로 받되 실패하면 저장해 둔 이전 값을 쓴다
       - name: Restore peers and market data
