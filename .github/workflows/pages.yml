@@ -13,6 +13,7 @@ on:
       - "scripts/build_peers.py"
       - "scripts/peers_sec.py"
       - "scripts/build_market.py"
+      - "scripts/peers_master.csv"
       - "scripts/company_highlights.py"
       - ".github/workflows/pages.yml"
   schedule:
@@ -59,7 +60,7 @@ jobs:
           collect=true
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
             # 해외 비교·시장 정보 수집기는 매번 따로 돌리므로 바뀌어도 DART 전체 수집을 다시 하지 않는다
-            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers|peers_sec|build_market)\.py$' || true)
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers\.py|peers_sec\.py|build_market\.py|peers_master\.csv)$' || true)
             echo "$changed"
             if ! echo "$changed" | grep -qE '^(scripts/|requirements\.txt$|site/data/(companies|universe)\.js$)'; then collect=false; fi
           fi
