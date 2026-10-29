@@ -1,0 +1,59 @@
+id,name,ctry,listed,ticker,source,code,cur,cat,dom_kind,seg1,seg2
+samsung,삼성전자,KR,Y,005930.KS,dart,00126380,KRW,제조(IDM·메모리),,메모리·파운드리,모바일·가전
+skhynix,SK하이닉스,KR,Y,000660.KS,dart,00164779,KRW,제조(IDM·메모리),,메모리(D램·낸드),
+amat,Applied Materials,US,Y,AMAT,sec,AMAT,USD,장비,장비,증착·식각,CMP·이온주입·검사
+lrcx,Lam Research,US,Y,LRCX,sec,LRCX,USD,장비,장비,식각·증착,세정
+klac,KLA,US,Y,KLAC,sec,KLAC,USD,장비,장비,검사·계측,
+onto,Onto Innovation,US,Y,ONTO,sec,ONTO,USD,장비,장비,검사·계측,리소(패키징)
+acls,Axcelis Technologies,US,Y,ACLS,sec,ACLS,USD,장비,장비,이온주입,
+veco,Veeco Instruments,US,Y,VECO,sec,VECO,USD,장비,장비,증착·이온빔,레이저 어닐링
+acmr,ACM Research,US,Y,ACMR,sec,ACMR,USD,장비,장비,세정,도금·증착
+ter,Teradyne,US,Y,TER,sec,TER,USD,후공정·테스트,장비,테스트(ATE),로봇
+form,FormFactor,US,Y,FORM,sec,FORM,USD,후공정·테스트,부품,프로브카드,프로브 스테이션
+cohu,Cohu,US,Y,COHU,sec,COHU,USD,후공정·테스트,장비,테스트 핸들러,테스트 소켓·ATE
+klic,Kulicke & Soffa,US,Y,KLIC,sec,KLIC,USD,후공정·테스트,장비,본딩(패키징),
+amkr,Amkor Technology,US,Y,AMKR,sec,AMKR,USD,후공정·테스트,,패키징·테스트(OSAT),
+mksi,MKS Instruments,US,Y,MKSI,sec,MKSI,USD,부품,부품,진공·RF 부품,레이저·도금 화학
+uctt,Ultra Clean Holdings,US,Y,UCTT,sec,UCTT,USD,부품,부품,가스 공급 부품·서브시스템,
+ichr,Ichor Holdings,US,Y,ICHR,sec,ICHR,USD,부품,부품,유체 공급 부품,
+entg,Entegris,US,Y,ENTG,sec,ENTG,USD,소재,소재,고순도 케미컬·필터,슬러리·특수소재
+plab,Photronics,US,Y,PLAB,sec,PLAB,USD,소재,소재,포토마스크,
+glw,Corning,US,Y,GLW,sec,GLW,USD,소재,소재,특수유리,광섬유·디스플레이
+mu,Micron,US,Y,MU,sec,MU,USD,제조(IDM·메모리),,메모리(D램·낸드),
+intc,Intel,US,Y,INTC,sec,INTC,USD,제조(IDM·메모리),,CPU(IDM),파운드리
+txn,Texas Instruments,US,Y,TXN,sec,TXN,USD,제조(IDM·메모리),,아날로그(IDM),임베디드
+nvda,NVIDIA,US,Y,NVDA,sec,NVDA,USD,팹리스·설계,,GPU·AI 가속기,
+amd,AMD,US,Y,AMD,sec,AMD,USD,팹리스·설계,,CPU·GPU,
+qcom,Qualcomm,US,Y,QCOM,sec,QCOM,USD,팹리스·설계,,모바일 칩,라이선스
+avgo,Broadcom,US,Y,AVGO,sec,AVGO,USD,팹리스·설계,,통신·네트워크 칩,소프트웨어
+nvmi,Nova,IL,Y,NVMI,yf,NVMI,USD,장비,장비,계측,
+camt,Camtek,IL,Y,CAMT,yf,CAMT,USD,장비,장비,검사(패키징),
+tel,Tokyo Electron,JP,Y,8035.T,yf,8035.T,JPY,장비,장비,증착·식각,코터·디벨로퍼·세정
+advantest,Advantest,JP,Y,6857.T,yf,6857.T,JPY,후공정·테스트,장비,테스트(ATE),
+kokusai,Kokusai Electric,JP,Y,6525.T,yf,6525.T,JPY,장비,장비,증착(배치),트리트먼트
+screen,SCREEN Holdings,JP,Y,7735.T,yf,7735.T,JPY,장비,장비,세정,코터·디벨로퍼
+disco,DISCO,JP,Y,6146.T,yf,6146.T,JPY,후공정·테스트,장비,다이싱·그라인딩,
+lasertec,Lasertec,JP,Y,6920.T,yf,6920.T,JPY,장비,장비,마스크 검사,
+accretech,Tokyo Seimitsu,JP,Y,7729.T,yf,7729.T,JPY,장비,장비,웨이퍼 프로버,CMP·다이싱
+ulvac,ULVAC,JP,Y,6728.T,yf,6728.T,JPY,장비,장비,진공 증착,진공 부품
+towa,TOWA,JP,Y,6315.T,yf,6315.T,JPY,후공정·테스트,장비,몰딩(패키징),
+mjc,Micronics Japan,JP,Y,6871.T,yf,6871.T,JPY,후공정·테스트,부품,프로브카드,
+shinetsu,Shin-Etsu Chemical,JP,Y,4063.T,yf,4063.T,JPY,소재,소재,웨이퍼,포토레지스트
+sumco,SUMCO,JP,Y,3436.T,yf,3436.T,JPY,소재,소재,웨이퍼,
+tok,Tokyo Ohka Kogyo,JP,Y,4186.T,yf,4186.T,JPY,소재,소재,포토레지스트,고순도 케미컬
+resonac,Resonac,JP,Y,4004.T,yf,4004.T,JPY,소재,소재,패키징 소재,특수가스·슬러리
+fujimi,Fujimi,JP,Y,5384.T,yf,5384.T,JPY,소재,소재,슬러리(CMP),
+ibiden,Ibiden,JP,Y,4062.T,yf,4062.T,JPY,부품,부품,패키지 기판,
+ferrotec,Ferrotec,JP,Y,6890.T,yf,6890.T,JPY,부품,부품,진공 부품·쿼츠·세라믹,실리콘 부품
+asml,ASML,NL,Y,ASML.AS,yf,ASML.AS,EUR,장비,장비,노광,계측
+asmi,ASM International,NL,Y,ASM.AS,yf,ASM.AS,EUR,장비,장비,증착(ALD·에피),
+besi,BE Semiconductor,NL,Y,BESI.AS,yf,BESI.AS,EUR,후공정·테스트,장비,본딩(패키징),
+aixtron,Aixtron,DE,Y,AIXA.DE,yf,AIXA.DE,EUR,장비,장비,증착(MOCVD),
+suss,SUSS MicroTec,DE,Y,SMHN.DE,yf,SMHN.DE,EUR,후공정·테스트,장비,본딩·리소(패키징),
+siltronic,Siltronic,DE,Y,WAF.DE,yf,WAF.DE,EUR,소재,소재,웨이퍼,
+soitec,Soitec,FR,Y,SOI.PA,yf,SOI.PA,EUR,소재,소재,SOI 웨이퍼,
+infineon,Infineon,DE,Y,IFX.DE,yf,IFX.DE,EUR,제조(IDM·메모리),,전력반도체(IDM),
+stm,STMicroelectronics,FR,Y,STMPA.PA,yf,STMPA.PA,EUR,제조(IDM·메모리),,아날로그·MCU(IDM),
+nxp,NXP Semiconductors,NL,Y,NXPI,yf,NXPI,USD,제조(IDM·메모리),,차량용 칩(IDM),
+naura,NAURA,CN,Y,002371.SZ,yf,002371.SZ,CNY,장비,장비,증착·식각,세정
+amec,AMEC,CN,Y,688012.SS,yf,688012.SS,CNY,장비,장비,식각,MOCVD

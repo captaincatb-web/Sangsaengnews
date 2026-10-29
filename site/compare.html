@@ -45,6 +45,7 @@
         <li><a href="#overview" data-view="overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">비교 개요</span><span class="s" aria-hidden="true">개요</span></a></li>
         <li><a href="#perf" data-view="perf"><i class="ph ph-chart-bar" aria-hidden="true"></i><span class="l">실적 비교</span><span class="s" aria-hidden="true">실적</span></a></li>
         <li><a href="#stock" data-view="stock"><i class="ph ph-chart-line-up" aria-hidden="true"></i><span class="l">주식·밸류에이션</span><span class="s" aria-hidden="true">주식</span></a></li>
+        <li><a href="#coverage" data-view="coverage"><i class="ph ph-list-checks" aria-hidden="true"></i><span class="l">수집 현황</span><span class="s" aria-hidden="true">수집</span></a></li>
         <li><a href="#domestic" data-view="domestic"><i class="ph ph-scales" aria-hidden="true"></i><span class="l">국내 소부장 대비</span><span class="s" aria-hidden="true">국내 대비</span></a></li>
       </ul>
     </nav>
@@ -73,8 +74,8 @@
       <section class="db-kpis" id="kpis" aria-label="핵심 숫자"></section>
       <div class="cm-basis-slot"></div>
       <div class="cm-2">
-        <section class="db-card"><div class="db-card-head"><h2>영업이익률 <small>국가·기업별 · 높을수록 길게</small></h2></div><div id="c-bm"></div></section>
-        <section class="db-card"><div class="db-card-head"><h2>매출 증감률 <small>국가·기업별 · 전년 대비</small></h2></div><div id="c-bg"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>영업이익률 <small>국가별 중앙값 · 기업별로 펼치기</small></h2></div><div id="c-bm"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>매출 증감률 <small>전년 대비 · 국가별 중앙값</small></h2></div><div id="c-bg"></div></section>
       </div>
     </div>
 
@@ -105,6 +106,15 @@
         <section class="db-card"><div class="db-card-head"><h2>업종별 매출 증감률 <small>해외 vs 국내 중앙값</small></h2></div><div id="c-dg"></div></section>
       </div>
       <section class="db-card"><div class="db-card-head"><h2>업종별 밸류에이션 <small>PER·PBR 중앙값(상장사, 적자 제외)</small></h2></div><div class="db-tbl-wrap" id="c-dv"></div></section>
+    </div>
+
+    <div class="db-view" id="v-coverage" data-view="coverage" hidden>
+      <section class="db-kpis" id="kpis-c" aria-label="수집 품질 지표"></section>
+      <section class="db-card"><div class="db-card-head"><h2>기업 마스터와 수집 상태 <small id="cov-sub"></small></h2>
+        <div class="dm-tools"><button class="db-btn ghost" type="button" id="csv-std"><i class="ph ph-download-simple" aria-hidden="true"></i>표준화 데이터 CSV</button></div></div>
+        <ul class="cm-legend-st" id="st-legend"></ul>
+        <div class="db-tbl-wrap" id="c-cov"></div></section>
+      <section class="db-card"><div class="db-card-head"><h2>국가별 수집 경로</h2></div><div class="db-tbl-wrap" id="c-route"></div></section>
     </div>
 
     <section class="db-card cm-limits" aria-labelledby="t-lim"><h2 id="t-lim"><i class="ph ph-warning-circle" aria-hidden="true"></i>이 비교의 한계</h2><ol id="c-lim"></ol></section>

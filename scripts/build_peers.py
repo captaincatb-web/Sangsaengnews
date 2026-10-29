@@ -1,14 +1,19 @@
-"""해외·대형 비교 기업 재무 수집 → site/data/peers.js
+"""해외 반도체 소부장 기업 마스터 + 재무정보 자동수집(파일럿) → site/data/peers.js
 
-- 한국(삼성전자·SK하이닉스): DART 연결재무제표(CFS). 미국: SEC EDGAR(peers_sec.py).
-- 금액은 모두 원화(억원)로 환산해 저장하고, 원래 통화 값도 loc 에 남긴다. 환율은 ECB 일별 환율(frankfurter)의 기간 평균.
+- 대상: scripts/peers_master.csv(기업 마스터: 국가·티커·소부장 분류·주력/보조 분야). 국가·출처 열로 수집기를 고른다.
+  · dart: 한국 대형사, DART 연결재무제표(CFS)
+  · sec : 미국, SEC EDGAR XBRL(peers_sec.py). 클라우드에서 막히면(403) 이후 전부 야후 파이낸스로 대체
+  · yf  : 일본·유럽·이스라엘·중국 등, 야후 파이낸스 연간·분기 재무제표(비공식)
+- 원래 통화 값(loc, 백만 단위)과 원화 환산값(억원)을 따로 저장한다. 환율은 ECB 기준(frankfurter):
+  손익은 회계연도 평균, 재무상태표는 결산일(직전 영업일) 환율. 환율과 출처를 함께 남긴다.
+- 값이 없으면 0 이 아니라 빈 값(null)으로 둔다. 회사마다 수집 상태(확보·일부 확보·미확보·파싱 실패·접속 실패)와 이유를 남긴다.
 - 결과는 `[peers-json]` 한 줄로도 출력한다(Actions 로그에서 회수).
 """
+import csv
 import json
 import os
 import sys
-import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -19,34 +24,20 @@ import peers_sec as sec
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 OUT_PATH = ROOT_DIR / "site" / "data" / "peers.js"
+MASTER_PATH = Path(__file__).resolve().parent / "peers_master.csv"
 FX_HOSTS = ["https://api.frankfurter.dev/v1", "https://api.frankfurter.app"]
+FX_SRC = "ECB 기준환율(frankfurter)"
+UNIT = {"USD": "백만 달러", "JPY": "백만 엔", "EUR": "백만 유로", "CNY": "백만 위안", "KRW": "억 원"}
 
-# key, 이름, 국가, 구분, 출처 코드(DART corp_code 또는 SEC 티커), 핵심(★) 여부
-PEERS = [
-    ("samsung", "삼성전자", "KR", "반도체 제조", ("dart", "00126380")),
-    ("skhynix", "SK하이닉스", "KR", "반도체 제조", ("dart", "00164779")),
-    ("amat", "Applied Materials", "US", "장비", ("sec", "AMAT")),
-    ("lrcx", "Lam Research", "US", "장비", ("sec", "LRCX")),
-    ("klac", "KLA", "US", "장비", ("sec", "KLAC")),
-    ("ter", "Teradyne", "US", "장비", ("sec", "TER")),
-    ("mksi", "MKS Instruments", "US", "부품", ("sec", "MKSI")),
-    ("entg", "Entegris", "US", "소재", ("sec", "ENTG")),
-    ("glw", "Corning", "US", "소재", ("sec", "GLW")),
-    ("mu", "Micron", "US", "반도체 제조", ("sec", "MU")),
-    ("nvda", "NVIDIA", "US", "반도체 제조", ("sec", "NVDA")),
-    ("intc", "Intel", "US", "반도체 제조", ("sec", "INTC")),
-    ("amd", "AMD", "US", "반도체 제조", ("sec", "AMD")),
-    ("txn", "Texas Instruments", "US", "반도체 제조", ("sec", "TXN")),
-    ("qcom", "Qualcomm", "US", "반도체 제조", ("sec", "QCOM")),
-    ("avgo", "Broadcom", "US", "반도체 제조", ("sec", "AVGO")),
-]
-CURRENCY = {"KR": "KRW", "US": "USD"}
-
-
-# SEC 티커 목록(www.sec.gov)은 클라우드 접속을 막는 경우가 있어 CIK 를 직접 둔다. 없을 때만 목록을 읽는다.
+# SEC 티커 목록(www.sec.gov)은 클라우드 접속을 막는 경우가 있어 확인된 CIK 는 직접 둔다. 없으면 목록을 읽는다.
 CIK = {"AMAT": 6951, "LRCX": 707549, "KLAC": 319201, "TER": 97210, "MKSI": 1049502, "ENTG": 1101302,
        "GLW": 24741, "MU": 723125, "NVDA": 1045810, "INTC": 50863, "AMD": 2488, "TXN": 97476,
        "QCOM": 804328, "AVGO": 1730168}
+
+
+def load_master() -> list:
+    with MASTER_PATH.open(encoding="utf-8") as f:
+        return [row for row in csv.DictReader(f) if row.get("id")]
 
 
 # ---------- 환율 ----------
@@ -54,143 +45,156 @@ CIK = {"AMAT": 6951, "LRCX": 707549, "KLAC": 319201, "TER": 97210, "MKSI": 10495
 _fx_cache: dict = {}
 
 
-def fx_average(cur: str, start: date, end: date) -> float | None:
-    """기간 평균 환율(1 cur = ? KRW). 못 구하면 None."""
-    if cur == "KRW":
-        return 1.0
+def _fx_rates(cur: str, start: date, end: date) -> dict:
     key = (cur, start, end)
     if key in _fx_cache:
         return _fx_cache[key]
-    val = None
+    rates = {}
     for host in FX_HOSTS:
         try:
             r = requests.get(f"{host}/{start}..{end}", params={"base": cur, "symbols": "KRW"}, timeout=(10, 30))
             r.raise_for_status()
-            rates = [v["KRW"] for v in (r.json().get("rates") or {}).values() if "KRW" in v]
+            rates = {d: v["KRW"] for d, v in (r.json().get("rates") or {}).items() if "KRW" in v}
             if rates:
-                val = sum(rates) / len(rates)
                 break
         except (requests.RequestException, ValueError) as e:
-            print(f"[fx] {host} {start}~{end} 실패: {e}")
-    _fx_cache[key] = val
-    return val
+            print(f"[fx] {host} {cur} {start}~{end} 실패: {e}")
+    _fx_cache[key] = rates
+    return rates
 
 
-def _last_rate(cur: str, day: date) -> float | None:
+def fx_average(cur: str, start: date, end: date) -> float | None:
+    """기간 평균 환율(1 cur = ? 원). 못 구하면 None."""
+    if cur == "KRW":
+        return 1.0
+    r = _fx_rates(cur, start, end)
+    return sum(r.values()) / len(r) if r else None
+
+
+def fx_close(cur: str, day: date) -> float | None:
     """기준일 환율(재무상태표용). 휴일이면 직전 영업일 값."""
-    start = day - timedelta(days=7)
-    for host in FX_HOSTS:
-        try:
-            r = requests.get(f"{host}/{start}..{day}", params={"base": cur, "symbols": "KRW"}, timeout=(10, 30))
-            r.raise_for_status()
-            rates = (r.json().get("rates") or {})
-            if rates:
-                return rates[max(rates)]["KRW"]
-        except (requests.RequestException, ValueError, KeyError) as e:
-            print(f"[fx] {host} {day} 실패: {e}")
-    return None
+    if cur == "KRW":
+        return 1.0
+    r = _fx_rates(cur, day - timedelta(days=7), day)
+    return r[max(r)] if r else None
 
 
 def to_eok(v, rate):
     return bcp.eok(v * rate) if v is not None and rate else None
 
 
-# ---------- 미국(SEC) ----------
+def mil(vals):
+    return [round(v / 1e6) if v is not None else None for v in vals]
 
-def build_us(key, name, ctry, kind, ticker, cik_map):
-    cik = CIK.get(ticker) or (cik_map or {}).get(ticker)
-    if cik is None:
-        print(f"[peers] {ticker} CIK 없음")
-        return None
-    got = sec.extract(sec.load_facts(cik))
-    if not got:
-        print(f"[peers] {ticker} 매출 연간 값 없음")
-        return None
-    cur = "USD"
-    rates = [fx_average(cur, s, e) for s, e in zip(got["starts"], got["ends"])]
-    close = [_last_rate(cur, e) for e in got["ends"]]
-    rec = {"k": key, "n": name, "ctry": ctry, "kind": kind, "src": "SEC EDGAR", "cur": cur, "mt": got["mt"],
-           "y": got["years"],
-           "s": [to_eok(v, r) for v, r in zip(got["s"], rates)],
-           "o": [to_eok(v, r) for v, r in zip(got["o"], rates)],
-           "ni": [to_eok(v, r) for v, r in zip(got["ni"], rates)],
-           "ta": [to_eok(v, r) for v, r in zip(got["ta"], close)],
-           "tl": [to_eok(v, r) for v, r in zip(got["tl"], close)],
-           "te": [to_eok(v, r) for v, r in zip(got["te"], close)],
-           "rd": [to_eok(v, r) for v, r in zip(got["rd"], rates)],
-           "fx": [round(r, 1) if r else None for r in rates],
-           "loc": {"s": [round(v / 1e6) if v is not None else None for v in got["s"]],
-                   "o": [round(v / 1e6) if v is not None else None for v in got["o"]], "unit": "백만 달러"}}
-    q = got.get("q")
-    if q:
-        qr = [fx_average(cur, s, e) for s, e in zip(q["starts"], q["ends"])]
-        rec["q"] = {"labels": q["labels"],
-                    "sales": [to_eok(v, r) for v, r in zip(q["sales"], qr)],
-                    "op": [to_eok(v, r) for v, r in zip(q["op"], qr)],
-                    "net": [to_eok(v, r) for v, r in zip(q["net"], qr)]}
+
+def assemble(m, src, url, cur, ends, vals, quarters=None, std=None):
+    """원 통화 값 → 원화 환산 레코드. vals: {s,o,ni,rd(기간), ta,tl,te(시점)} 원 단위 리스트."""
+    starts = [e - timedelta(days=364) for e in ends]
+    avg = [fx_average(cur, s, e) for s, e in zip(starts, ends)]
+    close = [fx_close(cur, e) for e in ends]
+    rec = {"k": m["id"], "n": m["name"], "ctry": m["ctry"], "cat": m["cat"], "kind": m["dom_kind"], "seg1": m["seg1"], "seg2": m["seg2"],
+           "tk": m["ticker"], "src": src, "url": url, "scope": "연결", "std": std, "cur": cur,
+           "mt": sec.fy_end_month(ends[-1]), "y": [sec.fy_year(e) for e in ends], "pe": [e.isoformat() for e in ends]}
+    for k in ("s", "o", "ni", "rd"):
+        rec[k] = [to_eok(v, r) for v, r in zip(vals.get(k) or [None] * len(ends), avg)]
+    for k in ("ta", "tl", "te"):
+        rec[k] = [to_eok(v, r) for v, r in zip(vals.get(k) or [None] * len(ends), close)]
+    if cur != "KRW":
+        rec["fx"] = [round(r, 4 if r < 100 else 1) if r else None for r in avg]
+        rec["fxb"] = [round(r, 4 if r < 100 else 1) if r else None for r in close]
+        rec["fxs"] = FX_SRC
+        rec["loc"] = {k: mil(vals.get(k) or [None] * len(ends)) for k in ("s", "o", "ni", "ta", "tl", "te")}
+        rec["loc"]["unit"] = UNIT.get(cur, "백만 " + cur)
+    if quarters:
+        qr = [fx_average(cur, s, e) for s, e in zip(quarters["starts"], quarters["ends"])]
+        rec["q"] = {"labels": quarters["labels"], **{k: [to_eok(v, r) for v, r in zip(quarters[k], qr)] for k in ("sales", "op", "net")}}
     return rec
 
 
-# ---------- 미국 대체: yfinance (SEC 접속이 막힐 때) ----------
+# ---------- 미국(SEC EDGAR) ----------
+
+class SecBlocked(Exception):
+    pass
+
+
+def build_sec(m, cik_map):
+    ticker = m["code"]
+    cik = CIK.get(ticker) or (cik_map or {}).get(ticker)
+    if cik is None:
+        return None, "파싱 실패: SEC 기업번호(CIK)를 찾지 못함"
+    try:
+        facts = sec.load_facts(cik)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code in (403, 429):
+            raise SecBlocked(str(e))
+        raise
+    got = sec.extract(facts, years=4)
+    if not got:
+        return None, "파싱 실패: 10-K 매출 항목 없음"
+    url = f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}&type=10-K"
+    q = got.get("q")
+    quarters = {"labels": q["labels"], "starts": q["starts"], "ends": q["ends"], "sales": q["sales"], "op": q["op"], "net": q["net"]} if q else None
+    return assemble(m, "SEC EDGAR", url, "USD", got["ends"], {k: got[k] for k in ("s", "o", "ni", "rd", "ta", "tl", "te")}, quarters, "US GAAP"), None
+
+
+# ---------- 야후 파이낸스(비공식) ----------
 
 def _row(df, names):
     for n in names:
-        if n in df.index:
+        if df is not None and n in df.index:
             return df.loc[n]
     return None
 
 
 def _val(series, col):
+    if series is None:
+        return None
     try:
         v = series[col]
     except (KeyError, TypeError):
         return None
-    return None if v != v else float(v)  # NaN 제거
+    return None if v != v else float(v)  # NaN 은 값 없음
 
 
-def build_us_yf(key, name, ctry, kind, ticker):
-    """야후 파이낸스(비공식)로 연간 3개년·분기 8개를 읽는다. 기간 시작일은 종료일에서 역산한다."""
+def build_yf(m, cur):
     import yfinance as yf
+    ticker = m["ticker"]
     t = yf.Ticker(ticker)
     inc, bs, qinc = t.income_stmt, t.balance_sheet, t.quarterly_income_stmt
     if inc is None or inc.empty:
-        return None
-    cols = sorted(inc.columns)[-3:]
-    ends = [c.date() for c in cols]
+        return None, "미확보: 야후 파이낸스에 연간 재무제표 없음"
     rev = _row(inc, ["Total Revenue", "Operating Revenue"])
     if rev is None:
-        return None
-    op, ni = _row(inc, ["Operating Income", "Total Operating Income As Reported"]), _row(inc, ["Net Income", "Net Income Common Stockholders"])
-    rd = _row(inc, ["Research And Development"])
-    ta, tl, te = (_row(bs, ["Total Assets"]), _row(bs, ["Total Liabilities Net Minority Interest"]),
-                  _row(bs, ["Stockholders Equity", "Common Stock Equity"])) if bs is not None and not bs.empty else (None, None, None)
-    get = lambda ser: [(_val(ser, c) if ser is not None else None) for c in cols]  # noqa: E731
-    starts = [e - timedelta(days=364) for e in ends]
-    rates = [fx_average("USD", st, e) for st, e in zip(starts, ends)]
-    close = [_last_rate("USD", e) for e in ends]
-    S_, O_, N_, R_ = get(rev), get(op), get(ni), get(rd)
-    rec = {"k": key, "n": name, "ctry": ctry, "kind": kind, "src": "Yahoo Finance", "cur": "USD", "mt": sec.fy_end_month(ends[-1]),
-           "y": [sec.fy_year(e) for e in ends],
-           "s": [to_eok(v, r) for v, r in zip(S_, rates)], "o": [to_eok(v, r) for v, r in zip(O_, rates)],
-           "ni": [to_eok(v, r) for v, r in zip(N_, rates)], "rd": [to_eok(v, r) for v, r in zip(R_, rates)],
-           "ta": [to_eok(v, r) for v, r in zip(get(ta), close)], "tl": [to_eok(v, r) for v, r in zip(get(tl), close)],
-           "te": [to_eok(v, r) for v, r in zip(get(te), close)], "fx": [round(r, 1) if r else None for r in rates],
-           "loc": {"s": [round(v / 1e6) if v is not None else None for v in S_], "o": [round(v / 1e6) if v is not None else None for v in O_], "unit": "백만 달러"}}
+        return None, "파싱 실패: 매출 항목 없음"
+    cols = [c for c in sorted(inc.columns) if _val(rev, c) is not None][-4:]  # 매출이 있는 최근 4개 회계연도
+    if not cols:
+        return None, "미확보: 매출 값 없음"
+    ends = [c.date() for c in cols]
+    get = lambda ser: [_val(ser, c) for c in cols]  # noqa: E731
+    vals = {"s": get(rev), "o": get(_row(inc, ["Operating Income", "Total Operating Income As Reported"])),
+            "ni": get(_row(inc, ["Net Income", "Net Income Common Stockholders"])), "rd": get(_row(inc, ["Research And Development"])),
+            "ta": get(_row(bs, ["Total Assets"])), "tl": get(_row(bs, ["Total Liabilities Net Minority Interest"])),
+            "te": get(_row(bs, ["Stockholders Equity", "Common Stock Equity"]))}
+    quarters = None
     if qinc is not None and not qinc.empty:
-        qc = sorted(qinc.columns)[-8:]
+        qrev = _row(qinc, ["Total Revenue", "Operating Revenue"])
+        qc = [c for c in sorted(qinc.columns) if _val(qrev, c) is not None][-8:]
         qe = [c.date() for c in qc]
-        qrev, qop, qni = _row(qinc, ["Total Revenue", "Operating Revenue"]), _row(qinc, ["Operating Income"]), _row(qinc, ["Net Income"])
-        qr = [fx_average("USD", e - timedelta(days=90), e) for e in qe]
         lab = [sec.q_label(e) for e in qe]
-        if qrev is not None and len(set(lab)) == len(lab):
-            g = lambda ser: [(_val(ser, c) if ser is not None else None) for c in qc]  # noqa: E731
-            rec["q"] = {"labels": lab, "sales": [to_eok(v, r) for v, r in zip(g(qrev), qr)],
-                        "op": [to_eok(v, r) for v, r in zip(g(qop), qr)], "net": [to_eok(v, r) for v, r in zip(g(qni), qr)]}
-    return rec
+        if qrev is not None and qc and len(set(lab)) == len(lab):
+            quarters = {"labels": lab, "starts": [e - timedelta(days=90) for e in qe], "ends": qe, "sales": [_val(qrev, c) for c in qc],
+                        "op": [_val(_row(qinc, ["Operating Income"]), c) for c in qc], "net": [_val(_row(qinc, ["Net Income"]), c) for c in qc]}
+    fcur = None
+    try:
+        fcur = (t.info or {}).get("financialCurrency")
+    except Exception:  # noqa: BLE001 - 통화 정보가 없으면 마스터 값을 쓴다
+        pass
+    url = f"https://finance.yahoo.com/quote/{ticker}/financials"
+    return assemble(m, "Yahoo Finance", url, fcur or cur, ends, vals, quarters), None
 
 
 def stock_snapshot(ticker: str, cur: str) -> dict | None:
-    """주가 지표(야후): 시총은 억원으로 환산, 주가는 원 통화. 1년·3개월 수익률 포함."""
+    """주가 지표(야후): 시총은 억원 환산, 주가는 시세 통화. 1년·3개월 수익률과 흐름(시작=100)."""
     import yfinance as yf
     try:
         t = yf.Ticker(ticker)
@@ -199,28 +203,27 @@ def stock_snapshot(ticker: str, cur: str) -> dict | None:
     except Exception as e:  # yfinance 는 네트워크·형식 오류를 다양한 예외로 던진다
         print(f"[stock] {ticker} 실패: {e}")
         return None
-    price = info.get("currentPrice") or info.get("regularMarketPrice") or (float(hist["Close"].iloc[-1]) if len(hist) else None)
+    cur = info.get("currency") or cur
+    c = hist["Close"].dropna() if len(hist) else None
+    price = info.get("currentPrice") or info.get("regularMarketPrice") or (float(c.iloc[-1]) if c is not None and len(c) else None)
     if not price:
         return None
-    rate = fx_average(cur, date.today() - timedelta(days=7), date.today()) if cur != "KRW" else 1.0
+    rate = fx_average(cur, date.today() - timedelta(days=7), date.today())
     cap = info.get("marketCap")
-    # 배당수익률(%): 연간 배당금 ÷ 주가로 직접 계산한다(야후의 dividendYield 는 버전마다 단위가 달라 쓰지 않는다)
-    rate_ = info.get("dividendRate") or info.get("trailingAnnualDividendRate")
-    dy = round(rate_ / price * 100, 2) if rate_ and price else None
+    # 배당수익률(%): 연간 배당금 ÷ 주가로 계산(야후 dividendYield 는 버전마다 단위가 달라 쓰지 않는다)
+    dr = info.get("dividendRate") or info.get("trailingAnnualDividendRate")
+    roe = info.get("returnOnEquity")
     out = {"price": price, "cur": cur, "cap": bcp.eok(cap * rate) if cap and rate else None,
            "per": info.get("trailingPE"), "fper": info.get("forwardPE"), "pbr": info.get("priceToBook"),
-           "dy": dy,
-           "roe": (info.get("returnOnEquity") or 0) * 100 if info.get("returnOnEquity") is not None else None,
+           "dy": round(dr / price * 100, 2) if dr else None, "roe": roe * 100 if roe is not None else None,
            "hi52": info.get("fiftyTwoWeekHigh"), "lo52": info.get("fiftyTwoWeekLow"),
-           "target": info.get("targetMeanPrice"), "rec": info.get("recommendationMean")}
-    c = hist["Close"].dropna() if len(hist) else hist
-    if len(c) > 63:
+           "target": info.get("targetMeanPrice"), "rec": info.get("recommendationMean"), "emp": info.get("fullTimeEmployees"),
+           "asof": date.today().isoformat()}
+    if c is not None and len(c) > 63:
         out["r1y"] = round((float(c.iloc[-1]) / float(c.iloc[0]) - 1) * 100, 1)
         out["r3m"] = round((float(c.iloc[-1]) / float(c.iloc[-63]) - 1) * 100, 1)
-        step = max(1, len(c) // 24)  # 주가 흐름 그림용(약 24점, 시작=100)
+        step = max(1, len(c) // 24)
         out["trend"] = [round(float(v) / float(c.iloc[0]) * 100, 1) for v in c.iloc[::step]]
-    if info.get("fullTimeEmployees"):
-        out["emp"] = info["fullTimeEmployees"]
     return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in out.items() if v is not None and v == v}
 
 
@@ -231,9 +234,8 @@ def cfs_rows(api_key, corp_code, year, reprt):
     return (data or {}).get("list", [])
 
 
-def build_kr(key, name, ctry, kind, corp_code, api_key):
-    this_year = datetime.now().year
-    fy = {}
+def build_dart(m, api_key):
+    corp_code, this_year, fy = m["code"], datetime.now().year, {}
     for year in (this_year - 1, this_year - 2):
         rows = cfs_rows(api_key, corp_code, year, bcp.ANNUAL)
         if rows:
@@ -243,22 +245,8 @@ def build_kr(key, name, ctry, kind, corp_code, api_key):
             break
     years = sorted(y for y, v in fy.items() if v.get("매출액") is not None)[-3:]
     if not years:
-        return None
-    col = lambda k: [bcp.eok(fy[y].get(k)) for y in years]  # noqa: E731
-    rec = {"k": key, "n": name, "ctry": ctry, "kind": kind, "src": "DART 연결", "cur": "KRW", "mt": 12, "y": years,
-           "s": col("매출액"), "o": col("영업이익"), "ni": col("당기순이익"),
-           "ta": col("총자산"), "tl": col("부채총계"), "te": col("자본총계")}
-    emp = []
-    for y in years:
-        try:
-            emp.append(bcp.fetch_employees(api_key, corp_code, y).get("count"))
-        except bcp.DartUnreachable:
-            raise
-        except Exception as e:
-            print(f"[employees] {name} {y}: {e}")
-            emp.append(None)
-    if any(v is not None for v in emp):
-        rec["e"] = emp
+        return None, "미확보: DART 연결 사업보고서 없음"
+    col = lambda k: [fy[y].get(k) for y in years]  # noqa: E731 - 원 단위
     cum = {}
     for year in (this_year - 2, this_year - 1, this_year):
         for code, q in bf.QUARTER_CODES:
@@ -267,11 +255,24 @@ def build_kr(key, name, ctry, kind, corp_code, api_key):
             rows = cfs_rows(api_key, corp_code, year, code)
             if rows:
                 cum[(year, q)] = bcp.quarter_values(rows)
+    rec = assemble(m, "DART 연결", f"https://dart.fss.or.kr/dsab007/main.do?option=corp&textCrpNm={m['name']}", "KRW",
+                   [date(y, 12, 31) for y in years],
+                   {"s": col("매출액"), "o": col("영업이익"), "ni": col("당기순이익"), "ta": col("총자산"), "tl": col("부채총계"), "te": col("자본총계")},
+                   None, "K-IFRS")
     rec["q"] = bf.quarters_from_cumulative(cum, 8)
-    return rec
+    return rec, None
 
 
-# ---------- 실행 ----------
+# ---------- 상태·커버리지 ----------
+
+def status_of(rec):
+    """최근 회계연도 기준: 매출·영업이익·순이익이 모두 있으면 확보, 일부만 있으면 일부 확보."""
+    L = len(rec["y"]) - 1
+    miss = [nm for k, nm in (("s", "매출"), ("o", "영업이익"), ("ni", "순이익")) if rec[k][L] is None]
+    if not miss:
+        return "확보", ""
+    return "일부 확보", "최근 연도 " + "·".join(miss) + " 항목 없음(미공시 또는 출처에 없음)"
+
 
 def clean(x):
     """NaN·무한대는 JSON 에 넣지 않는다(화면에서는 '-'와 이유로 표시)."""
@@ -284,61 +285,60 @@ def clean(x):
     return x
 
 
+# ---------- 실행 ----------
+
 def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
     api_key = os.environ.get("DART_API_KEY")
-    out, failed = [], []
-    cik_map, sec_ok = None, True
-    only = {x for x in os.environ.get("PEERS_ONLY", "").split(",") if x}  # 시험용: 국가(KR·US)나 key 만
-    for key, name, ctry, kind, (src, code) in PEERS:
-        if only and ctry not in only and key not in only:
-            continue
+    only = {x for x in os.environ.get("PEERS_ONLY", "").split(",") if x}  # 시험용: 국가 코드나 id 만
+    master = [m for m in load_master() if not only or m["ctry"] in only or m["id"] in only]
+    out, log, cik_map, sec_ok = [], [], None, True
+    collected = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for m in master:
+        rec, why, src = None, "", m["source"]
         try:
             if src == "dart":
                 if not api_key:
-                    print("[peers] DART_API_KEY 없음 - 한국 기업 건너뜀")
-                    failed.append(name)
-                    continue
-                rec = build_kr(key, name, ctry, kind, code, api_key)
-            else:
-                rec = None
-                if sec_ok:
-                    try:
-                        if code not in CIK:
-                            cik_map = cik_map or sec.load_cik_map()
-                        rec = build_us(key, name, ctry, kind, code, cik_map)
-                    except requests.RequestException as e:
-                        print(f"[peers] SEC 접속 실패({e.__class__.__name__}) - 이후 야후 파이낸스로 대체")
-                        sec_ok = False
-                if rec is None and not sec_ok:
-                    rec = build_us_yf(key, name, ctry, kind, code)
+                    raise RuntimeError("DART_API_KEY 없음")
+                rec, why = build_dart(m, api_key)
+            elif src == "sec" and sec_ok:
+                try:
+                    if m["code"] not in CIK and cik_map is None:
+                        cik_map = sec.load_cik_map()
+                    rec, why = build_sec(m, cik_map)
+                except (SecBlocked, requests.HTTPError) as e:
+                    print(f"[peers] SEC 접속 차단({e}) - 이후 미국 기업은 야후 파이낸스로 대체")
+                    sec_ok = False
+            if rec is None and (src == "yf" or (src == "sec" and not sec_ok)):
+                rec, why = build_yf(m, m["cur"])
         except bcp.DartUnreachable as e:
-            print(f"[peers] DART 접속 불가: {e}")
-            failed.append(name)
-            continue
+            why = f"접속 실패: DART({e})"
         except Exception as e:  # noqa: BLE001 - 한 회사의 실패가 전체를 멈추지 않게(yfinance 는 예외 종류가 다양하다)
-            body = getattr(getattr(e, "response", None), "text", "") or ""
-            print(f"[peers] {name} 실패: {e} {body[:200]!r}")
-            failed.append(name)
-            continue
+            why = f"접속 실패: {e.__class__.__name__} {str(e)[:120]}"
         if rec:
-            yt = {"dart": {"samsung": "005930.KS", "skhynix": "000660.KS"}}.get(src, {}).get(key, code if src == "sec" else None)
-            snap = stock_snapshot(yt, rec["cur"]) if yt else None
+            snap = stock_snapshot(m["ticker"], rec["cur"]) if m["ticker"] else None
             if snap:
                 rec["mk"] = snap
+            rec["st"], rec["why"] = status_of(rec)
+            rec["at"] = collected
             out.append(rec)
-            print(f"[peers] {name}: {rec['y']} 매출(억원) {rec['s']}")
+            print(f"[peers] {m['name']}: {rec['st']} {rec['y']} 매출(억원) {rec['s']} ({rec['src']})")
         else:
-            failed.append(name)
+            print(f"[peers] {m['name']}: {why or '미확보'}")
+        log.append({"k": m["id"], "n": m["name"], "ctry": m["ctry"], "cat": m["cat"], "seg1": m["seg1"], "tk": m["ticker"], "src": rec["src"] if rec else "-",
+                    "st": rec["st"] if rec else (why.split(":")[0] if why else "미확보"), "why": (rec["why"] if rec else why) or ""})
     if not out:
         print("[peers] 수집된 기업이 없어 저장하지 않음")
         return 1
-    payload = clean({"updated": datetime.now().strftime("%Y-%m-%d"), "list": out})
+    payload = clean({"updated": datetime.now().strftime("%Y-%m-%d"), "at": collected, "master": log, "list": out,
+                     "sec": "ok" if sec_ok else "blocked"})
     text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(f"window.PEERS = {text};\n", encoding="utf-8")
+    OUT_PATH.write_text("// scripts/build_peers.py 가 생성한 파일입니다. 직접 수정하지 마세요.\n"
+                        f"window.PEERS = {text};\n", encoding="utf-8")
     print(f"[peers-json]{text}")
-    print(f"[peers] 저장 {len(out)}곳, 실패 {failed}")
+    ok = sum(1 for x in log if x["st"] == "확보")
+    print(f"[peers] 대상 {len(log)}곳 · 확보 {ok} · 일부 {sum(1 for x in log if x['st'] == '일부 확보')} · 실패/미확보 {len(log) - len(out)}")
     return 0
 
 
