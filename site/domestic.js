@@ -138,7 +138,7 @@
     f.sort((a, b) => { const x = a[k], y = b[k]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === "string" ? x.localeCompare(y, "ko") : x - y) * d; });
     const shown = st.more ? f : f.slice(0, LIMIT);
     const head = cols.map((c) => `<th scope="col" class="${c.l ? "l" : ""}" aria-sort="${k === c.k ? (d > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-k="${c.k}">${c.t}<i>${k === c.k ? (d > 0 ? "▲" : "▼") : ""}</i></button></th>`).join("");
-    $("c-list").innerHTML = f.length ? `<table class="db-tbl cm-tbl dm-tbl"><thead><tr>${head}</tr></thead><tbody>${shown.map((r) => `<tr>${cols.map((c) => (c.k === "n" ? `<th scope="row" class="l">${c.f(r)}</th>` : `<td class="${c.l ? "l" : ""}">${c.f(r)}</td>`)).join("")}</tr>`).join("")}</tbody></table>`
+    $("c-dmlist").innerHTML = f.length ? `<table class="db-tbl cm-tbl dm-tbl"><thead><tr>${head}</tr></thead><tbody>${shown.map((r) => `<tr>${cols.map((c) => (c.k === "n" ? `<th scope="row" class="l">${c.f(r)}</th>` : `<td class="${c.l ? "l" : ""}">${c.f(r)}</td>`)).join("")}</tr>`).join("")}</tbody></table>`
       : `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>조건에 맞는 기업이 없습니다.</span></p>`;
     $("list-sub").textContent = `${f.length}곳 · 열 제목을 누르면 정렬 · 숫자에 올리면 출처`;
     $("more").hidden = f.length <= LIMIT;
@@ -146,7 +146,7 @@
     lastList = f;
   }
   let lastList = [], curRows = [];
-  $("c-list").addEventListener("click", (e) => { const b = e.target.closest("button[data-k]"); if (!b) return; st.sort = { k: b.dataset.k, d: st.sort.k === b.dataset.k ? -st.sort.d : b.dataset.k === "n" || b.dataset.k === "kind" ? 1 : -1 }; list(curRows, st.fy); });
+  $("c-dmlist").addEventListener("click", (e) => { const b = e.target.closest("button[data-k]"); if (!b) return; st.sort = { k: b.dataset.k, d: st.sort.k === b.dataset.k ? -st.sort.d : b.dataset.k === "n" || b.dataset.k === "kind" ? 1 : -1 }; list(curRows, st.fy); });
   $("q").addEventListener("input", (e) => { st.q = e.target.value; list(curRows, st.fy); });
   $("more").addEventListener("click", () => { st.more = !st.more; list(curRows, st.fy); });
   $("csv").addEventListener("click", () => {
