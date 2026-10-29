@@ -83,12 +83,18 @@
     items.push({ head: `국내 소부장 (개별 · ${FY}년 · ${d.n}곳 중앙값)` });
     items.push({ name: SB.KINDS.includes(state.kind) ? `국내 ${state.kind}` : "국내 소부장 중앙값", tag: "국내", dom: true, v: dv,
       src: `국내 ${d.n}곳 ${metric} 중앙값 · DART 사업보고서 개별재무제표 · ${FY}년`, why: "국내 소부장에 해당 업종이 없음" });
-    [...new Set(rows.map((r) => r.p.ctry))].forEach((c) => {
+    const ctrys = [...new Set(rows.map((r) => r.p.ctry))];
+    if (!state.each) { // 국가별 중앙값(기업이 많아도 30초 안에 읽히게). '기업별 보기'로 펼친다
+      items.push({ head: `해외 (연결 · 원화 환산 · 국가별 중앙값)` });
+      ctrys.map((c) => { const g = rows.filter((r) => r.p.ctry === c); return { c, n: g.length, v: med(g.map((r) => r[key])) }; })
+        .sort((a, b) => (b.v ?? -1e9) - (a.v ?? -1e9))
+        .forEach((x) => items.push({ name: CTRY[x.c] || x.c, tag: `${x.n}곳`, v: x.v, src: `${CTRY[x.c] || x.c} ${x.n}곳 ${metric} 중앙값 · 출처는 '기업별 보기'에서 회사별로 확인`, why: "값이 있는 기업이 없음" }));
+    } else ctrys.forEach((c) => {
       const grp = rows.filter((r) => r.p.ctry === c).sort((a, b) => (b[key] ?? -1e9) - (a[key] ?? -1e9));
       items.push({ head: `${CTRY[c] || c} (연결 · 원화 환산 · ${grp.length}곳)` });
       grp.forEach((r) => items.push({ name: r.p.n, tag: tagOf(r.p), v: r[key], src: srcPeer(r.p, metric, r.L), why: whyNone(r) }));
     });
-    return bars(items, fmt);
+    return bars(items, fmt) + `<p class="db-more"><button class="db-link" type="button" data-each>${state.each ? "국가별 중앙값으로 접기" : `기업별 보기(${rows.length}곳)`}</button></p>`;
   }
 
   // ---------- 화면 ----------
@@ -342,6 +348,7 @@
   $("f-kind").addEventListener("change", (e) => { state.kind = e.target.value; render(); });
   $("f-ctry").addEventListener("change", (e) => { state.ctry = e.target.value; render(); });
   $("filters").addEventListener("reset", (e) => { e.preventDefault(); state.kind = "sobu"; state.ctry = "all"; drawFilters(); render(); });
+  document.addEventListener("click", (e) => { if (e.target.closest("[data-each]")) { state.each = !state.each; drawOverview(); } });
   $("co-sel").addEventListener("change", (e) => { state.co = e.target.value; drawDetail(); });
   document.addEventListener("click", (e) => { const a = e.target.closest("[data-co]"); if (a) { state.co = a.dataset.co; $("co-sel").value = state.co; drawDetail(); } });
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
