@@ -131,6 +131,97 @@ def build_us(key, name, ctry, kind, ticker, cik_map):
     return rec
 
 
+# ---------- 미국 대체: yfinance (SEC 접속이 막힐 때) ----------
+
+def _row(df, names):
+    for n in names:
+        if n in df.index:
+            return df.loc[n]
+    return None
+
+
+def _val(series, col):
+    try:
+        v = series[col]
+    except (KeyError, TypeError):
+        return None
+    return None if v != v else float(v)  # NaN 제거
+
+
+def build_us_yf(key, name, ctry, kind, ticker):
+    """야후 파이낸스(비공식)로 연간 3개년·분기 8개를 읽는다. 기간 시작일은 종료일에서 역산한다."""
+    import yfinance as yf
+    t = yf.Ticker(ticker)
+    inc, bs, qinc = t.income_stmt, t.balance_sheet, t.quarterly_income_stmt
+    if inc is None or inc.empty:
+        return None
+    cols = sorted(inc.columns)[-3:]
+    ends = [c.date() for c in cols]
+    rev = _row(inc, ["Total Revenue", "Operating Revenue"])
+    if rev is None:
+        return None
+    op, ni = _row(inc, ["Operating Income", "Total Operating Income As Reported"]), _row(inc, ["Net Income", "Net Income Common Stockholders"])
+    rd = _row(inc, ["Research And Development"])
+    ta, tl, te = (_row(bs, ["Total Assets"]), _row(bs, ["Total Liabilities Net Minority Interest"]),
+                  _row(bs, ["Stockholders Equity", "Common Stock Equity"])) if bs is not None and not bs.empty else (None, None, None)
+    get = lambda ser: [(_val(ser, c) if ser is not None else None) for c in cols]  # noqa: E731
+    starts = [e - timedelta(days=364) for e in ends]
+    rates = [fx_average("USD", st, e) for st, e in zip(starts, ends)]
+    close = [_last_rate("USD", e) for e in ends]
+    S_, O_, N_, R_ = get(rev), get(op), get(ni), get(rd)
+    rec = {"k": key, "n": name, "ctry": ctry, "kind": kind, "src": "Yahoo Finance", "cur": "USD", "mt": sec.fy_end_month(ends[-1]),
+           "y": [sec.fy_year(e) for e in ends],
+           "s": [to_eok(v, r) for v, r in zip(S_, rates)], "o": [to_eok(v, r) for v, r in zip(O_, rates)],
+           "ni": [to_eok(v, r) for v, r in zip(N_, rates)], "rd": [to_eok(v, r) for v, r in zip(R_, rates)],
+           "ta": [to_eok(v, r) for v, r in zip(get(ta), close)], "tl": [to_eok(v, r) for v, r in zip(get(tl), close)],
+           "te": [to_eok(v, r) for v, r in zip(get(te), close)], "fx": [round(r, 1) if r else None for r in rates],
+           "loc": {"s": [round(v / 1e6) if v is not None else None for v in S_], "o": [round(v / 1e6) if v is not None else None for v in O_], "unit": "백만 달러"}}
+    if qinc is not None and not qinc.empty:
+        qc = sorted(qinc.columns)[-8:]
+        qe = [c.date() for c in qc]
+        qrev, qop, qni = _row(qinc, ["Total Revenue", "Operating Revenue"]), _row(qinc, ["Operating Income"]), _row(qinc, ["Net Income"])
+        qr = [fx_average("USD", e - timedelta(days=90), e) for e in qe]
+        lab = [sec.q_label(e) for e in qe]
+        if qrev is not None and len(set(lab)) == len(lab):
+            g = lambda ser: [(_val(ser, c) if ser is not None else None) for c in qc]  # noqa: E731
+            rec["q"] = {"labels": lab, "sales": [to_eok(v, r) for v, r in zip(g(qrev), qr)],
+                        "op": [to_eok(v, r) for v, r in zip(g(qop), qr)], "net": [to_eok(v, r) for v, r in zip(g(qni), qr)]}
+    return rec
+
+
+def stock_snapshot(ticker: str, cur: str) -> dict | None:
+    """주가 지표(야후): 시총은 억원으로 환산, 주가는 원 통화. 1년·3개월 수익률 포함."""
+    import yfinance as yf
+    try:
+        t = yf.Ticker(ticker)
+        info = t.info or {}
+        hist = t.history(period="1y")
+    except Exception as e:  # yfinance 는 네트워크·형식 오류를 다양한 예외로 던진다
+        print(f"[stock] {ticker} 실패: {e}")
+        return None
+    price = info.get("currentPrice") or info.get("regularMarketPrice") or (float(hist["Close"].iloc[-1]) if len(hist) else None)
+    if not price:
+        return None
+    rate = fx_average(cur, date.today() - timedelta(days=7), date.today()) if cur != "KRW" else 1.0
+    cap = info.get("marketCap")
+    dy = info.get("dividendYield")
+    out = {"price": price, "cur": cur, "cap": bcp.eok(cap * rate) if cap and rate else None,
+           "per": info.get("trailingPE"), "fper": info.get("forwardPE"), "pbr": info.get("priceToBook"),
+           "dy": (dy if dy and dy > 0.5 else dy * 100) if dy else None,  # 버전에 따라 % 또는 비율
+           "roe": (info.get("returnOnEquity") or 0) * 100 if info.get("returnOnEquity") is not None else None,
+           "hi52": info.get("fiftyTwoWeekHigh"), "lo52": info.get("fiftyTwoWeekLow"),
+           "target": info.get("targetMeanPrice"), "rec": info.get("recommendationMean")}
+    if len(hist) > 60:
+        c = hist["Close"]
+        out["r1y"] = round((float(c.iloc[-1]) / float(c.iloc[0]) - 1) * 100, 1)
+        out["r3m"] = round((float(c.iloc[-1]) / float(c.iloc[-63]) - 1) * 100, 1)
+        step = max(1, len(c) // 24)  # 주가 흐름 그림용(약 24점, 시작=100)
+        out["trend"] = [round(float(v) / float(c.iloc[0]) * 100, 1) for v in c.iloc[::step]]
+    if info.get("fullTimeEmployees"):
+        out["emp"] = info["fullTimeEmployees"]
+    return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in out.items() if v is not None}
+
+
 # ---------- 한국(DART 연결) ----------
 
 def cfs_rows(api_key, corp_code, year, reprt):
@@ -184,7 +275,7 @@ def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
     api_key = os.environ.get("DART_API_KEY")
     out, failed = [], []
-    cik_map = None
+    cik_map, sec_ok = None, True
     only = {x for x in os.environ.get("PEERS_ONLY", "").split(",") if x}  # 시험용: 국가(KR·US)나 key 만
     for key, name, ctry, kind, (src, code) in PEERS:
         if only and ctry not in only and key not in only:
@@ -197,19 +288,31 @@ def main() -> int:
                     continue
                 rec = build_kr(key, name, ctry, kind, code, api_key)
             else:
-                if code not in CIK:
-                    cik_map = cik_map or sec.load_cik_map()
-                rec = build_us(key, name, ctry, kind, code, cik_map)
+                rec = None
+                if sec_ok:
+                    try:
+                        if code not in CIK:
+                            cik_map = cik_map or sec.load_cik_map()
+                        rec = build_us(key, name, ctry, kind, code, cik_map)
+                    except requests.RequestException as e:
+                        print(f"[peers] SEC 접속 실패({e.__class__.__name__}) - 이후 야후 파이낸스로 대체")
+                        sec_ok = False
+                if rec is None and not sec_ok:
+                    rec = build_us_yf(key, name, ctry, kind, code)
         except bcp.DartUnreachable as e:
             print(f"[peers] DART 접속 불가: {e}")
             failed.append(name)
             continue
-        except (requests.RequestException, ValueError) as e:
+        except Exception as e:  # noqa: BLE001 - 한 회사의 실패가 전체를 멈추지 않게(yfinance 는 예외 종류가 다양하다)
             body = getattr(getattr(e, "response", None), "text", "") or ""
             print(f"[peers] {name} 실패: {e} {body[:200]!r}")
             failed.append(name)
             continue
         if rec:
+            yt = {"dart": {"samsung": "005930.KS", "skhynix": "000660.KS"}}.get(src, {}).get(key, code if src == "sec" else None)
+            snap = stock_snapshot(yt, rec["cur"]) if yt else None
+            if snap:
+                rec["mk"] = snap
             out.append(rec)
             print(f"[peers] {name}: {rec['y']} 매출(억원) {rec['s']}")
         else:
