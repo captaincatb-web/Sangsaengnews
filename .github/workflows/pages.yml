@@ -10,6 +10,9 @@ on:
       - "scripts/build_company_profiles.py"
       - "scripts/build_financials.py"
       - "scripts/dart_documents.py"
+      - "scripts/build_peers.py"
+      - "scripts/peers_sec.py"
+      - "scripts/build_market.py"
       - "scripts/company_highlights.py"
       - ".github/workflows/pages.yml"
   schedule:
@@ -55,7 +58,8 @@ jobs:
         run: |
           collect=true
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
-            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+            # 해외 비교·시장 정보 수집기는 매번 따로 돌리므로 바뀌어도 DART 전체 수집을 다시 하지 않는다
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers|peers_sec|build_market)\.py$' || true)
             echo "$changed"
             if ! echo "$changed" | grep -qE '^(scripts/|requirements\.txt$|site/data/(companies|universe)\.js$)'; then collect=false; fi
           fi
@@ -86,12 +90,10 @@ jobs:
           fi
 
       - uses: actions/setup-python@v5
-        if: ${{ steps.need.outputs.collect == 'true' }}
         with:
           python-version: "3.11"
 
       - run: pip install -r requirements.txt
-        if: ${{ steps.need.outputs.collect == 'true' }}
 
       # DART_API_KEY 가 없으면 건너뛰고 기본 정보만 배포한다
       - name: Collect DART profiles
@@ -120,6 +122,40 @@ jobs:
             site/data/profiles.js
             site/data/financials.js
           key: site-data-${{ github.run_id }}
+
+      # 해외 비교 기업(DART·SEC·야후)과 시장 정보(네이버증권). 매번 새로 받되 실패하면 저장해 둔 이전 값을 쓴다
+      - name: Restore peers and market data
+        id: restore-extra
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            site/data/peers.js
+            site/data/market.js
+          key: extra-data-${{ github.run_id }}
+          restore-keys: extra-data-
+
+      - name: Collect overseas peers
+        id: peers
+        if: ${{ env.DART_API_KEY != '' }}
+        continue-on-error: true
+        timeout-minutes: 25
+        run: python scripts/build_peers.py
+
+      - name: Collect market data (Naver)
+        id: market
+        if: ${{ env.DART_API_KEY != '' }}
+        continue-on-error: true
+        timeout-minutes: 30
+        run: python scripts/build_market.py
+
+      - name: Save peers and market data
+        if: ${{ steps.peers.outcome == 'success' || steps.market.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            site/data/peers.js
+            site/data/market.js
+          key: extra-data-${{ github.run_id }}
 
       - uses: actions/configure-pages@v5
 

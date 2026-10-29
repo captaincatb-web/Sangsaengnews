@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>해외 기업 비교 | 소부장 협력사 분석</title>
+  <meta name="description" content="해외 반도체 소재·부품·장비·제조 기업의 실적과 주가를 원화로 환산해 비교하고, 국내 소부장과 견줍니다.">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+  <link rel="stylesheet" href="dashboard.css?v=202610291500">
+  <link rel="stylesheet" href="dashboard.theme.css?v=202610291500">
+</head>
+<body class="db">
+  <a class="db-skip" href="#main">본문 바로가기</a>
+
+  <body class="db">
+  <a class="db-skip" href="#main">본문 바로가기</a>
+
+  <header class="krds-header">
+    <div class="head-inner">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 협력사 분석<small>반도체 소재·부품·장비 협력 기업 정보</small></span></a>
+      <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
+      <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+    </div>
+    <nav class="gnb" id="site-gnb" aria-label="주 메뉴">
+      <ul>
+        <li><a href="./">기업 현황</a></li>
+        <li><a href="analysis2.html">성장 분석</a></li>
+        <li><a href="dashboard.html">대시보드</a></li>
+        <li><a href="domestic.html">국내 실적</a></li>
+        <li><a href="compare.html" aria-current="page">해외 비교</a></li>
+        <li><a href="report.html">경영 현황 보고</a></li>
+        <li><a href="./#guide">이용 안내</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <aside class="db-side" aria-label="해외 비교 메뉴">
+    <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-globe-hemisphere-west"></i></span><span>해외 기업<br>비교</span></a>
+    <nav>
+      <ul class="db-nav" id="views-nav">
+        <li><a href="#overview" data-view="overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">비교 개요</span><span class="s" aria-hidden="true">개요</span></a></li>
+        <li><a href="#perf" data-view="perf"><i class="ph ph-chart-bar" aria-hidden="true"></i><span class="l">실적 비교</span><span class="s" aria-hidden="true">실적</span></a></li>
+        <li><a href="#stock" data-view="stock"><i class="ph ph-chart-line-up" aria-hidden="true"></i><span class="l">주식·밸류에이션</span><span class="s" aria-hidden="true">주식</span></a></li>
+        <li><a href="#domestic" data-view="domestic"><i class="ph ph-scales" aria-hidden="true"></i><span class="l">국내 소부장 대비</span><span class="s" aria-hidden="true">국내 대비</span></a></li>
+      </ul>
+    </nav>
+    <p class="db-refresh"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i><span>최근 갱신<br><b id="updated">-</b></span></p>
+  </aside>
+
+  <main class="db-main" id="main">
+    <header class="db-top">
+      <div>
+        <h1>해외 기업 비교</h1>
+        <p id="sub">해외 반도체 소재·부품·장비·제조 기업의 실적과 주가</p>
+      </div>
+      <div class="th-tools th-only"><button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button></div>
+      <button class="db-filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters"><i class="ph ph-sliders-horizontal" aria-hidden="true"></i>필터</button>
+      <form class="db-filters" id="filters" aria-label="비교 조건" style="grid-column:1/-1">
+        <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="f-kind"></select></label>
+        <label class="db-sel"><i class="ph ph-flag" aria-hidden="true"></i><span>국가</span><select id="f-ctry"></select></label>
+        <button class="db-clear" type="reset" id="clear"><i class="ph ph-funnel-x" aria-hidden="true"></i>필터 초기화</button>
+      </form>
+    </header>
+
+    <div class="db-empty-panel" id="empty-panel" role="status" hidden></div>
+
+    <div class="db-view" id="v-overview" data-view="overview">
+      <p class="db-headline" id="headline" aria-live="polite"></p>
+      <section class="db-kpis" id="kpis" aria-label="핵심 숫자"></section>
+      <div class="cm-basis-slot"></div>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>영업이익률 <small>국가·기업별 · 높을수록 길게</small></h2></div><div id="c-bm"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>매출 증감률 <small>국가·기업별 · 전년 대비</small></h2></div><div id="c-bg"></div></section>
+      </div>
+    </div>
+
+    <div class="db-view" id="v-perf" data-view="perf" hidden>
+      <div class="cm-basis-slot"></div>
+      <section class="db-card"><div class="db-card-head"><h2>기업 비교 표 <small>열 제목을 누르면 정렬 · 숫자에 올리면 출처</small></h2></div><div class="db-tbl-wrap" id="c-ptbl"></div></section>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>영업이익률 변화 <small>전년 대비 %p</small></h2></div><div id="c-mchg"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2 id="t-det">기업 상세</h2><label class="mk-in" style="margin-left:auto"><span>기업</span><select id="co-sel"></select></label></div><div id="c-det"></div></section>
+      </div>
+    </div>
+
+    <div class="db-view" id="v-stock" data-view="stock" hidden>
+      <section class="db-kpis" id="kpis-s"></section>
+      <div class="cm-basis-slot"></div>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>최근 1년 주가 수익률 <small>현지 통화 기준</small></h2></div><div id="c-ret"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>PER × 영업이익률 <small>이익률이 높은데 PER이 낮으면 저평가 후보</small></h2></div><div class="db-chart" id="c-psc"></div></section>
+      </div>
+      <section class="db-card"><div class="db-card-head"><h2>주식 비교표 <small>열 제목을 누르면 정렬</small></h2></div><div class="db-tbl-wrap" id="c-stbl"></div></section>
+    </div>
+
+    <div class="db-view" id="v-domestic" data-view="domestic" hidden>
+      <section class="db-kpis" id="kpis-d"></section>
+      <div class="cm-basis-slot"></div>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>업종별 영업이익률 <small>해외 vs 국내 중앙값</small></h2></div><div id="c-dm"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>업종별 매출 증감률 <small>해외 vs 국내 중앙값</small></h2></div><div id="c-dg"></div></section>
+      </div>
+      <section class="db-card"><div class="db-card-head"><h2>업종별 밸류에이션 <small>PER·PBR 중앙값(상장사, 적자 제외)</small></h2></div><div class="db-tbl-wrap" id="c-dv"></div></section>
+    </div>
+
+    <section class="db-card cm-limits" aria-labelledby="t-lim"><h2 id="t-lim"><i class="ph ph-warning-circle" aria-hidden="true"></i>이 비교의 한계</h2><ol id="c-lim"></ol></section>
+    <div id="cm-tip" class="cm-tip" role="tooltip" hidden></div>
+  </main>
+
+  <script src="data/companies.js?v=202610291500"></script>
+  <script src="data/segments.js?v=202610291500"></script>
+  <script src="data/universe.js?v=202610291500"></script>
+  <script src="data/attrs.js?v=202610291500"></script>
+  <script src="data/financials.js?v=202610291500"></script>
+  <script src="data/market.js?v=202610291500" onerror="void 0"></script>
+  <script src="data/peers.js?v=202610291500" onerror="void 0"></script>
+  <script src="data/classify.js?v=202610291500"></script>
+  <script src="metrics.js?v=202610291500"></script>
+  <script src="compare.js?v=202610291500"></script>
+</body>
+</html>
