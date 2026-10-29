@@ -170,8 +170,9 @@
     const base = series.map((vals) => {
       const v = vals.filter((x) => x != null);
       if (!v.length) return { lo0: 0, top: 1 };
-      const mn = Math.min(...v), mx = Math.max(...v), pad = Math.max((mx - mn) * 0.5, Math.abs(mx) * 0.05, 1);
-      return { lo0: mn >= 0 ? Math.max(0, mn - pad) : mn - pad, top: mx + pad };
+      // 위 여백은 좁게(최대값을 낮춰 막대 차이가 크게 보이게), 아래는 가장 작은 막대가 남도록 적당히
+      const mn = Math.min(...v), mx = Math.max(...v), up = Math.max((mx - mn) * 0.12, Math.abs(mx) * 0.01, 1), down = Math.max((mx - mn) * 0.35, Math.abs(mx) * 0.03, 1);
+      return { lo0: mn >= 0 ? Math.max(0, mn - down) : mn - down, top: mx + up };
     });
     const fit = (b, k) => {
       const e10 = Math.pow(10, Math.floor(Math.log10((b.top - b.lo0) / k || 1)));
@@ -179,23 +180,23 @@
       return null;
     };
     let best = null;
-    [3, 4, 5].forEach((k) => { const ax = base.map((b) => fit(b, k)); if (ax.every(Boolean)) { const w = ax.reduce((t, x) => t + x.waste, 0); if (!best || w < best.w) best = { k, ax, w }; } });
+    [3, 4, 5, 6].forEach((k) => { const ax = base.map((b) => fit(b, k)); if (ax.every(Boolean)) { const w = ax.reduce((t, x) => t + x.waste, 0); if (!best || w < best.w) best = { k, ax, w }; } });
     return best;
   }
   // 매출 막대(왼쪽 축) + 영업이익 막대(오른쪽 축) + 영업이익률 선(위쪽 띠)
   function comboChart(labels, sales, ops, opt = {}) {
-    const n = labels.length, H = 260, L = 50, R = 50, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 62; // 위 62px는 이익률 선, 아래는 막대
+    const n = labels.length, H = 300, L = 50, R = 50, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 100; // 위 100px는 이익률 선(기울기가 잘 보이게 높게), 아래는 막대
     const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? share(ops[i], v) : null));
     const legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
     // 두 축의 눈금 수를 맞춰 격자선을 함께 쓴다
     const { k, ax: [A] } = fitAxes(sales, ops);
-    // 영업이익 축: 0에서 시작하고, 영업이익 막대가 같은 시점 매출 막대 높이의 60%를 넘지 않게 범위를 넓힌다
+    // 영업이익 축: 0에서 시작하고, 영업이익 막대가 같은 시점 매출 막대 높이의 90%를 넘지 않게만 범위를 잡는다(최대값을 낮게)
     const O = (() => {
       const hs = (i) => Math.max(0.05, (sales[i] - A.lo) / (A.step * k));
-      const req = Math.max(1, ...ops.map((o, i) => (o > 0 && sales[i] != null ? o / (0.6 * hs(i)) : 0)));
+      const req = Math.max(1, ...ops.map((o, i) => (o > 0 && sales[i] != null ? o / (0.9 * hs(i)) : 0)));
       const mn = Math.min(0, ...ops.filter((x) => x != null)), mx = Math.max(0, ...ops.filter((x) => x != null));
       const e10 = Math.pow(10, Math.floor(Math.log10(req / k)));
-      for (const f of [1, 2, 2.5, 5, 10, 20, 25, 50, 100]) {
+      for (const f of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 100]) {
         const step = f * e10, lo = mn < 0 ? -Math.ceil((-mn * 1.15) / step) * step : 0;
         if (step * k >= req && lo + step * k >= mx) return { lo, step };
       }
@@ -203,7 +204,8 @@
     })();
     const bh = ph - band, mk = (ax) => { const hi = ax.lo + ax.step * k; return (v) => T + band + bh - ((v - ax.lo) / (hi - ax.lo)) * bh; };
     const yS = mk(A), yO = mk(O), base = (ax) => (ax.lo < 0 ? 0 : ax.lo); // 막대는 0(축 안에 있으면) 또는 축 하한에서 시작
-    const mv = margins.filter((v) => v != null), mLo = Math.min(0, ...mv), mHi = Math.max(...mv, mLo + 5), span = mHi - mLo; // 0을 기준으로 그려 작은 변화를 과장하지 않는다
+    // 이익률 선: 값 범위에 맞춰 그려 오르내림(기울기)이 또렷하게 보인다. 값은 점마다 적혀 있다
+    const mv = margins.filter((v) => v != null), mn = mv.length ? Math.min(...mv) : 0, mx = mv.length ? Math.max(...mv) : 1, mpad = Math.max((mx - mn) * 0.2, 0.4), mLo = mn - mpad, mHi = mx + mpad, span = mHi - mLo || 1;
     const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30);
     const slot = pw / n, bw = Math.min(opt.bw || 22, slot * 0.32), cx = (i) => L + slot * i + slot / 2;
     let g = "";
