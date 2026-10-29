@@ -1,0 +1,318 @@
+/* 해외 기업 비교 화면: 해외 동종 기업(data/peers.js)과 국내 소부장(metrics.js)을 원화 기준으로 견준다.
+   표에 없는 숫자는 만들지 않고 '-'와 이유로 표시한다. 모든 숫자는 올리면(또는 누르면) 출처가 보인다. */
+(function () {
+  "use strict";
+  const SB = window.SB, { esc } = SB.fmt, { med } = SB.math;
+  const $ = (id) => document.getElementById(id);
+  const P = window.PEERS || {}, MK = (window.MARKET && window.MARKET.list) || {};
+  const CTRY = { US: "미국", JP: "일본", EU: "유럽", KR: "한국" };
+  const peers = (P.list || []).filter((p) => p.ctry !== "KR");
+  const state = { kind: "all", ctry: "all", sortP: { k: "s1", d: -1 }, sortS: { k: "cap", d: -1 }, co: null };
+
+  // ---------- 표기 ----------
+  const nf = (v, d = 0) => v.toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const won = (v) => (v == null ? null : Math.abs(v) >= 10000 ? `${nf(v / 10000, 1)}조` : `${nf(v)}억`);
+  const pct = (v, d = 1) => (v == null ? null : `${nf(v, d)}%`);
+  const sgn = (v, d = 1) => (v == null ? null : `${v > 0 ? "▲ +" : v < 0 ? "▼ " : ""}${nf(v, d)}%`); // 방향을 기호로도 표시
+  const ppp = (v) => (v == null ? null : Math.abs(v) < 0.05 ? "보합" : `${v > 0 ? "▲ +" : "▼ "}${nf(v, 1)}%p`);
+  const NA = (why) => `<span class="cm-na" tabindex="0" data-src="확인 필요 · ${esc(why)}">-</span>`;
+  const V = (text, src, cls = "") => (text == null ? null : `<span class="cm-n ${cls}" tabindex="0" data-src="${esc(src)}">${text}</span>`);
+  const cell = (text, src, why, cls) => V(text, src, cls) || NA(why);
+
+  // ---------- 출처 문구 ----------
+  const srcPeer = (p, what, i) => {
+    const fx = p.fx && p.fx[i] ? ` · 원화 환산 ${p.y[i]}년 평균환율 ${nf(p.fx[i], 1)}원/달러(ECB)` : "";
+    const doc = p.src === "SEC EDGAR" ? "SEC EDGAR 10-K 연결재무제표(XBRL)" : p.src === "Yahoo Finance" ? "Yahoo Finance 연간 재무제표(비공식)" : p.src;
+    return `${p.n} ${p.y[i]}년 ${what} · ${doc} · 쪽 번호 없음(공시 API 값)${fx}`;
+  };
+  const srcMk = (p, what) => `${p.n} ${what} · Yahoo Finance(비공식) · 수집 ${P.updated || "-"} · 쪽 번호 없음`;
+  const srcDom = (r, what) => `${r.n} ${what} · DART 사업보고서 개별재무제표 · 쪽 번호 없음(OpenDART API 값)`;
+
+  // ---------- 해외 기업 계산 ----------
+  const at = (a, i) => (a && i >= 0 && a[i] != null ? a[i] : null);
+  const ratio = (a, b) => (a != null && b != null && b !== 0 ? (a / b) * 100 : null);
+  function derive(p) {
+    let L = p.y.length - 1;
+    while (L > 0 && p.s[L] == null) L--;
+    const s1 = at(p.s, L), s0 = at(p.s, L - 1), o1 = at(p.o, L), o0 = at(p.o, L - 1);
+    const m = ratio(o1, s1), m0 = s0 > 0 ? ratio(o0, s0) : null;
+    return { p, L, fy: p.y[L], s1, s0, o1, g: s0 > 0 && s1 != null ? (s1 / s0 - 1) * 100 : null, m, dm: m != null && m0 != null ? m - m0 : null,
+      rd: ratio(at(p.rd, L), s1), debt: at(p.te, L) > 0 ? ratio(at(p.tl, L), at(p.te, L)) : null, roe: at(p.te, L) > 0 ? ratio(at(p.ni, L), at(p.te, L)) : null, mk: p.mk || {} };
+  }
+  let all = peers.map(derive), rows = [];
+
+  // ---------- 국내 소부장(개별, 대시보드와 같은 산식) ----------
+  const FY = SB.DEFAULT_FY;
+  const dom = SB.panel(SB.recs.filter(SB.makeFilter({ ...SB.DEFAULTS, fy: FY }, null).inFilter), FY);
+  const domKind = () => (SB.KINDS.includes(state.kind) ? dom.filter((r) => r.kind === state.kind) : dom);
+  const domStat = (list) => ({ n: list.length, m: med(list.map((r) => r.m)), g: med(list.map((r) => r.g)) });
+
+  // ---------- 기준 차이(표 위에 항상) ----------
+  function basis() {
+    const mts = [...new Set(rows.map((r) => r.p.mt).filter(Boolean))].sort((a, b) => a - b);
+    const fys = rows.length ? `${Math.min(...rows.map((r) => r.fy))}~${Math.max(...rows.map((r) => r.fy))}` : "-";
+    return `<div class="cm-basis" role="note"><b><i class="ph ph-info" aria-hidden="true"></i>비교 기준이 다릅니다</b><ul>
+      <li><span>재무제표</span>해외 <b>연결</b> · 국내 <b>개별</b> — 같은 기준이 아닙니다</li>
+      <li><span>결산</span>해외 ${mts.length ? mts.map((m) => m + "월").join("·") : "-"} 결산(최근 ${fys}년) · 국내 ${FY}년, 대부분 12월 결산</li>
+      <li><span>통화</span>해외 달러 → <b>원화 환산</b>(손익은 회계연도 평균 환율, 재무상태표는 결산일 환율, ECB) · 국내 원화</li></ul></div>`;
+  }
+
+  // ---------- 막대 목록(원형 차트 없음, 음수 지원) ----------
+  function bars(items, fmt) {
+    const vals = items.filter((i) => i.v != null).map((i) => i.v);
+    const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals), span = hi - lo || 1, z = ((0 - lo) / span) * 100;
+    return `<ul class="cm-bars">${items.map((i) => {
+      if (i.head) return `<li class="gh">${esc(i.head)}</li>`;
+      const left = i.v == null ? 0 : ((Math.min(i.v, 0) - lo) / span) * 100, w = i.v == null ? 0 : (Math.abs(i.v) / span) * 100;
+      return `<li class="${i.dom ? "dom" : ""}"><span class="nm">${esc(i.name)}<small>${esc(i.tag)}</small></span>
+        <span class="trk"><i class="zero" style="left:${z}%"></i>${i.v == null ? "" : `<span class="bar ${i.v < 0 ? "neg" : ""}" style="left:${left}%;width:${Math.max(w, 0.8)}%"></span>`}</span>
+        <b>${i.v == null ? NA(i.why || "값 없음") : V(fmt(i.v), i.src)}</b></li>`;
+    }).join("")}</ul>`;
+  }
+  function group(metric, key, fmt, whyNone) {
+    const items = [], d = domStat(domKind()), dv = d[key];
+    items.push({ head: `국내 소부장 (개별 · ${FY}년 · ${d.n}곳 중앙값)` });
+    items.push({ name: SB.KINDS.includes(state.kind) ? `국내 ${state.kind}` : "국내 소부장 중앙값", tag: "국내", dom: true, v: dv,
+      src: `국내 ${d.n}곳 ${metric} 중앙값 · DART 사업보고서 개별재무제표 · ${FY}년`, why: "국내 소부장에 해당 업종이 없음" });
+    [...new Set(rows.map((r) => r.p.ctry))].forEach((c) => {
+      const grp = rows.filter((r) => r.p.ctry === c).sort((a, b) => (b[key] ?? -1e9) - (a[key] ?? -1e9));
+      items.push({ head: `${CTRY[c] || c} (연결 · 원화 환산 · ${grp.length}곳)` });
+      grp.forEach((r) => items.push({ name: r.p.n, tag: r.p.kind, v: r[key], src: srcPeer(r.p, metric, r.L), why: whyNone(r) }));
+    });
+    return bars(items, fmt);
+  }
+
+  // ---------- 화면 ----------
+  const kpi = (icon, lab, val, sub) => `<article class="db-kpi"><p class="lab"><i class="ph ${icon}" aria-hidden="true"></i>${lab}</p><strong>${val}</strong><p class="delta"><span class="vs">${sub}</span></p></article>`;
+  const diff = (a, b, unit = "%p") => (a == null || b == null ? "비교 불가" : `${a - b >= 0 ? "▲ 해외가 " : "▼ 해외가 "}${nf(Math.abs(a - b), 1)}${unit} ${a - b >= 0 ? "높음" : "낮음"}`);
+
+  function drawOverview() {
+    const dk = domStat(domKind()), mm = med(rows.map((r) => r.m)), mg = med(rows.map((r) => r.g));
+    const above = rows.filter((r) => r.m != null && dk.m != null && r.m > dk.m).length, withM = rows.filter((r) => r.m != null).length;
+    const kindTxt = SB.KINDS.includes(state.kind) ? `${state.kind} ` : "";
+    $("headline").innerHTML = mm == null || dk.m == null ? "해외 비교 데이터를 확인하는 중입니다." :
+      `해외 ${kindTxt}${rows.length}곳의 영업이익률 중앙값은 <b>${pct(mm)}</b>로 국내 소부장(${dk.n}곳) <b>${pct(dk.m)}</b>보다 <b>${nf(Math.abs(mm - dk.m), 1)}%p ${mm >= dk.m ? "높고" : "낮고"}</b>, 매출은 해외 ${sgn(mg)} · 국내 ${sgn(dk.g)}입니다.`;
+    $("kpis").innerHTML = [
+      kpi("ph-percent", "영업이익률 (중앙값)", `${pct(mm) || "-"} <small>vs 국내 ${pct(dk.m) || "-"}</small>`, diff(mm, dk.m)),
+      kpi("ph-trend-up", "매출 증감률 (중앙값)", `${sgn(mg) || "-"} <small>vs 국내 ${sgn(dk.g) || "-"}</small>`, diff(mg, dk.g)),
+      kpi("ph-ranking", "국내 중앙값보다 이익률 높은 해외 기업", `${above} / ${withM}곳`, "영업이익이 확인된 기업 기준"),
+    ].join("");
+    $("c-bm").innerHTML = group("영업이익률", "m", (v) => `${v < 0 ? "▼ 적자 " : ""}${nf(v, 1)}%`, (r) => (r.p.o && r.o1 == null ? "영업이익 항목을 공시 API에서 받지 못함" : "영업이익률 계산 불가"));
+    $("c-bg").innerHTML = group("매출 증감률", "g", (v) => sgn(v), () => "전년 매출이 없어 증감률 계산 불가");
+  }
+
+  // 정렬 가능한 표
+  function table(cols, list, st, onSort) {
+    const head = cols.map((c) => `<th scope="col" class="${c.l ? "l" : ""}" aria-sort="${st.k === c.k ? (st.d > 0 ? "ascending" : "descending") : "none"}">${c.sort === false ? c.t : `<button type="button" data-k="${c.k}">${c.t}<i>${st.k === c.k ? (st.d > 0 ? "▲" : "▼") : ""}</i></button>`}</th>`).join("");
+    return `<table class="db-tbl cm-tbl"><thead><tr>${head}</tr></thead><tbody>${list.map((r) => `<tr>${cols.map((c) => (c.k === "n" ? `<th scope="row" class="l">${c.f(r)}</th>` : `<td class="${c.l ? "l" : ""}">${c.f(r)}</td>`)).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+  const sortBy = (list, st) => list.slice().sort((a, b) => { const x = st.k === "n" ? a.p.n : sv(a, st.k), y = st.k === "n" ? b.p.n : sv(b, st.k); return (x == null) - (y == null) || (x > y ? 1 : x < y ? -1 : 0) * st.d; });
+  const sv = (r, k) => (k in r ? r[k] : k in r.mk ? r.mk[k] : k === "kind" ? r.p.kind : k === "ctry" ? r.p.ctry : k === "mt" ? r.p.mt : null);
+
+  function drawPerf() {
+    const co = (r) => `<a href="#perf" data-co="${r.p.k}">${esc(r.p.n)}</a>`;
+    const why = (r, w) => `${r.p.n}: ${w}`;
+    const cols = [
+      { k: "n", t: "기업", l: 1, f: (r) => co(r) }, { k: "ctry", t: "국가", l: 1, f: (r) => CTRY[r.p.ctry] || r.p.ctry }, { k: "kind", t: "업종", l: 1, f: (r) => esc(r.p.kind) },
+      { k: "mt", t: "결산", f: (r) => `${r.p.mt}월<small>${r.fy}년</small>` }, { k: "cur", t: "통화", sort: false, f: (r) => r.p.cur },
+      { k: "s1", t: "매출", f: (r) => cell(won(r.s1), srcPeer(r.p, "매출", r.L), why(r, "매출 값을 받지 못함")) },
+      { k: "g", t: "매출 증감률", f: (r) => cell(sgn(r.g), srcPeer(r.p, "매출 증감률(전년 대비)", r.L), why(r, "전년 매출이 없어 계산 불가")) },
+      { k: "o1", t: "영업이익", f: (r) => cell(won(r.o1), srcPeer(r.p, "영업이익", r.L), why(r, "영업이익 항목을 받지 못함")) },
+      { k: "m", t: "영업이익률", f: (r) => cell(r.m == null ? null : `${r.m < 0 ? "▼ 적자 " : ""}${nf(r.m, 1)}%`, srcPeer(r.p, "영업이익률(영업이익÷매출)", r.L), why(r, "영업이익이 없어 계산 불가")) },
+      { k: "rd", t: "R&amp;D 비중", f: (r) => cell(pct(r.rd), srcPeer(r.p, "R&D 비중(연구개발비÷매출)", r.L), why(r, "연구개발비 항목을 받지 못함")) },
+      { k: "debt", t: "부채비율", f: (r) => cell(pct(r.debt, 0), srcPeer(r.p, "부채비율(부채÷자본)", r.L), why(r, "부채·자본 항목을 받지 못함")) },
+    ];
+    $("c-ptbl").innerHTML = table(cols, sortBy(rows, state.sortP), state.sortP);
+    $("c-ptbl").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b) { state.sortP = { k: b.dataset.k, d: state.sortP.k === b.dataset.k ? -state.sortP.d : -1 }; drawPerf(); } };
+    $("c-mchg").innerHTML = bars([...rows].sort((a, b) => (b.dm ?? -1e9) - (a.dm ?? -1e9)).map((r) => ({ name: r.p.n, tag: r.p.kind, v: r.dm, src: srcPeer(r.p, "영업이익률 전년 대비 변화(%p)", r.L), why: "전년 영업이익률을 알 수 없음" })), (v) => ppp(v));
+    const sel = $("co-sel");
+    sel.innerHTML = rows.map((r) => `<option value="${esc(r.p.k)}"${r.p.k === state.co ? " selected" : ""}>${esc(r.p.n)}</option>`).join("");
+    drawDetail();
+  }
+
+  function drawDetail() {
+    const r = rows.find((x) => x.p.k === state.co) || rows[0];
+    if (!r) { $("c-det").innerHTML = ""; return; }
+    state.co = r.p.k;
+    const p = r.p, ys = p.y, W = 360, H = 170, n = ys.length, cw = (W - 12) / n;
+    const mx = Math.max(...p.s.filter((v) => v != null), 1), by = (v) => H - 40 - ((H - 60) * v) / mx;
+    const bs = p.s.map((v, i) => (v == null ? "" : `<rect x="${6 + i * cw + cw * 0.25}" y="${by(v)}" width="${cw * 0.5}" height="${H - 40 - by(v)}" rx="3" fill="var(--blue)"/><text x="${6 + i * cw + cw / 2}" y="${by(v) - 4}" text-anchor="middle" font-size="10" fill="var(--text-2)">${won(v)}</text>`)).join("");
+    const mg = p.s.map((v, i) => ratio(p.o && p.o[i], v));
+    const xl = ys.map((y, i) => `<text x="${6 + i * cw + cw / 2}" y="${H - 14}" text-anchor="middle" font-size="10.5" fill="var(--text-3)">${y}년</text><text x="${6 + i * cw + cw / 2}" y="${H - 2}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--text-2)">이익률 ${mg[i] == null ? "-" : nf(mg[i], 1) + "%"}</text>`).join("");
+    const q = p.q, qt = q ? `<div class="db-tbl-wrap"><table class="db-tbl cm-tbl"><thead><tr><th class="l">분기</th>${q.labels.map((l) => `<th>${l}</th>`).join("")}</tr></thead><tbody>
+      <tr><th class="l" scope="row">매출</th>${q.sales.map((v) => `<td>${cell(won(v), `${p.n} 분기 매출 · ${p.src} · 쪽 번호 없음`, "분기 매출 없음")}</td>`).join("")}</tr>
+      <tr><th class="l" scope="row">영업이익</th>${q.op.map((v) => `<td>${cell(won(v), `${p.n} 분기 영업이익 · ${p.src} · 쪽 번호 없음`, "분기 영업이익 항목을 받지 못함")}</td>`).join("")}</tr></tbody></table></div>` : `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>분기 실적을 받지 못했습니다(-).</span></p>`;
+    $("t-det").textContent = `${p.n} · ${CTRY[p.ctry] || p.ctry} · ${p.kind}`;
+    const loc = p.loc && p.loc.s ? `원 통화 매출(${p.loc.unit}): ${p.loc.s.map((v, i) => `${ys[i]}년 ${v == null ? "-" : nf(v)}`).join(" · ")}` : "";
+    $("c-det").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(p.n)} 연간 매출(막대)과 영업이익률">${bs}${xl}</svg><p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(loc)}${loc ? " · " : ""}환산 환율은 숫자에 올리면 보입니다.</span></p>${qt}`;
+  }
+
+  // 주식
+  const sparkline = (t) => {
+    if (!t || t.length < 3) return NA("주가 흐름을 받지 못함");
+    const lo = Math.min(...t), hi = Math.max(...t), w = 70, h = 22, pts = t.map((v, i) => `${(i / (t.length - 1)) * w},${h - ((v - lo) / (hi - lo || 1)) * (h - 2) - 1}`).join(" ");
+    return `<svg class="cm-spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="최근 1년 주가 흐름"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>`;
+  };
+  function drawStock() {
+    const mkRows = rows.filter((r) => r.mk && r.mk.price != null);
+    const mdl = (k, f) => med(mkRows.map((r) => (f ? f(r.mk[k]) : r.mk[k])).filter((v) => v != null && v > 0));
+    const domM = Object.keys(MK).length ? dom.filter((r) => r.l && MK[r.c]).map((r) => MK[r.c]) : [];
+    const dp = med(domM.map((m) => m.per).filter((v) => v > 0)), db = med(domM.map((m) => m.pbr).filter((v) => v > 0));
+    const hp = mdl("per"), hb = mdl("pbr"), hr = med(mkRows.map((r) => r.mk.r1y).filter((v) => v != null));
+    const cmp = (a, b, u) => (a == null || b == null ? "국내 값 없음" : `${a >= b ? "▲ 해외가 " : "▼ 해외가 "}${nf(Math.abs(a - b), 1)}${u} ${a >= b ? "높음" : "낮음"}`);
+    $("kpis-s").innerHTML = [
+      kpi("ph-percent", "PER (중앙값, 적자 제외)", `${hp == null ? "-" : nf(hp, 1) + "배"} <small>vs 국내 ${dp == null ? "-" : nf(dp, 1) + "배"}</small>`, cmp(hp, dp, "배")),
+      kpi("ph-scales", "PBR (중앙값)", `${hb == null ? "-" : nf(hb, 2) + "배"} <small>vs 국내 ${db == null ? "-" : nf(db, 2) + "배"}</small>`, cmp(hb, db, "배")),
+      kpi("ph-chart-line-up", "최근 1년 주가 수익률 (중앙값)", `${hr == null ? "-" : sgn(hr, 0)}`, `해외 ${mkRows.length}곳 · 현지 통화 기준`),
+    ].join("");
+    $("c-ret").innerHTML = bars([...mkRows].sort((a, b) => (b.mk.r1y ?? -1e9) - (a.mk.r1y ?? -1e9)).map((r) => ({ name: r.p.n, tag: r.p.kind, v: r.mk.r1y, src: srcMk(r.p, "최근 1년 주가 수익률"), why: "주가 이력을 받지 못함" })), (v) => sgn(v, 0));
+    const pts = rows.filter((r) => r.mk && r.mk.per > 0 && r.m != null);
+    $("c-psc").innerHTML = scatter(pts);
+    const co = (r) => esc(r.p.n);
+    const w = (r, x) => `${r.p.n}: ${x}`;
+    const cols = [
+      { k: "n", t: "기업", l: 1, f: co }, { k: "cap", t: "시가총액", f: (r) => cell(won(r.mk.cap), srcMk(r.p, "시가총액(원화 환산)"), w(r, "시가총액을 받지 못함")) },
+      { k: "price", t: "현재가", f: (r) => cell(r.mk.price == null ? null : `${nf(r.mk.price, 2)} ${r.mk.cur}`, srcMk(r.p, "현재가"), w(r, "주가를 받지 못함")) },
+      { k: "per", t: "PER", f: (r) => cell(r.mk.per > 0 ? `${nf(r.mk.per, 1)}배` : null, srcMk(r.p, "PER(최근 12개월 실적)"), w(r, r.mk.per <= 0 ? "적자라 PER 계산 불가" : "PER을 받지 못함")) },
+      { k: "pbr", t: "PBR", f: (r) => cell(r.mk.pbr > 0 ? `${nf(r.mk.pbr, 2)}배` : null, srcMk(r.p, "PBR"), w(r, "PBR을 받지 못함")) },
+      { k: "mroe", t: "ROE", f: (r) => cell(pct(r.mk.roe), srcMk(r.p, "ROE"), w(r, "ROE를 받지 못함")) },
+      { k: "dy", t: "배당수익률", f: (r) => cell(pct(r.mk.dy, 2), srcMk(r.p, "배당수익률"), w(r, "배당 정보 없음(무배당이거나 미제공)")) },
+      { k: "r1y", t: "1년 수익률", f: (r) => cell(sgn(r.mk.r1y, 0), srcMk(r.p, "최근 1년 주가 수익률"), w(r, "주가 이력을 받지 못함")) },
+      { k: "trend", t: "1년 흐름", sort: false, f: (r) => sparkline(r.mk.trend) },
+      { k: "up", t: "목표가 여력", f: (r) => cell(r.mk.target && r.mk.price ? sgn((r.mk.target / r.mk.price - 1) * 100, 0) : null, srcMk(r.p, "목표주가 평균 대비 현재가"), w(r, "증권사 목표주가를 받지 못함")) },
+    ];
+    mkRows.forEach((r) => { r.r1y = r.mk.r1y; r.up = r.mk.target && r.mk.price ? (r.mk.target / r.mk.price - 1) * 100 : null; r.cap = r.mk.cap; r.price = r.mk.price; r.per = r.mk.per > 0 ? r.mk.per : null; r.pbr = r.mk.pbr; r.mroe = r.mk.roe; });
+    $("c-stbl").innerHTML = mkRows.length ? table(cols, sortBy(mkRows, state.sortS), state.sortS) : `<p class="db-note warn"><i class="ph ph-warning" aria-hidden="true"></i><span>주가 지표를 받지 못했습니다(-).</span></p>`;
+    $("c-stbl").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b) { state.sortS = { k: b.dataset.k, d: state.sortS.k === b.dataset.k ? -state.sortS.d : -1 }; drawStock(); } };
+  }
+  function scatter(pts) {
+    if (pts.length < 2) return `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>그릴 수 있는 기업이 부족합니다(-).</span></p>`;
+    const W = 520, H = 300, L = 44, R = 16, T = 18, B = 34, xs = pts.map((r) => r.mk.per), ys = pts.map((r) => r.m);
+    const x1 = Math.max(...xs) * 1.1, y0 = Math.min(0, ...ys) - 2, y1 = Math.max(...ys) + 3, X = (v) => L + (v / x1) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+    const dots = pts.map((r) => `<g class="cm-pt" tabindex="0" data-src="${esc(`${r.p.n} · PER ${nf(r.mk.per, 1)}배 · 영업이익률 ${nf(r.m, 1)}% · ${srcMk(r.p, "PER")}`)}"><circle cx="${X(r.mk.per)}" cy="${Y(r.m)}" r="5" fill="var(--blue)" stroke="var(--card)" stroke-width="1.5"/><text x="${X(r.mk.per) + 8}" y="${Y(r.m) + 4}" font-size="10.5" fill="var(--text-2)">${esc(r.p.n)}</text></g>`).join("");
+    const stepX = x1 > 80 ? 20 : x1 > 40 ? 10 : 5, stepY = y1 - y0 > 60 ? 20 : y1 - y0 > 25 ? 10 : 5, gx = [], gy = [];
+    for (let v = 0; v <= x1; v += stepX) gx.push(v);
+    for (let v = Math.ceil(y0 / stepY) * stepY; v <= y1; v += stepY) gy.push(v);
+    const grid = gx.map((v) => `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" stroke="var(--grid)"/><text x="${X(v)}" y="${H - B + 14}" text-anchor="middle" font-size="10.5" fill="var(--text-3)">${v}</text>`).join("")
+      + gy.map((v) => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? "var(--text-3)" : "var(--grid)"}"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="10.5" fill="var(--text-3)">${v}%</text>`).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="PER과 영업이익률 분포">${grid}<text x="${W - R}" y="${H - 2}" text-anchor="end" font-size="11" fill="var(--text-3)">PER(배) →</text><text x="4" y="10" font-size="11" fill="var(--text-3)">영업이익률 ↑</text>${dots}</svg>`;
+  }
+
+  // 국내 대비
+  function drawDomestic() {
+    const dk = domStat(domKind());
+    const kinds = [...new Set([...SB.KINDS.filter((k) => k !== SB.NA && dom.some((r) => r.kind === k)), ...rows.map((r) => r.p.kind)])];
+    const itemsFor = (key, fmt, metric) => {
+      const it = [];
+      kinds.forEach((k) => {
+        const d = domStat(dom.filter((r) => r.kind === k)), h = med(rows.filter((r) => r.p.kind === k).map((r) => r[key])), hn = rows.filter((r) => r.p.kind === k).length;
+        it.push({ head: k });
+        it.push({ name: "해외 중앙값", tag: `${hn}곳 · 연결`, v: hn ? h : null, src: `해외 ${k} ${hn}곳 ${metric} 중앙값 · ${rows.map((r) => r.p.src)[0] || "-"} · 원화 환산`, why: "해외 비교 기업이 없음" });
+        it.push({ name: "국내 중앙값", tag: `${d.n}곳 · 개별`, dom: true, v: d.n ? d[key] : null, src: `국내 ${k} ${d.n}곳 ${metric} 중앙값 · DART 사업보고서 개별재무제표 · ${FY}년`, why: "국내 소부장에 해당 업종이 없음(반도체 제조는 소부장이 아님)" });
+      });
+      return bars(it, fmt);
+    };
+    $("c-dm").innerHTML = itemsFor("m", (v) => `${v < 0 ? "▼ 적자 " : ""}${nf(v, 1)}%`, "영업이익률");
+    $("c-dg").innerHTML = itemsFor("g", (v) => sgn(v), "매출 증감률");
+    const hm = med(rows.map((r) => r.m)), hg = med(rows.map((r) => r.g));
+    $("kpis-d").innerHTML = [
+      kpi("ph-percent", "영업이익률 격차(해외 − 국내)", dk.m == null || hm == null ? "-" : `${hm - dk.m >= 0 ? "▲ +" : "▼ "}${nf(hm - dk.m, 1)}%p`, `해외 ${pct(hm) || "-"} · 국내 ${pct(dk.m) || "-"}`),
+      kpi("ph-trend-up", "매출 증감률 격차(해외 − 국내)", dk.g == null || hg == null ? "-" : `${hg - dk.g >= 0 ? "▲ +" : "▼ "}${nf(hg - dk.g, 1)}%p`, `해외 ${sgn(hg) || "-"} · 국내 ${sgn(dk.g) || "-"}`),
+      kpi("ph-buildings", "비교 표본", `해외 ${rows.length}곳 · 국내 ${dk.n}곳`, "국내는 대시보드 기본 조건(대형사 포함)"),
+    ].join("");
+    // 밸류에이션 표
+    const val = kinds.map((k) => {
+      const d = dom.filter((r) => r.kind === k && r.l && MK[r.c]).map((r) => MK[r.c]), h = rows.filter((r) => r.p.kind === k && r.mk && r.mk.price != null).map((r) => r.mk);
+      const m = (a, key) => med(a.map((x) => x[key]).filter((v) => v > 0));
+      const c = (v, d_, src, u) => (v == null ? NA("해당 업종의 주가 지표 없음") : V(`${nf(v, d_)}${u}`, src));
+      return `<tr><th scope="row" class="l">${esc(k)}</th><td>${c(m(h, "per"), 1, `해외 ${k} PER 중앙값 · Yahoo Finance(비공식)`, "배")}</td><td>${c(m(d, "per"), 1, `국내 ${k} PER 중앙값 · 네이버증권 ${(window.MARKET || {}).updated || ""}`, "배")}</td><td>${c(m(h, "pbr"), 2, `해외 ${k} PBR 중앙값 · Yahoo Finance(비공식)`, "배")}</td><td>${c(m(d, "pbr"), 2, `국내 ${k} PBR 중앙값 · 네이버증권`, "배")}</td></tr>`;
+    }).join("");
+    $("c-dv").innerHTML = `<table class="db-tbl cm-tbl"><thead><tr><th class="l">업종</th><th>해외 PER</th><th>국내 PER</th><th>해외 PBR</th><th>국내 PBR</th></tr></thead><tbody>${val}</tbody></table>`;
+  }
+
+  function limits() {
+    const fy = rows.length ? [...new Set(rows.map((r) => r.fy))].sort().join("·") : "-";
+    $("c-lim").innerHTML = [
+      "해외는 연결, 국내는 개별 재무제표라 같은 기준이 아닙니다. 해외 기업은 규모와 사업 구조가 커 국내 협력사와 '업종 이름'만 같을 수 있습니다.",
+      `결산월(해외 최근 ${fy}년 결산 vs 국내 ${FY}년)과 환율(평균환율 환산)이 달라 작은 차이는 의미가 없습니다. 비교 기업은 대표 기업을 고른 표본입니다.`,
+      "해외 값은 공시·시세 API에서 받아 쪽 번호가 없고, 받지 못한 항목은 '-'로 두었습니다. 주가 지표는 비공식 출처(야후)를 포함합니다.",
+    ].map((t) => `<li>${esc(t)}</li>`).join("");
+  }
+
+  // ---------- 필터·화면 전환 ----------
+  function drawFilters() {
+    const kinds = [...new Set(all.map((r) => r.p.kind))], ctrys = [...new Set(all.map((r) => r.p.ctry))];
+    const opt = (v, t, c) => `<option value="${v}"${v === c ? " selected" : ""}>${t}</option>`;
+    $("f-kind").innerHTML = opt("all", "전체", state.kind) + kinds.map((k) => opt(k, k, state.kind)).join("");
+    $("f-ctry").innerHTML = opt("all", "전체", state.ctry) + ctrys.map((c) => opt(c, CTRY[c] || c, state.ctry)).join("");
+  }
+  const VIEWS = ["overview", "perf", "stock", "domestic"];
+  function show(v) {
+    if (!VIEWS.includes(v)) v = "overview";
+    document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
+    document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
+    window.scrollTo({ top: 0 });
+    pill();
+  }
+  function pill() {
+    const ul = $("views-nav"), a = ul.querySelector('a[aria-current="true"]');
+    if (!a || !getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()) return;
+    const u = ul.getBoundingClientRect(), r = a.getBoundingClientRect();
+    ul.style.setProperty("--py", `${r.top - u.top}px`); ul.style.setProperty("--ph", `${r.height}px`);
+    ul.style.setProperty("--px", `${r.left - u.left}px`); ul.style.setProperty("--pw", `${r.width}px`);
+    ul.classList.add("th-ready");
+  }
+  function render() {
+    rows = all.filter((r) => (state.kind === "all" || r.p.kind === state.kind) && (state.ctry === "all" || r.p.ctry === state.ctry));
+    document.querySelectorAll(".cm-basis-slot").forEach((el) => (el.innerHTML = basis()));
+    $("sub").textContent = `해외 ${rows.length}곳 · 원화 환산 · 국내 소부장(${FY}년 개별 기준)과 비교`;
+    if (!rows.length) {
+      $("empty-panel").hidden = false;
+      $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>${all.length ? "조건에 맞는 해외 기업이 없습니다." : "해외 기업 데이터를 아직 받지 못했습니다."}</b><p>${all.length ? "업종·국가 조건을 풀어 보세요." : "매일 아침 자동으로 다시 수집합니다."}</p></div>`;
+      document.querySelectorAll(".db-view").forEach((el) => (el.hidden = true));
+      return;
+    }
+    $("empty-panel").hidden = true;
+    show(location.hash.slice(1));
+    drawOverview(); drawPerf(); drawStock(); drawDomestic(); limits();
+  }
+
+  $("filter-toggle").addEventListener("click", () => { const o = $("filters").classList.toggle("open"); $("filter-toggle").setAttribute("aria-expanded", o); });
+  $("f-kind").addEventListener("change", (e) => { state.kind = e.target.value; render(); });
+  $("f-ctry").addEventListener("change", (e) => { state.ctry = e.target.value; render(); });
+  $("filters").addEventListener("reset", (e) => { e.preventDefault(); state.kind = state.ctry = "all"; drawFilters(); render(); });
+  $("co-sel").addEventListener("change", (e) => { state.co = e.target.value; drawDetail(); });
+  document.addEventListener("click", (e) => { const a = e.target.closest("[data-co]"); if (a) { state.co = a.dataset.co; $("co-sel").value = state.co; drawDetail(); } });
+  window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+  window.addEventListener("resize", pill);
+
+  // ---------- 출처 말풍선(마우스·키보드·터치) ----------
+  const tip = $("cm-tip");
+  const place = (el) => {
+    const t = el.closest("[data-src]");
+    if (!t) { tip.hidden = true; return; }
+    tip.textContent = t.dataset.src; tip.hidden = false;
+    const r = t.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
+    tip.style.top = `${r.top - h - 8 < 8 ? r.bottom + 8 : r.top - h - 8}px`;
+  };
+  document.addEventListener("mouseover", (e) => place(e.target));
+  document.addEventListener("focusin", (e) => place(e.target));
+  document.addEventListener("click", (e) => place(e.target));
+  document.addEventListener("scroll", () => (tip.hidden = true), true);
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") tip.hidden = true; });
+
+  // 화면 모드
+  const tb = $("theme-btn");
+  if (tb) {
+    const cur = () => document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const paint = () => { const d = cur() === "dark"; tb.innerHTML = `<i class="ph ph-${d ? "sun" : "moon"}" aria-hidden="true"></i>`; tb.title = d ? "밝은 화면으로" : "어두운 화면으로"; };
+    tb.addEventListener("click", () => { const t = cur() === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = t; try { localStorage.setItem("sobujang:theme", t); } catch (e) { /* 저장 불가 */ } paint(); });
+    paint();
+  }
+
+  $("updated").textContent = P.updated || "-";
+  drawFilters();
+  render();
+  window.addEventListener("load", pill);
+})();
