@@ -668,3 +668,12 @@ details.db-foot p { margin: 6px 0 0; }
 .dm-tbl thead th:first-child { left: 0; z-index: 3; }
 .dm-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 860px) { .dm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dm-tools { width: 100%; } .dm-tools .mk-in { flex: 1; } .dm-tools .mk-in input { width: 100%; } }
+.cm-st { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); cursor: help; white-space: nowrap; }
+.cm-st i { font-size: 14px; }
+.cm-st.ok { color: var(--up); border-color: color-mix(in srgb, var(--up) 40%, transparent); }
+.cm-st.part { color: var(--orange); border-color: color-mix(in srgb, var(--orange) 45%, transparent); }
+.cm-st.no { color: var(--down); border-color: color-mix(in srgb, var(--down) 40%, transparent); }
+.cm-src { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap; }
+.cm-legend-st { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 10px; padding: 0; font-size: 12px; color: var(--text-3); align-items: center; }
+#kpis-c { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 860px) { #kpis-c { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
