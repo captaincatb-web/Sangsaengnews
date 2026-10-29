@@ -105,6 +105,10 @@
     const kinds = SB.KINDS.filter((k) => rows.some((r) => r.kind === k)), sizes = window.SIZE_TIERS.filter((t) => rows.some((r) => r.tier === t));
     $("c-kind").innerHTML = groupTable([...kinds, "전체"], (k) => (k === "전체" ? rows : rows.filter((r) => r.kind === k)), fy, "업종");
     $("c-size").innerHTML = groupTable([...sizes, "전체"], (t) => (t === "전체" ? rows : rows.filter((r) => r.tier === t)), fy, "매출 규모");
+    // 세부업종(분류표에 있는 기업만): 기업 수 많은 순
+    const subs = [...new Set(rows.map((r) => r.sub).filter(Boolean))].map((x) => [x, rows.filter((r) => r.sub === x)]).sort((a, b) => b[1].length - a[1].length);
+    const noSub = rows.filter((r) => !r.sub).length;
+    $("c-sub").innerHTML = subs.length ? groupTable(subs.map((x) => x[0]), (x) => rows.filter((r) => r.sub === x), fy, "세부업종") + (noSub ? `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>세부업종이 아직 분류되지 않은 ${noSub}곳은 이 표에서 뺐습니다.</span></p>` : "") : `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>세부업종 분류가 없습니다.</span></p>`;
     const bar = (list, of) => bars(list.map((g) => { const A = agg(of(g)); return { name: g, tag: `${A.n}곳`, v: A.m, src: srcAgg(A.nOp, fy, `${g} 영업이익률(합계)`), extra: `전년 대비 ${ppp(A.dm) || "-"}`, why: "영업이익 공시 기업 없음" }; }), (v) => pct(v));
     $("c-kindbar").innerHTML = bar(kinds, (k) => rows.filter((r) => r.kind === k));
     $("c-sizebar").innerHTML = bar(sizes, (t) => rows.filter((r) => r.tier === t));
@@ -112,7 +116,7 @@
 
   // 기업별 표
   const COLS = (fy) => [
-    { k: "n", t: "기업", l: 1, f: (r) => coLink(r) }, { k: "kind", t: "업종", l: 1, f: (r) => esc(r.kind) }, { k: "l", t: "상장", f: (r) => (r.l ? "상장" : "비상장") },
+    { k: "n", t: "기업", l: 1, f: (r) => coLink(r) }, { k: "kind", t: "업종", l: 1, f: (r) => `${esc(r.kind)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}` }, { k: "l", t: "상장", f: (r) => (r.l ? "상장" : "비상장") },
     { k: "s2", t: `매출<small>${fy - 2}</small>`, f: (r) => cell(won(r.s2), src(r, fy - 2, "매출"), "해당 연도 공시 없음") },
     { k: "s0", t: `매출<small>${fy - 1}</small>`, f: (r) => cell(won(r.s0), src(r, fy - 1, "매출"), "해당 연도 공시 없음") },
     { k: "s1", t: `매출<small>${fy}</small>`, f: (r) => cell(won(r.s1), src(r, fy, "매출"), "해당 연도 공시 없음") },
@@ -148,7 +152,7 @@
   $("csv").addEventListener("click", () => {
     const fy = st.fy, head = ["기업", "업종", "상장", `매출${fy - 2}(억원)`, `매출${fy - 1}(억원)`, `매출${fy}(억원)`, "매출증감률(%)", `영업이익${fy - 1}(억원)`, `영업이익${fy}(억원)`, `영업이익률${fy - 1}(%)`, `영업이익률${fy}(%)`, "부채비율(%)", "임직원", "출처"];
     const v = (x, d = 1) => (x == null || !isFinite(x) ? "" : typeof x === "number" ? x.toFixed(d) : x);
-    const lines = lastList.map((r) => [r.n, r.kind, r.l ? "상장" : "비상장", v(r.s2, 0), v(r.s0, 0), v(r.s1, 0), v(r.g), v(r.o0, 0), v(r.o1, 0), v(r.m0), v(r.m), v(r.debt, 0), v(r.e1, 0), doc(r)]);
+    const lines = lastList.map((r) => [r.n, r.kind, r.sub, r.l ? "상장" : "비상장", v(r.s2, 0), v(r.s0, 0), v(r.s1, 0), v(r.g), v(r.o0, 0), v(r.o1, 0), v(r.m0), v(r.m), v(r.debt, 0), v(r.e1, 0), doc(r)]);
     const csv = "﻿" + [head, ...lines].map((a) => a.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
