@@ -653,10 +653,10 @@ details.db-foot p { margin: 6px 0 0; }
 @media (max-width: 860px) { .cm-2 { grid-template-columns: 1fr; } }
 .cm-2 .mk-in select { width: 170px; }
 @media (max-width: 860px) {
-  #kpis:not(.dm-kpis), #kpis-s, #kpis-d { grid-template-columns: 1fr; }
-  #kpis .db-kpi strong, #kpis-s .db-kpi strong, #kpis-d .db-kpi strong { font-size: 24px; }
+  .cm-page #kpis-s, .cm-page #kpis-d { grid-template-columns: 1fr; }
+  .cm-page #kpis-s .db-kpi strong, .cm-page #kpis-d .db-kpi strong { font-size: 24px; }
 }
-@media (min-width: 861px) { #kpis:not(.dm-kpis), #kpis-s, #kpis-d { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 861px) { .cm-page #kpis-s, .cm-page #kpis-d { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* ---------- 국내 소부장 실적(domestic.html) ---------- */
 .dm-tools { display: flex; gap: 8px; align-items: flex-end; margin-left: auto; }

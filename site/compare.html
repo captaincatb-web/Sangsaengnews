@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="dashboard.css?v=202610291500">
   <link rel="stylesheet" href="dashboard.theme.css?v=202610291500">
 </head>
-<body class="db">
+<body class="db cm-page">
   <a class="db-skip" href="#main">본문 바로가기</a>
 
   <body class="db">
@@ -71,12 +71,17 @@
 
     <div class="db-view" id="v-overview" data-view="overview">
       <p class="db-headline" id="headline" aria-live="polite"></p>
-      <section class="db-kpis" id="kpis" aria-label="핵심 숫자"></section>
+      <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
       <div class="cm-basis-slot"></div>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>연도별 실적 추이 <small id="yearly-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i class="sq" style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-yearly"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>분기 실적 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i class="sq" style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-trend"></div></section>
+      </div>
       <div class="cm-2">
         <section class="db-card"><div class="db-card-head"><h2>영업이익률 <small>국가별 중앙값 · 기업별로 펼치기</small></h2></div><div id="c-bm"></div></section>
         <section class="db-card"><div class="db-card-head"><h2>매출 증감률 <small>전년 대비 · 국가별 중앙값</small></h2></div><div id="c-bg"></div></section>
       </div>
+      <section class="db-card"><div class="db-card-head"><h2>성장률 × 영업이익률 분포 <small>점에 올리면 기업 · 0% 기준선</small></h2></div><div class="db-chart" id="c-gm"></div></section>
     </div>
 
     <div class="db-view" id="v-perf" data-view="perf" hidden>
