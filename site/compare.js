@@ -15,6 +15,7 @@
   const pct = (v, d = 1) => (v == null ? null : `${nf(v, d)}%`);
   const sgn = (v, d = 1) => (v == null ? null : `${v > 0 ? "▲ +" : v < 0 ? "▼ " : ""}${nf(v, d)}%`); // 방향을 기호로도 표시
   const ppp = (v) => (v == null ? null : Math.abs(v) < 0.05 ? "보합" : `${v > 0 ? "▲ +" : "▼ "}${nf(v, 1)}%p`);
+  const mgf = (v) => `${v < 0 ? "▼ 적자 " : ""}${nf(v, Math.abs(v) < 0.1 && v !== 0 ? 2 : 1)}%`; // 영업이익률(적자면 글자로도 표시)
   const NA = (why) => `<span class="cm-na" tabindex="0" data-src="확인 필요 · ${esc(why)}">-</span>`;
   const V = (text, src, cls = "") => (text == null ? null : `<span class="cm-n ${cls}" tabindex="0" data-src="${esc(src)}">${text}</span>`);
   const cell = (text, src, why, cls) => V(text, src, cls) || NA(why);
@@ -97,7 +98,7 @@
       kpi("ph-trend-up", "매출 증감률 (중앙값)", `${sgn(mg) || "-"} <small>vs 국내 ${sgn(dk.g) || "-"}</small>`, diff(mg, dk.g)),
       kpi("ph-ranking", "국내 중앙값보다 이익률 높은 해외 기업", `${above} / ${withM}곳`, "영업이익이 확인된 기업 기준"),
     ].join("");
-    $("c-bm").innerHTML = group("영업이익률", "m", (v) => `${v < 0 ? "▼ 적자 " : ""}${nf(v, 1)}%`, (r) => (r.p.o && r.o1 == null ? "영업이익 항목을 공시 API에서 받지 못함" : "영업이익률 계산 불가"));
+    $("c-bm").innerHTML = group("영업이익률", "m", mgf, (r) => (r.p.o && r.o1 == null ? "영업이익 항목을 공시 API에서 받지 못함" : "영업이익률 계산 불가"));
     $("c-bg").innerHTML = group("매출 증감률", "g", (v) => sgn(v), () => "전년 매출이 없어 증감률 계산 불가");
   }
 
@@ -118,7 +119,7 @@
       { k: "s1", t: "매출", f: (r) => cell(won(r.s1), srcPeer(r.p, "매출", r.L), why(r, "매출 값을 받지 못함")) },
       { k: "g", t: "매출 증감률", f: (r) => cell(sgn(r.g), srcPeer(r.p, "매출 증감률(전년 대비)", r.L), why(r, "전년 매출이 없어 계산 불가")) },
       { k: "o1", t: "영업이익", f: (r) => cell(won(r.o1), srcPeer(r.p, "영업이익", r.L), why(r, "영업이익 항목을 받지 못함")) },
-      { k: "m", t: "영업이익률", f: (r) => cell(r.m == null ? null : `${r.m < 0 ? "▼ 적자 " : ""}${nf(r.m, 1)}%`, srcPeer(r.p, "영업이익률(영업이익÷매출)", r.L), why(r, "영업이익이 없어 계산 불가")) },
+      { k: "m", t: "영업이익률", f: (r) => cell(r.m == null ? null : mgf(r.m), srcPeer(r.p, "영업이익률(영업이익÷매출)", r.L), why(r, "영업이익이 없어 계산 불가")) },
       { k: "rd", t: "R&amp;D 비중", f: (r) => cell(pct(r.rd), srcPeer(r.p, "R&D 비중(연구개발비÷매출)", r.L), why(r, "연구개발비 항목을 받지 못함")) },
       { k: "debt", t: "부채비율", f: (r) => cell(pct(r.debt, 0), srcPeer(r.p, "부채비율(부채÷자본)", r.L), why(r, "부채·자본 항목을 받지 못함")) },
     ];
@@ -212,7 +213,7 @@
       });
       return bars(it, fmt);
     };
-    $("c-dm").innerHTML = itemsFor("m", (v) => `${v < 0 ? "▼ 적자 " : ""}${nf(v, 1)}%`, "영업이익률");
+    $("c-dm").innerHTML = itemsFor("m", mgf, "영업이익률");
     $("c-dg").innerHTML = itemsFor("g", (v) => sgn(v), "매출 증감률");
     const hm = med(rows.map((r) => r.m)), hg = med(rows.map((r) => r.g));
     $("kpis-d").innerHTML = [

@@ -204,22 +204,24 @@ def stock_snapshot(ticker: str, cur: str) -> dict | None:
         return None
     rate = fx_average(cur, date.today() - timedelta(days=7), date.today()) if cur != "KRW" else 1.0
     cap = info.get("marketCap")
-    dy = info.get("dividendYield")
+    # 배당수익률(%): 연간 배당금 ÷ 주가로 직접 계산한다(야후의 dividendYield 는 버전마다 단위가 달라 쓰지 않는다)
+    rate_ = info.get("dividendRate") or info.get("trailingAnnualDividendRate")
+    dy = round(rate_ / price * 100, 2) if rate_ and price else None
     out = {"price": price, "cur": cur, "cap": bcp.eok(cap * rate) if cap and rate else None,
            "per": info.get("trailingPE"), "fper": info.get("forwardPE"), "pbr": info.get("priceToBook"),
-           "dy": (dy if dy and dy > 0.5 else dy * 100) if dy else None,  # 버전에 따라 % 또는 비율
+           "dy": dy,
            "roe": (info.get("returnOnEquity") or 0) * 100 if info.get("returnOnEquity") is not None else None,
            "hi52": info.get("fiftyTwoWeekHigh"), "lo52": info.get("fiftyTwoWeekLow"),
            "target": info.get("targetMeanPrice"), "rec": info.get("recommendationMean")}
-    if len(hist) > 60:
-        c = hist["Close"]
+    c = hist["Close"].dropna() if len(hist) else hist
+    if len(c) > 63:
         out["r1y"] = round((float(c.iloc[-1]) / float(c.iloc[0]) - 1) * 100, 1)
         out["r3m"] = round((float(c.iloc[-1]) / float(c.iloc[-63]) - 1) * 100, 1)
         step = max(1, len(c) // 24)  # 주가 흐름 그림용(약 24점, 시작=100)
         out["trend"] = [round(float(v) / float(c.iloc[0]) * 100, 1) for v in c.iloc[::step]]
     if info.get("fullTimeEmployees"):
         out["emp"] = info["fullTimeEmployees"]
-    return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in out.items() if v is not None}
+    return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in out.items() if v is not None and v == v}
 
 
 # ---------- 한국(DART 연결) ----------
@@ -271,6 +273,17 @@ def build_kr(key, name, ctry, kind, corp_code, api_key):
 
 # ---------- 실행 ----------
 
+def clean(x):
+    """NaN·무한대는 JSON 에 넣지 않는다(화면에서는 '-'와 이유로 표시)."""
+    if isinstance(x, float):
+        return x if x == x and x not in (float("inf"), float("-inf")) else None
+    if isinstance(x, dict):
+        return {k: clean(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [clean(v) for v in x]
+    return x
+
+
 def main() -> int:
     sys.stdout.reconfigure(line_buffering=True)
     api_key = os.environ.get("DART_API_KEY")
@@ -320,8 +333,8 @@ def main() -> int:
     if not out:
         print("[peers] 수집된 기업이 없어 저장하지 않음")
         return 1
-    payload = {"updated": datetime.now().strftime("%Y-%m-%d"), "list": out}
-    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    payload = clean({"updated": datetime.now().strftime("%Y-%m-%d"), "list": out})
+    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(f"window.PEERS = {text};\n", encoding="utf-8")
     print(f"[peers-json]{text}")
