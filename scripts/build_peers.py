@@ -39,8 +39,30 @@ PEERS = [
     ("txn", "Texas Instruments", "US", "반도체 제조", ("sec", "TXN")),
     ("qcom", "Qualcomm", "US", "반도체 제조", ("sec", "QCOM")),
     ("avgo", "Broadcom", "US", "반도체 제조", ("sec", "AVGO")),
+    # 일본·유럽: 야후 파이낸스(티커, 재무 통화)
+    ("tel", "Tokyo Electron", "JP", "장비", ("yf", "8035.T", "JPY")),
+    ("advantest", "Advantest", "JP", "장비", ("yf", "6857.T", "JPY")),
+    ("kokusai", "Kokusai Electric", "JP", "장비", ("yf", "6525.T", "JPY")),
+    ("screen", "SCREEN Holdings", "JP", "장비", ("yf", "7735.T", "JPY")),
+    ("disco", "DISCO", "JP", "장비", ("yf", "6146.T", "JPY")),
+    ("lasertec", "Lasertec", "JP", "장비", ("yf", "6920.T", "JPY")),
+    ("shinetsu", "Shin-Etsu Chemical", "JP", "소재", ("yf", "4063.T", "JPY")),
+    ("sumco", "SUMCO", "JP", "소재", ("yf", "3436.T", "JPY")),
+    ("tok", "Tokyo Ohka Kogyo", "JP", "소재", ("yf", "4186.T", "JPY")),
+    ("resonac", "Resonac", "JP", "소재", ("yf", "4004.T", "JPY")),
+    ("ibiden", "Ibiden", "JP", "부품", ("yf", "4062.T", "JPY")),
+    ("ferrotec", "Ferrotec", "JP", "부품", ("yf", "6890.T", "JPY")),
+    ("asml", "ASML", "NL", "장비", ("yf", "ASML.AS", "EUR")),
+    ("asmi", "ASM International", "NL", "장비", ("yf", "ASM.AS", "EUR")),
+    ("besi", "BE Semiconductor", "NL", "장비", ("yf", "BESI.AS", "EUR")),
+    ("aixtron", "Aixtron", "DE", "장비", ("yf", "AIXA.DE", "EUR")),
+    ("soitec", "Soitec", "FR", "소재", ("yf", "SOI.PA", "EUR")),
+    ("infineon", "Infineon", "DE", "반도체 제조", ("yf", "IFX.DE", "EUR")),
+    ("stm", "STMicroelectronics", "FR", "반도체 제조", ("yf", "STMPA.PA", "EUR")),
 ]
-CURRENCY = {"KR": "KRW", "US": "USD"}
+PEERS_CUR = {p[0]: p[4][2] for p in PEERS if p[4][0] == "yf"}
+CURRENCY = {"KR": "KRW", "US": "USD", "JP": "JPY", "NL": "EUR", "DE": "EUR", "FR": "EUR"}
+UNIT = {"USD": "백만 달러", "JPY": "백만 엔", "EUR": "백만 유로"}
 
 
 # SEC 티커 목록(www.sec.gov)은 클라우드 접속을 막는 경우가 있어 CIK 를 직접 둔다. 없을 때만 목록을 읽는다.
@@ -148,7 +170,7 @@ def _val(series, col):
     return None if v != v else float(v)  # NaN 제거
 
 
-def build_us_yf(key, name, ctry, kind, ticker):
+def build_us_yf(key, name, ctry, kind, ticker, cur="USD"):
     """야후 파이낸스(비공식)로 연간 3개년·분기 8개를 읽는다. 기간 시작일은 종료일에서 역산한다."""
     import yfinance as yf
     t = yf.Ticker(ticker)
@@ -166,21 +188,21 @@ def build_us_yf(key, name, ctry, kind, ticker):
                   _row(bs, ["Stockholders Equity", "Common Stock Equity"])) if bs is not None and not bs.empty else (None, None, None)
     get = lambda ser: [(_val(ser, c) if ser is not None else None) for c in cols]  # noqa: E731
     starts = [e - timedelta(days=364) for e in ends]
-    rates = [fx_average("USD", st, e) for st, e in zip(starts, ends)]
-    close = [_last_rate("USD", e) for e in ends]
+    rates = [fx_average(cur, st, e) for st, e in zip(starts, ends)]
+    close = [_last_rate(cur, e) for e in ends]
     S_, O_, N_, R_ = get(rev), get(op), get(ni), get(rd)
-    rec = {"k": key, "n": name, "ctry": ctry, "kind": kind, "src": "Yahoo Finance", "cur": "USD", "mt": sec.fy_end_month(ends[-1]),
+    rec = {"k": key, "n": name, "ctry": ctry, "kind": kind, "src": "Yahoo Finance", "cur": cur, "mt": sec.fy_end_month(ends[-1]),
            "y": [sec.fy_year(e) for e in ends],
            "s": [to_eok(v, r) for v, r in zip(S_, rates)], "o": [to_eok(v, r) for v, r in zip(O_, rates)],
            "ni": [to_eok(v, r) for v, r in zip(N_, rates)], "rd": [to_eok(v, r) for v, r in zip(R_, rates)],
            "ta": [to_eok(v, r) for v, r in zip(get(ta), close)], "tl": [to_eok(v, r) for v, r in zip(get(tl), close)],
            "te": [to_eok(v, r) for v, r in zip(get(te), close)], "fx": [round(r, 1) if r else None for r in rates],
-           "loc": {"s": [round(v / 1e6) if v is not None else None for v in S_], "o": [round(v / 1e6) if v is not None else None for v in O_], "unit": "백만 달러"}}
+           "loc": {"s": [round(v / 1e6) if v is not None else None for v in S_], "o": [round(v / 1e6) if v is not None else None for v in O_], "unit": UNIT.get(cur, "백만 " + cur)}}
     if qinc is not None and not qinc.empty:
         qc = sorted(qinc.columns)[-8:]
         qe = [c.date() for c in qc]
         qrev, qop, qni = _row(qinc, ["Total Revenue", "Operating Revenue"]), _row(qinc, ["Operating Income"]), _row(qinc, ["Net Income"])
-        qr = [fx_average("USD", e - timedelta(days=90), e) for e in qe]
+        qr = [fx_average(cur, e - timedelta(days=90), e) for e in qe]
         lab = [sec.q_label(e) for e in qe]
         if qrev is not None and len(set(lab)) == len(lab):
             g = lambda ser: [(_val(ser, c) if ser is not None else None) for c in qc]  # noqa: E731
@@ -199,6 +221,7 @@ def stock_snapshot(ticker: str, cur: str) -> dict | None:
     except Exception as e:  # yfinance 는 네트워크·형식 오류를 다양한 예외로 던진다
         print(f"[stock] {ticker} 실패: {e}")
         return None
+    cur = info.get("currency") or cur
     price = info.get("currentPrice") or info.get("regularMarketPrice") or (float(hist["Close"].iloc[-1]) if len(hist) else None)
     if not price:
         return None
@@ -290,7 +313,7 @@ def main() -> int:
     out, failed = [], []
     cik_map, sec_ok = None, True
     only = {x for x in os.environ.get("PEERS_ONLY", "").split(",") if x}  # 시험용: 국가(KR·US)나 key 만
-    for key, name, ctry, kind, (src, code) in PEERS:
+    for key, name, ctry, kind, (src, code, *_r) in PEERS:
         if only and ctry not in only and key not in only:
             continue
         try:
@@ -300,6 +323,8 @@ def main() -> int:
                     failed.append(name)
                     continue
                 rec = build_kr(key, name, ctry, kind, code, api_key)
+            elif src == "yf":
+                rec = build_us_yf(key, name, ctry, kind, code, PEERS_CUR[key])
             else:
                 rec = None
                 if sec_ok:
@@ -322,7 +347,7 @@ def main() -> int:
             failed.append(name)
             continue
         if rec:
-            yt = {"dart": {"samsung": "005930.KS", "skhynix": "000660.KS"}}.get(src, {}).get(key, code if src == "sec" else None)
+            yt = {"dart": {"samsung": "005930.KS", "skhynix": "000660.KS"}}.get(src, {}).get(key, code if src in ("sec", "yf") else None)
             snap = stock_snapshot(yt, rec["cur"]) if yt else None
             if snap:
                 rec["mk"] = snap
