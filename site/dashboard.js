@@ -62,7 +62,7 @@
   });
 
   // ---------- 화면 전환(#overview 등) ----------
-  const VIEWS = ["overview", "industry", "portfolio", "signals", "company", "report"];
+  const VIEWS = ["overview", "market", "industry", "portfolio", "signals", "company", "report"];
   function showView(v) {
     if (!VIEWS.includes(v)) v = "overview";
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
@@ -71,6 +71,7 @@
     const fl = document.getElementById("filters"); // 화면을 바꾸면 모바일 필터 패널은 접는다
     if (fl.classList.contains("open")) { fl.classList.remove("open"); document.getElementById("filter-toggle").setAttribute("aria-expanded", false); }
     if (v === "company") drawCompany();
+    if (v === "market" && window.MarketView) MarketView.draw();
     if (v === "report") loadPreview();
     syncUrl();
     window.scrollTo({ top: 0 });
@@ -670,10 +671,11 @@
       $("c-funnel").innerHTML = funnel(rows);
     }
     $("c-big").innerHTML = bigCard();
-    sigRows = rows; drawSignals(); needList();
+    sigRows = rows; window.DB = { rows: () => rows }; drawSignals(); needList();
     listRows = rows; drawList();
     drawReport(S);
     if (!$("v-company").hidden) drawCompany();
+    if (!$("v-market").hidden && window.MarketView) MarketView.draw();
     if (!$("v-report").hidden) loadPreview();
     syncUrl();
     updateFilterCount();

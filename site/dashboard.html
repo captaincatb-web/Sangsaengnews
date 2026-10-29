@@ -10,8 +10,8 @@
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
-  <link rel="stylesheet" href="dashboard.css?v=202610290122">
-  <link rel="stylesheet" href="dashboard.theme.css?v=202610290122">
+  <link rel="stylesheet" href="dashboard.css?v=202610291500">
+  <link rel="stylesheet" href="dashboard.theme.css?v=202610291500">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -38,6 +38,7 @@
     <nav>
       <ul class="db-nav" id="views-nav">
         <li><a href="#overview" data-view="overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">경영 개요</span><span class="s" aria-hidden="true">개요</span></a></li>
+        <li><a href="#market" data-view="market"><i class="ph ph-chart-line-up" aria-hidden="true"></i><span class="l">시장·밸류에이션</span><span class="s" aria-hidden="true">시장</span></a></li>
         <li><a href="#industry" data-view="industry"><i class="ph ph-stack" aria-hidden="true"></i><span class="l">산업·업종 분석</span><span class="s" aria-hidden="true">산업</span></a></li>
         <li><a href="#portfolio" data-view="portfolio"><i class="ph ph-chart-scatter" aria-hidden="true"></i><span class="l">기업 포트폴리오</span><span class="s" aria-hidden="true">기업군</span></a></li>
         <li><a href="#signals" data-view="signals"><i class="ph ph-warning-diamond" aria-hidden="true"></i><span class="l">경영 변화·위험 신호</span><span class="s" aria-hidden="true">위험 신호</span></a></li>
@@ -192,6 +193,11 @@
       </section>
     </div>
 
+    <!-- 시장·밸류에이션 -->
+    <div class="db-view" id="v-market" data-view="market" hidden>
+      <div id="c-market"></div>
+    </div>
+
     <!-- 05 기업 상세 -->
     <div class="db-view" id="v-company" data-view="company" hidden>
       <section class="db-card db-co-pick">
@@ -236,15 +242,17 @@
 
   <div class="db-tip" id="tip" role="tooltip" hidden></div>
 
-  <script src="data/companies.js?v=202610290122"></script>
-  <script src="data/segments.js?v=202610290122"></script>
-  <script src="data/universe.js?v=202610290122"></script>
-  <script src="data/attrs.js?v=202610290122"></script>
-  <script src="data/financials.js?v=202610290122"></script>
-  <script src="data/classify.js?v=202610290122"></script>
-  <script src="metrics.js?v=202610290122"></script>
-  <script src="data/internal.enc.js?v=202610290122"></script>
-  <script src="internal.js?v=202610290122"></script>
-  <script src="dashboard.js?v=202610290122"></script>
+  <script src="data/companies.js?v=202610291500"></script>
+  <script src="data/segments.js?v=202610291500"></script>
+  <script src="data/universe.js?v=202610291500"></script>
+  <script src="data/attrs.js?v=202610291500"></script>
+  <script src="data/financials.js?v=202610291500"></script>
+  <script src="data/market.js?v=202610291500" onerror="void 0"></script>
+  <script src="data/classify.js?v=202610291500"></script>
+  <script src="metrics.js?v=202610291500"></script>
+  <script src="data/internal.enc.js?v=202610291500"></script>
+  <script src="internal.js?v=202610291500"></script>
+  <script src="market.js?v=202610291500"></script>
+  <script src="dashboard.js?v=202610291500"></script>
 </body>
 </html>

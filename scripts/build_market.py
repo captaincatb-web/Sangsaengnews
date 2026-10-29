@@ -44,10 +44,27 @@ def num(text):
     return float(m.group()) if m else None
 
 
+MAX_FAILS = 6  # 연속 접속 실패가 이만큼이면 네이버에 닿지 않는 것으로 보고 중단
+TIME_BUDGET = 25 * 60
+_fails = [0]
+
+
+class Unreachable(Exception):
+    pass
+
+
 def get(url, **params):
-    r = requests.get(url, params=params, headers=HEADERS, timeout=(10, 20))
-    time.sleep(0.3)
-    r.raise_for_status()
+    try:
+        r = requests.get(url, params=params, headers=HEADERS, timeout=(5, 15))
+        r.raise_for_status()
+    except requests.RequestException:
+        _fails[0] += 1
+        if _fails[0] >= MAX_FAILS:
+            raise Unreachable()
+        raise
+    finally:
+        time.sleep(0.3)
+    _fails[0] = 0
     return r
 
 
@@ -149,9 +166,16 @@ def main() -> int:
     limit = int(os.environ.get("MARKET_LIMIT") or 0)  # 시험용: 앞의 몇 곳만
     items = list(targets.items())[:limit] if limit else list(targets.items())
     print(f"[market] 대상 상장사 {len(items)}곳")
-    out, failed = {}, []
+    out, failed, started = {}, [], time.monotonic()
     for i, (stock, (corp, name)) in enumerate(items, 1):
-        rec = collect(stock)
+        if time.monotonic() - started > TIME_BUDGET:
+            print("[market] 시간 한도를 넘겨 남은 기업은 건너뜀")
+            break
+        try:
+            rec = collect(stock)
+        except Unreachable:
+            print("[market] 네이버증권에 연속으로 닿지 않아 중단합니다")
+            break
         if rec.get("price") is None and "fa" not in rec:
             failed.append(name)
             continue
