@@ -1,13 +1,20 @@
 name: peers-collect
 
-# 해외·대형 비교 기업 수집 시험용(수동 실행). 결과는 로그의 [peers-json] 줄과 artifact 로 회수한다.
+# 비교 기업(DART·SEC)·시장 정보(네이버증권) 수집 시험용(수동 실행). 결과는 로그의 [peers-json]·[market-json] 줄과 artifact 로 회수한다.
 on:
   workflow_dispatch:
+    inputs:
+      peers_only:
+        description: "비교 기업 중 일부만(KR, US 또는 key, 쉼표 구분)"
+        default: ""
+      market_limit:
+        description: "시장 정보 수집 기업 수(0 = 전체)"
+        default: "0"
 
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       DART_API_KEY: ${{ secrets.DART_API_KEY }}
     steps:
@@ -18,8 +25,19 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Collect peers
         working-directory: scripts
+        continue-on-error: true
+        env:
+          PEERS_ONLY: ${{ inputs.peers_only }}
         run: python build_peers.py
+      - name: Collect market (Naver)
+        working-directory: scripts
+        continue-on-error: true
+        env:
+          MARKET_LIMIT: ${{ inputs.market_limit }}
+        run: python build_market.py
       - uses: actions/upload-artifact@v4
         with:
           name: peers
-          path: site/data/peers.js
+          path: |
+            site/data/peers.js
+            site/data/market.js

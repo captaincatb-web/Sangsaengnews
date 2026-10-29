@@ -43,6 +43,12 @@ PEERS = [
 CURRENCY = {"KR": "KRW", "US": "USD"}
 
 
+# SEC 티커 목록(www.sec.gov)은 클라우드 접속을 막는 경우가 있어 CIK 를 직접 둔다. 없을 때만 목록을 읽는다.
+CIK = {"AMAT": 6951, "LRCX": 707549, "KLAC": 319201, "TER": 97210, "MKSI": 1049502, "ENTG": 1101302,
+       "GLW": 24741, "MU": 723125, "NVDA": 1045810, "INTC": 50863, "AMD": 2488, "TXN": 97476,
+       "QCOM": 804328, "AVGO": 1730168}
+
+
 # ---------- 환율 ----------
 
 _fx_cache: dict = {}
@@ -92,7 +98,7 @@ def to_eok(v, rate):
 # ---------- 미국(SEC) ----------
 
 def build_us(key, name, ctry, kind, ticker, cik_map):
-    cik = cik_map.get(ticker)
+    cik = CIK.get(ticker) or (cik_map or {}).get(ticker)
     if cik is None:
         print(f"[peers] {ticker} CIK 없음")
         return None
@@ -179,7 +185,10 @@ def main() -> int:
     api_key = os.environ.get("DART_API_KEY")
     out, failed = [], []
     cik_map = None
+    only = {x for x in os.environ.get("PEERS_ONLY", "").split(",") if x}  # 시험용: 국가(KR·US)나 key 만
     for key, name, ctry, kind, (src, code) in PEERS:
+        if only and ctry not in only and key not in only:
+            continue
         try:
             if src == "dart":
                 if not api_key:
@@ -188,14 +197,16 @@ def main() -> int:
                     continue
                 rec = build_kr(key, name, ctry, kind, code, api_key)
             else:
-                cik_map = cik_map or sec.load_cik_map()
+                if code not in CIK:
+                    cik_map = cik_map or sec.load_cik_map()
                 rec = build_us(key, name, ctry, kind, code, cik_map)
         except bcp.DartUnreachable as e:
             print(f"[peers] DART 접속 불가: {e}")
             failed.append(name)
             continue
         except (requests.RequestException, ValueError) as e:
-            print(f"[peers] {name} 실패: {e}")
+            body = getattr(getattr(e, "response", None), "text", "") or ""
+            print(f"[peers] {name} 실패: {e} {body[:200]!r}")
             failed.append(name)
             continue
         if rec:
