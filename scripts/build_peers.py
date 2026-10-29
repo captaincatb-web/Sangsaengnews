@@ -325,7 +325,7 @@ def main() -> int:
             print(f"[peers] {m['name']}: {rec['st']} {rec['y']} 매출(억원) {rec['s']} ({rec['src']})")
         else:
             print(f"[peers] {m['name']}: {why or '미확보'}")
-        log.append({"k": m["id"], "n": m["name"], "ctry": m["ctry"], "cat": m["cat"], "seg1": m["seg1"], "tk": m["ticker"], "src": rec["src"] if rec else "-",
+        log.append({"k": m["id"], "n": m["name"], "ctry": m["ctry"], "cat": m["cat"], "kind": m["dom_kind"], "seg1": m["seg1"], "tk": m["ticker"], "src": rec["src"] if rec else "-",
                     "st": rec["st"] if rec else (why.split(":")[0] if why else "미확보"), "why": (rec["why"] if rec else why) or ""})
     if not out:
         print("[peers] 수집된 기업이 없어 저장하지 않음")

@@ -8,8 +8,13 @@
   const CTRY = { US: "미국", JP: "일본", NL: "네덜란드", DE: "독일", FR: "프랑스", IL: "이스라엘", CN: "중국", KR: "한국" };
   const CUR = { USD: "달러", JPY: "엔", EUR: "유로", CNY: "위안" };
   const peers = (P.list || []).filter((p) => p.ctry !== "KR");
-  peers.forEach((p) => { if (!p.cat) { p.cat = p.kind; p.kind = ["장비", "부품", "소재"].includes(p.kind) ? p.kind : ""; } });
-  const CATS = ["장비", "부품", "소재", "후공정·테스트", "팹리스·설계", "제조(IDM·메모리)", "반도체 제조"];
+  // 구분은 소재·장비·부품 세 가지. 소부장이 아닌 기업(팹리스·IDM·OSAT)은 '참고'로 두고 선택할 때만 보인다
+  const SOBU = ["소재", "장비", "부품"], REF = "참고(반도체 제조)";
+  peers.forEach((p) => {
+    if (!SOBU.includes(p.kind)) p.kind = "";
+    p.cat = p.kind || REF;
+  });
+  const CATS = [...SOBU, REF];
   const tagOf = (p) => p.seg1 || p.cat;
   const state = { kind: "sobu", ctry: "all", sortP: { k: "s1", d: -1 }, sortS: { k: "cap", d: -1 }, co: null };
 
@@ -128,7 +133,7 @@
     const co = (r) => `<a href="#perf" data-co="${r.p.k}">${esc(r.p.n)}</a>`;
     const why = (r, w) => `${r.p.n}: ${w}`;
     const cols = [
-      { k: "n", t: "기업", l: 1, f: (r) => co(r) }, { k: "ctry", t: "국가", l: 1, f: (r) => CTRY[r.p.ctry] || r.p.ctry }, { k: "cat", t: "분야", l: 1, f: (r) => `${esc(r.p.cat)}${r.p.seg1 ? `<small>${esc(r.p.seg1)}${r.p.seg2 ? " · " + esc(r.p.seg2) : ""}</small>` : ""}` },
+      { k: "n", t: "기업", l: 1, f: (r) => co(r) }, { k: "ctry", t: "국가", l: 1, f: (r) => CTRY[r.p.ctry] || r.p.ctry }, { k: "cat", t: "구분", l: 1, f: (r) => `${esc(r.p.cat)}${r.p.seg1 ? `<small>${esc(r.p.seg1)}${r.p.seg2 ? " · " + esc(r.p.seg2) : ""}</small>` : ""}` },
       { k: "mt", t: "결산", f: (r) => `${r.p.mt}월<small>${r.fy}년</small>` }, { k: "cur", t: "통화", sort: false, f: (r) => CUR[r.p.cur] || r.p.cur },
       { k: "s1", t: "매출", f: (r) => cell(won(r.s1), srcPeer(r.p, "매출", r.L), why(r, "매출 값을 받지 못함")) },
       { k: "g", t: "매출 증감률", f: (r) => cell(sgn(r.g), srcPeer(r.p, "매출 증감률(전년 대비)", r.L), why(r, "전년 매출이 없어 계산 불가")) },
@@ -273,7 +278,7 @@
   function drawFilters() {
     const kinds = CATS.filter((c) => all.some((r) => r.p.cat === c)), ctrys = [...new Set(all.map((r) => r.p.ctry))];
     const opt = (v, t, c) => `<option value="${v}"${v === c ? " selected" : ""}>${t}</option>`;
-    $("f-kind").innerHTML = opt("sobu", "소부장(장비·부품·소재·후공정)", state.kind) + opt("all", "전체(팹리스·IDM 포함)", state.kind) + kinds.map((k) => opt(k, k, state.kind)).join("");
+    $("f-kind").innerHTML = opt("sobu", "전체(소재·장비·부품)", state.kind) + SOBU.filter((k) => kinds.includes(k)).map((k) => opt(k, k, state.kind)).join("") + (kinds.includes(REF) ? opt("all", "참고 기업 포함(팹리스·IDM·OSAT)", state.kind) : "");
     $("f-ctry").innerHTML = opt("all", "전체", state.ctry) + ctrys.map((c) => opt(c, CTRY[c] || c, state.ctry)).join("");
   }
   // 수집 현황: 기업 마스터 전체(실패 포함)와 품질 지표
@@ -292,9 +297,9 @@
     ].join("");
     $("cov-sub").textContent = `${n}곳 · 수집 ${P.at ? P.at.replace("T", " ").replace("Z", " UTC") : P.updated || "-"}`;
     $("st-legend").innerHTML = Object.keys(ST).map((k) => `<li>${stBadge(k, "")}</li>`).join("") + `<li class="rule">값이 없으면 0이 아니라 '-'로 둡니다. 상태에 올리면 이유가 보입니다.</li>`;
-    $("c-cov").innerHTML = `<table class="db-tbl cm-tbl"><thead><tr><th class="l">기업</th><th class="l">국가</th><th class="l">분야</th><th class="l">티커</th><th class="l">출처</th><th class="l">결산일</th><th class="l">상태</th></tr></thead><tbody>${M.map((m) => {
+    $("c-cov").innerHTML = `<table class="db-tbl cm-tbl"><thead><tr><th class="l">기업</th><th class="l">국가</th><th class="l">구분</th><th class="l">티커</th><th class="l">출처</th><th class="l">결산일</th><th class="l">상태</th></tr></thead><tbody>${M.map((m) => {
       const p = byK.get(m.k);
-      return `<tr><th scope="row" class="l">${esc(m.n)}</th><td class="l">${CTRY[m.ctry] || m.ctry}</td><td class="l">${esc(m.cat)}<small>${esc(m.seg1 || "")}</small></td><td class="l">${esc(m.tk || "-")}</td><td class="l">${p ? srcLink(p) : esc(m.src || "-")}</td><td class="l">${p && p.pe ? esc(p.pe[p.pe.length - 1]) : "-"}</td><td class="l">${stBadge(m.st, m.why)}</td></tr>`;
+      return `<tr><th scope="row" class="l">${esc(m.n)}</th><td class="l">${CTRY[m.ctry] || m.ctry}</td><td class="l">${esc(p ? p.cat : SOBU.includes(m.kind) ? m.kind : m.cat)}<small>${esc(m.seg1 || "")}</small></td><td class="l">${esc(m.tk || "-")}</td><td class="l">${p ? srcLink(p) : esc(m.src || "-")}</td><td class="l">${p && p.pe ? esc(p.pe[p.pe.length - 1]) : "-"}</td><td class="l">${stBadge(m.st, m.why)}</td></tr>`;
     }).join("")}</tbody></table>`;
     const routes = [["미국", P.sec === "blocked" ? "야후 파이낸스(비공식, 대체)" : "SEC EDGAR XBRL(공식)", P.sec === "blocked" ? "SEC가 클라우드 접속을 막아(403) 대체 중 · 사내 서버에서 실행하면 공식 경로 가능" : "공식 공시"], ["일본", "야후 파이낸스(비공식)", "EDINET 공식 API는 인증키 필요 → 다음 단계"], ["유럽", "야후 파이낸스(비공식)", "ESEF(filings.xbrl.org) 연동은 다음 단계"], ["이스라엘·중국", "야후 파이낸스(비공식)", "현지 공시(CNINFO 등)는 다음 단계"], ["한국 대형사(참고)", "DART 연결재무제표(공식)", "국내 비교 화면에서는 제외"]];
     $("c-route").innerHTML = `<table class="db-tbl cm-tbl"><thead><tr><th class="l">국가·지역</th><th class="l">현재 수집 경로</th><th class="l">상태·다음 단계</th></tr></thead><tbody>${routes.map((r) => `<tr><th scope="row" class="l">${r[0]}</th><td class="l">${r[1]}</td><td class="l">${r[2]}</td></tr>`).join("")}</tbody></table>`;
@@ -335,7 +340,6 @@
     ul.classList.add("th-ready");
   }
   function render() {
-    const SOBU = ["장비", "부품", "소재", "후공정·테스트"];
     rows = all.filter((r) => (state.kind === "all" || (state.kind === "sobu" ? SOBU.includes(r.p.cat) : r.p.cat === state.kind)) && (state.ctry === "all" || r.p.ctry === state.ctry));
     document.querySelectorAll(".cm-basis-slot").forEach((el) => (el.innerHTML = basis()));
     $("sub").textContent = `해외 ${rows.length}곳 · 원화 환산 · 국내 소부장(${FY}년 개별 기준)과 비교`;
