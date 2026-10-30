@@ -214,6 +214,23 @@
     pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pct(p[2])}</text>`));
     return `${legend}${strip}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="매출·영업이익(막대)과 영업이익률(선) 추이">${g}</svg>`;
   }
+  // 차트 아래 실적 표(대시보드 경영 개요와 같은 구성): 매출·영업이익·영업이익률·임직원. 연도별은 마지막 열에 전년 대비
+  const tone = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
+  function sumTable(labels, S, O, note, yoy) {
+    const n = labels.length, last = n - 1, M = S.map((v, i) => (v > 0 && O[i] != null ? (O[i] / v) * 100 : null)), fr = wonRow([...S, ...O]);
+    const c = (t, src, why, cls = "") => `<td${cls ? ` class="${cls}"` : ""}>${cell(t, src, why)}</td>`;
+    const gr = (a, b) => (a != null && b != null && b > 0 ? (a / b - 1) * 100 : null);
+    const sg_ = gr(S[last], S[last - 1]);
+    const od = n < 2 || O[last] == null || O[last - 1] == null ? null : O[last - 1] > 0 && O[last] < 0 ? ["적자 전환", "down"] : O[last - 1] < 0 && O[last] > 0 ? ["흑자 전환", "up"] : O[last - 1] < 0 ? ["적자 지속", "down"] : [sgn(gr(O[last], O[last - 1])), tone(gr(O[last], O[last - 1]))];
+    const md = n > 1 && M[last] != null && M[last - 1] != null ? M[last] - M[last - 1] : null;
+    const dc = (t, cls, why) => (yoy ? `<td class="${cls || ""}">${t == null ? NA(why) : t}</td>` : "");
+    const row = (k, vals, f, d, src) => `<tr><th scope="row">${k}</th>${vals.map((v, i) => c(v == null ? null : f(v), `${labels[i]} ${k} · ${src}`, `${k} 없음`, typeof v === "number" && v < 0 ? "down" : "")).join("")}${d}</tr>`;
+    return `<div class="db-qwrap"><table class="db-tbl db-ytbl${n > 6 ? " db-qtbl" : ""}"><thead><tr><th scope="col">구분</th>${labels.map((l) => `<th scope="col">${esc(l)}</th>`).join("")}${yoy ? '<th scope="col">전년 대비</th>' : ""}</tr></thead><tbody>`
+      + row("매출", S, fr, dc(sgn(sg_), tone(sg_), "전년 매출 없음"), note) + row("영업이익", O, fr, dc(od && od[0], od && od[1], "영업이익 없음"), note)
+      + row("영업이익률", M, (v) => mgf(v), dc(ppp(md), tone(md), "계산 불가"), "영업이익 ÷ 매출")
+      + `<tr><th scope="row">임직원</th>${labels.map(() => `<td>${NA("해외 기업 임직원 수는 수집하지 않음(야후 파이낸스는 현재 인원 한 값만 제공)")}</td>`).join("")}${yoy ? `<td>${NA("해외 임직원 수 미수집")}</td>` : ""}</tr>`
+      + `</tbody></table></div><p class="db-mini">임직원 수는 해외 기업에서는 수집하지 않아 "-"로 둡니다. 기준: ${esc(note)}</p>`;
+  }
   // 회사마다 결산월이 달라 달력 연도로 맞추면 표본이 줄어든다 → 각 사의 '최근 회계연도'를 기준으로 거꾸로 맞춘다
   function yearly() {
     const pick = (n) => rows.filter((r) => r.L >= n - 1 && [...Array(n).keys()].every((k) => at(r.p.s, r.L - k) != null && at(r.p.o, r.L - k) != null));
@@ -223,7 +240,8 @@
     const S = idx.map((k) => sum(same.map((r) => r.p.s[r.L - k]))), O = idx.map((k) => sum(same.map((r) => r.p.o[r.L - k])));
     const fyOf = (k) => { const ys = [...new Set(same.map((r) => r.p.y[r.L - k]))].sort(); return ys.length > 1 ? `${ys[0]}~${String(ys[ys.length - 1]).slice(2)}` : `${ys[0]}`; };
     $("yearly-sub").textContent = `각 사 최근 회계연도 기준 · 같은 ${same.length}곳 합계`;
-    $("c-yearly").innerHTML = same.length ? combo(idx.map((k) => (k === 0 ? `최근(${fyOf(0)})` : `${k}년 전`)), S, O, `${same.length}곳 합계 · 각 사 회계연도(결산월 상이) · 원화 환산`) : NA("연도별로 비교할 수 있는 기업이 없음");
+    const yNote = `${same.length}곳 합계 · 각 사 회계연도(결산월 상이) · 원화 환산`, yLab = idx.map((k) => (k === 0 ? `최근(${fyOf(0)})` : `${k}년 전`));
+    $("c-yearly").innerHTML = same.length ? combo(yLab, S, O, yNote) + sumTable(yLab, S, O, yNote, true) : NA("연도별로 비교할 수 있는 기업이 없음");
   }
   function quarterly() {
     // 각 사 최근 분기부터 거꾸로 맞춘다(분기 실적이 빈 칸 없이 이어진 기업만)
@@ -235,7 +253,8 @@
     const S = idx.map((k) => sum(same.map((r) => val(r, k, "sales")))), O = idx.map((k) => sum(same.map((r) => val(r, k, "op"))));
     const lab = (k) => { const c = {}; same.forEach((r) => { const l = r.p.q.labels[r.p.q.labels.length - 1 - k]; c[l] = (c[l] || 0) + 1; }); return Object.keys(c).sort((x, y) => c[y] - c[x])[0]; };
     $("trend-sub").textContent = `각 사 최근 분기 기준 · 같은 ${same.length}곳 합계`;
-    $("c-trend").innerHTML = combo(idx.map((k) => lab(k)), S, O, `${same.length}곳 합계 · 각 사 최근 분기부터 맞춤(달력 분기는 가장 많은 기업 기준 표기) · 원화 환산`);
+    const qNote = `${same.length}곳 합계 · 각 사 최근 분기부터 맞춤(달력 분기는 가장 많은 기업 기준 표기) · 원화 환산`, qLab = idx.map((k) => lab(k));
+    $("c-trend").innerHTML = combo(qLab, S, O, qNote) + sumTable(qLab, S, O, qNote, false);
   }
   // ---------- 산점도 공통(축·눈금·기준선) ----------
   const KCOL = { 소재: "var(--blue)", 부품: "var(--teal)", 장비: "var(--orange)" }, kcol = (c) => KCOL[c] || "var(--gray)";
