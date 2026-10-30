@@ -690,3 +690,5 @@ details.db-foot p { margin: 6px 0 0; }
 @media (max-width: 640px) { .cm-page .db-co-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .cm-page .db-co-pick input { min-width: 240px; }
 body[data-view="company"] .db-filters, body[data-view="company"] .db-filter-toggle { display: none !important; }
+
+.cm-page .slot { outline: none; } .cm-page .slot:focus-visible .colbg { opacity: .15; stroke: var(--brand); stroke-width: 1.5; stroke-opacity: .55; }

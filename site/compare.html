@@ -10,8 +10,8 @@
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
-  <link rel="stylesheet" href="dashboard.css?v=202610300900">
-  <link rel="stylesheet" href="dashboard.theme.css?v=202610300900">
+  <link rel="stylesheet" href="dashboard.css?v=202610300930">
+  <link rel="stylesheet" href="dashboard.theme.css?v=202610300930">
 </head>
 <body class="db cm-page">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -75,8 +75,8 @@
       <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
       <div class="cm-basis-slot"></div>
       <div class="cm-2">
-        <section class="db-card"><div class="db-card-head"><h2>연도별 실적 추이 <small id="yearly-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i class="sq" style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-yearly"></div></section>
-        <section class="db-card"><div class="db-card-head"><h2>분기 실적 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출</li><li><i class="sq" style="background:var(--green)"></i>영업이익</li><li><i class="sq" style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-trend"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>연도별 실적 추이 <small id="yearly-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-yearly"></div></section>
+        <section class="db-card"><div class="db-card-head"><h2>분기 실적 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-trend"></div></section>
       </div>
       <div class="cm-2">
         <section class="db-card"><div class="db-card-head"><h2>영업이익률 <small>국가별 중앙값 · 기업별로 펼치기</small></h2></div><div id="c-bm"></div></section>
@@ -138,15 +138,15 @@
     <div id="cm-tip" class="cm-tip" role="tooltip" hidden></div>
   </main>
 
-  <script src="data/companies.js?v=202610300900"></script>
-  <script src="data/segments.js?v=202610300900"></script>
-  <script src="data/universe.js?v=202610300900"></script>
-  <script src="data/attrs.js?v=202610300900"></script>
-  <script src="data/financials.js?v=202610300900"></script>
-  <script src="data/market.js?v=202610300900" onerror="void 0"></script>
-  <script src="data/peers.js?v=202610300900" onerror="void 0"></script>
-  <script src="data/classify.js?v=202610300900"></script>
-  <script src="metrics.js?v=202610300900"></script>
-  <script src="compare.js?v=202610300900"></script>
+  <script src="data/companies.js?v=202610300930"></script>
+  <script src="data/segments.js?v=202610300930"></script>
+  <script src="data/universe.js?v=202610300930"></script>
+  <script src="data/attrs.js?v=202610300930"></script>
+  <script src="data/financials.js?v=202610300930"></script>
+  <script src="data/market.js?v=202610300930" onerror="void 0"></script>
+  <script src="data/peers.js?v=202610300930" onerror="void 0"></script>
+  <script src="data/classify.js?v=202610300930"></script>
+  <script src="metrics.js?v=202610300930"></script>
+  <script src="compare.js?v=202610300930"></script>
 </body>
 </html>
