@@ -140,13 +140,14 @@
     $("c-bm").innerHTML = group("영업이익률", "m", mgf, (r) => (r.p.o && r.o1 == null ? "영업이익 항목을 공시 API에서 받지 못함" : "영업이익률 계산 불가"));
     $("c-bg").innerHTML = group("매출 증감률", "g", (v) => sgn(v), () => "전년 매출이 없어 증감률 계산 불가");
     $("c-gm").innerHTML = distro(rows.filter((r) => r.g != null && r.m != null));
+    $("c-kb").innerHTML = kindBubbles();
   }
 
   // 매출·영업이익 막대 + 영업이익률 선(위 띠). 값은 원화 환산 합계
   function combo(labels, S, O, note) {
     const n = labels.length, W = 520, H = 280, L = 12, R = 12, T = 70, B = 30, pw = W - L - R, ph = H - T - B, slot = pw / n, bw = Math.min(26, slot * 0.3);
     const vals = [...S, ...O].filter((v) => v != null), lo = Math.min(0, ...vals), hi = Math.max(...vals, 1), y = (v) => T + ph - ((v - lo) / (hi - lo)) * ph;
-    const M = S.map((s, i) => (s > 0 && O[i] != null ? (O[i] / s) * 100 : null)), mv = M.filter((v) => v != null), mlo = Math.min(...mv), mhi = Math.max(...mv), sp = mhi - mlo || 1;
+    const M = S.map((s, i) => (s > 0 && O[i] != null ? (O[i] / s) * 100 : null)), mv = M.filter((v) => v != null), mlo = mv.length ? Math.min(...mv) : 0, mhi = mv.length ? Math.max(...mv) : 1, sp = mhi - mlo || 1;
     const ym = (v) => 18 + (1 - (v - mlo) / sp) * 34, cx = (i) => L + slot * i + slot / 2;
     let g = `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
     labels.forEach((lab, i) => {
@@ -183,24 +184,65 @@
     $("trend-sub").textContent = `각 사 최근 분기 기준 · 같은 ${same.length}곳 합계`;
     $("c-trend").innerHTML = combo(idx.map((k) => lab(k)), S, O, `${same.length}곳 합계 · 각 사 최근 분기부터 맞춤(달력 분기는 가장 많은 기업 기준 표기) · 원화 환산`);
   }
-  // 성장률(가로) × 영업이익률(세로) 분포, 0% 기준선
+  // ---------- 산점도 공통(축·눈금·기준선) ----------
+  const KCOL = { 소재: "var(--blue)", 부품: "var(--teal)", 장비: "var(--orange)" }, kcol = (c) => KCOL[c] || "var(--gray)";
+  function frame(xs, ys, W, H) {
+    const L = 46, R = 14, T = 14, B = 36, x0 = Math.min(-10, ...xs) - 3, x1 = Math.max(20, ...xs) + 5, y0 = Math.min(-5, ...ys) - 3, y1 = Math.max(15, ...ys) + 5;
+    const X = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+    const tick = (a, b) => { const st = b - a > 120 ? 50 : b - a > 60 ? 20 : b - a > 30 ? 10 : 5, o = []; for (let v = Math.ceil(a / st) * st; v <= b; v += st) o.push(v); return o; };
+    const axes = tick(x0, x1).map((v) => `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" stroke="${v === 0 ? "var(--text-3)" : "var(--grid)"}"/><text x="${X(v)}" y="${H - B + 14}" text-anchor="middle" font-size="11" fill="var(--text-3)">${v}%</text>`).join("")
+      + tick(y0, y1).map((v) => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? "var(--text-3)" : "var(--grid)"}"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-3)">${v}%</text>`).join("")
+      + `<text x="${W - R}" y="${H - 3}" text-anchor="end" font-size="11" fill="var(--text-3)">매출 증감률 →</text><text x="4" y="11" font-size="11" fill="var(--text-3)">영업이익률 ↑</text>`;
+    return { X, Y, axes };
+  }
+  // 라벨 겹침 방지: 이미 놓인 상자와 겹치지 않을 때만 쓴다
+  const labeler = (W, taken) => { const placed = taken.slice(); return (x, y, w) => { if (x < 0 || x + w > W || placed.some((b) => x < b.x + b.w && x + w > b.x && Math.abs(y - b.y) < 12)) return false; placed.push({ x, y, w }); return true; }; };
+
+  // 업종별(구분 × 국가 묶음) 성장률 × 이익률, 점 크기 = 매출. 국내 소부장은 점선 원으로 함께
+  function kindBubbles() {
+    const W = 520, H = 340, ctryGrp = (c) => (c === "US" ? "미국" : c === "JP" ? "일본" : ["NL", "DE", "FR"].includes(c) ? "유럽" : "기타");
+    const pts = [];
+    SOBU.forEach((k) => ["미국", "일본", "유럽", "기타"].forEach((g) => {
+      const list = rows.filter((r) => r.p.cat === k && ctryGrp(r.p.ctry) === g);
+      if (list.length < 2) return;
+      const A = aggP(list);
+      if (A.g == null || A.m == null) return;
+      pts.push({ x: A.g, y: A.m, size: A.s1, color: kcol(k), label: `${k}·${g}`, tip: `해외 ${k} · ${g} ${list.length}곳 · 매출 합계 ${won(A.s1)} · 성장 ${sgn(A.g)} · 이익률 ${pct(A.m)} · 연결 · 원화 환산`, dom: false });
+    }));
+    SOBU.forEach((k) => {
+      const list = dom.filter((r) => r.kind === k);
+      if (list.length < 3) return;
+      const st = SB.stats(list);
+      if (st.g == null || st.m == null) return;
+      pts.push({ x: st.g, y: st.m, size: st.s1, color: kcol(k), label: `국내 ${k}`, tip: `국내 ${k} ${list.length}곳 · 매출 합계 ${won(st.s1)} · 성장 ${sgn(st.g)} · 이익률 ${pct(st.m)} · 개별 · ${FY}년`, dom: true });
+    });
+    if (pts.length < 2) return NA("그릴 수 있는 업종 묶음이 부족함(2곳 미만 제외)");
+    const cl = (v, a, b) => Math.max(a, Math.min(b, v)), xs = pts.map((p) => cl(p.x, -40, 120)), ys = pts.map((p) => cl(p.y, -30, 60));
+    const { X, Y, axes } = frame(xs, ys, W, H), rmax = Math.max(...pts.map((p) => p.size)), rad = (p) => 7 + 24 * Math.sqrt(p.size / rmax);
+    const ok = labeler(W, []);
+    let g = axes, lab = "";
+    pts.slice().sort((a, b) => b.size - a.size).forEach((p) => {
+      const i = pts.indexOf(p), x = X(xs[i]), y = Y(ys[i]), r = rad(p), w = p.label.length * 6.4 + 4;
+      g += `<g class="cm-pt" tabindex="0" data-src="${esc(p.tip)}"><circle cx="${x}" cy="${y}" r="${r}" ${p.dom ? `fill="none" stroke-dasharray="5 3"` : `fill="${p.color}" fill-opacity=".32"`} stroke="${p.color}" stroke-width="${p.dom ? 2 : 1.4}"/></g>`;
+      const spot = [[x - w / 2, y - r - 5], [x - w / 2, y + r + 12], [x + r + 4, y + 4], [x - r - 4 - w, y + 4]].find(([lx, ly]) => ok(lx, ly, w));
+      if (spot) lab += `<text x="${spot[0]}" y="${spot[1]}" font-size="11" font-weight="700" fill="var(--text)" paint-order="stroke" stroke="var(--card)" stroke-width="3">${esc(p.label)}</text>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="업종별 매출 성장률과 영업이익률. 점 크기는 매출">${g}${lab}</svg>
+      <ul class="db-legend">${SOBU.map((k) => `<li><i class="sq" style="background:${kcol(k)}"></i>${k}</li>`).join("")}<li>○ 해외(색 채움)</li><li>◌ 국내(점선)</li><li>점 크기 = 매출 합계 · 2곳(국내 3곳) 미만 묶음 제외</li></ul>`;
+  }
+
+  // 기업별 성장률(가로) × 영업이익률(세로) 분포. 점을 누르면 기업 상세로 이동
   function distro(pts) {
     if (pts.length < 2) return NA("그릴 수 있는 기업이 부족함");
-    const W = 1000, H = 340, L = 48, R = 16, T = 16, B = 34, clip = (v, a, b) => Math.max(a, Math.min(b, v));
-    const xs = pts.map((r) => clip(r.g, -50, 150)), ys = pts.map((r) => clip(r.m, -30, 70));
-    const x0 = Math.min(-10, ...xs), x1 = Math.max(...xs) + 5, y0 = Math.min(-5, ...ys), y1 = Math.max(...ys) + 5;
-    const X = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
-    const tick = (a, b) => { const st = b - a > 120 ? 50 : b - a > 60 ? 20 : 10, o = []; for (let v = Math.ceil(a / st) * st; v <= b; v += st) o.push(v); return o; };
-    let g = tick(x0, x1).map((v) => `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" stroke="${v === 0 ? "var(--text-3)" : "var(--grid)"}"/><text x="${X(v)}" y="${H - B + 14}" text-anchor="middle" font-size="11" fill="var(--text-3)">${v}%</text>`).join("")
-      + tick(y0, y1).map((v) => `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v === 0 ? "var(--text-3)" : "var(--grid)"}"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--text-3)">${v}%</text>`).join("");
-    const placed = pts.map((r, i) => ({ x: X(xs[i]) - 5, y: Y(ys[i]), w: 10 })), ok = (x, y, w) => { if (x + w > W || placed.some((b) => x < b.x + b.w && x + w > b.x && Math.abs(y - b.y) < 12)) return false; placed.push({ x, y, w }); return true; };
-    const order = pts.map((r, i) => [r, i]).sort((a, b) => b[0].s1 - a[0].s1);
-    g += order.map(([r, i]) => { const x = X(xs[i]), y = Y(ys[i]), w = r.p.n.length * 6.2 + 4;
-      return `<g class="cm-pt" tabindex="0" data-src="${esc(`${r.p.n}(${CTRY[r.p.ctry] || r.p.ctry} · ${r.p.cat}) · 매출 증감률 ${nf(r.g, 1)}% · 영업이익률 ${nf(r.m, 1)}% · ${r.fy}년`)}"><circle cx="${x}" cy="${y}" r="5.5" fill="${colOf(r.p.ctry)}" fill-opacity=".8" stroke="var(--card)" stroke-width="1.2"/>${ok(x + 8, y, w) ? `<text x="${x + 8}" y="${y + 4}" font-size="11" fill="var(--text-2)">${esc(r.p.n)}</text>` : ""}</g>`; }).join("");
-    g += `<text x="${W - R}" y="${H - 2}" text-anchor="end" font-size="11" fill="var(--text-3)">매출 증감률 →</text><text x="4" y="11" font-size="11" fill="var(--text-3)">영업이익률 ↑</text>`;
-    const lg = [["US", "미국", "var(--blue)"], ["JP", "일본", "var(--orange)"], ["EU", "유럽", "var(--purple)"], ["ETC", "이스라엘·중국", "var(--gray)"]];
-    const grp = (c) => (c === "US" ? "US" : c === "JP" ? "JP" : ["NL", "DE", "FR"].includes(c) ? "EU" : "ETC");
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="기업별 매출 증감률과 영업이익률 분포">${g}</svg><ul class="db-legend">${lg.filter(([k]) => pts.some((r) => grp(r.p.ctry) === k)).map(([, l, c]) => `<li><i class="sq" style="background:${c}"></i>${l}</li>`).join("")}<li>축 밖(증감률 -50~150%, 이익률 -30~70%)은 가장자리에 표시 · 이름 없는 점은 올리면 보임</li></ul>`;
+    const W = 520, H = 340, cl = (v, a, b) => Math.max(a, Math.min(b, v)), xs = pts.map((r) => cl(r.g, -50, 150)), ys = pts.map((r) => cl(r.m, -30, 70));
+    const { X, Y, axes } = frame(xs, ys, W, H), ok = labeler(W, pts.map((r, i) => ({ x: X(xs[i]) - 5, y: Y(ys[i]), w: 10 })));
+    let g = axes;
+    pts.map((r, i) => [r, i]).sort((a, b) => b[0].s1 - a[0].s1).forEach(([r, i]) => {
+      const x = X(xs[i]), y = Y(ys[i]), w = r.p.n.length * 6.2 + 4, lab = ok(x + 8, y, w);
+      g += `<g class="cm-pt cm-go" tabindex="0" role="button" data-pt="${esc(r.p.k)}" aria-label="${esc(r.p.n)} 기업 상세 보기" data-src="${esc(`${r.p.n}(${CTRY[r.p.ctry] || r.p.ctry} · ${r.p.cat}) · 매출 증감률 ${nf(r.g, 1)}% · 영업이익률 ${nf(r.m, 1)}% · ${r.fy}년 · 누르면 기업 상세`)}"><circle cx="${x}" cy="${y}" r="5.5" fill="${kcol(r.p.cat)}" fill-opacity=".8" stroke="var(--card)" stroke-width="1.2"/>${lab ? `<text x="${x + 8}" y="${y + 4}" font-size="11" fill="var(--text-2)">${esc(r.p.n)}</text>` : ""}</g>`;
+    });
+    const cats = [...new Set(pts.map((r) => r.p.cat))];
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="기업별 매출 증감률과 영업이익률 분포">${g}</svg><ul class="db-legend">${CATS.filter((c) => cats.includes(c)).map((c) => `<li><i class="sq" style="background:${kcol(c)}"></i>${esc(c)}</li>`).join("")}<li>이름 없는 점은 올리면 보임 · 축 밖 값은 가장자리에 표시</li></ul>`;
   }
 
   // 정렬 가능한 표
@@ -212,7 +254,7 @@
   const sv = (r, k) => (k in r ? r[k] : k in r.mk ? r.mk[k] : k === "cat" ? CATS.indexOf(r.p.cat) : k === "cagr" ? r.cagr : k === "ctry" ? r.p.ctry : k === "mt" ? r.p.mt : null);
 
   function drawPerf() {
-    const co = (r) => `<a href="#perf" data-co="${r.p.k}">${esc(r.p.n)}</a>`;
+    const co = (r) => `<a href="#company" data-co="${r.p.k}">${esc(r.p.n)}</a>`;
     const why = (r, w) => `${r.p.n}: ${w}`;
     const cols = [
       { k: "n", t: "기업", l: 1, f: (r) => co(r) }, { k: "ctry", t: "국가", l: 1, f: (r) => CTRY[r.p.ctry] || r.p.ctry }, { k: "cat", t: "구분", l: 1, f: (r) => `${esc(r.p.cat)}${r.p.seg1 ? `<small>${esc(r.p.seg1)}${r.p.seg2 ? " · " + esc(r.p.seg2) : ""}</small>` : ""}` },
@@ -230,27 +272,85 @@
     $("c-ptbl").innerHTML = table(cols, sortBy(rows, state.sortP), state.sortP);
     $("c-ptbl").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b) { state.sortP = { k: b.dataset.k, d: state.sortP.k === b.dataset.k ? -state.sortP.d : -1 }; drawPerf(); } };
     $("c-mchg").innerHTML = bars([...rows].sort((a, b) => (b.dm ?? -1e9) - (a.dm ?? -1e9)).map((r) => ({ name: r.p.n, tag: tagOf(r.p), v: r.dm, src: srcPeer(r.p, "영업이익률 전년 대비 변화(%p)", r.L), why: "전년 영업이익률을 알 수 없음" })), (v) => ppp(v));
-    const sel = $("co-sel");
-    sel.innerHTML = rows.map((r) => `<option value="${esc(r.p.k)}"${r.p.k === state.co ? " selected" : ""}>${esc(r.p.n)}</option>`).join("");
-    drawDetail();
   }
 
-  function drawDetail() {
-    const r = rows.find((x) => x.p.k === state.co) || rows[0];
-    if (!r) { $("c-det").innerHTML = ""; return; }
-    state.co = r.p.k;
-    const p = r.p, ys = p.y, W = 360, H = 170, n = ys.length, cw = (W - 12) / n;
-    const mx = Math.max(...p.s.filter((v) => v != null), 1), by = (v) => H - 40 - ((H - 60) * v) / mx;
-    const bs = p.s.map((v, i) => (v == null ? "" : `<rect x="${6 + i * cw + cw * 0.25}" y="${by(v)}" width="${cw * 0.5}" height="${H - 40 - by(v)}" rx="3" fill="var(--blue)"/><text x="${6 + i * cw + cw / 2}" y="${by(v) - 4}" text-anchor="middle" font-size="10" fill="var(--text-2)">${won(v)}</text>`)).join("");
-    const mg = p.s.map((v, i) => ratio(p.o && p.o[i], v));
-    const xl = ys.map((y, i) => `<text x="${6 + i * cw + cw / 2}" y="${H - 14}" text-anchor="middle" font-size="10.5" fill="var(--text-3)">${y}년</text><text x="${6 + i * cw + cw / 2}" y="${H - 2}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--text-2)">이익률 ${mg[i] == null ? "-" : nf(mg[i], 1) + "%"}</text>`).join("");
-    const q = p.q, qt = q ? `<div class="db-tbl-wrap"><table class="db-tbl cm-tbl"><thead><tr><th class="l">분기</th>${q.labels.map((l) => `<th>${l}</th>`).join("")}</tr></thead><tbody>
-      <tr><th class="l" scope="row">매출</th>${q.sales.map((v) => `<td>${cell(won(v), `${p.n} 분기 매출 · ${p.src} · 쪽 번호 없음`, "분기 매출 없음")}</td>`).join("")}</tr>
-      <tr><th class="l" scope="row">영업이익</th>${q.op.map((v) => `<td>${cell(won(v), `${p.n} 분기 영업이익 · ${p.src} · 쪽 번호 없음`, "분기 영업이익 항목을 받지 못함")}</td>`).join("")}</tr></tbody></table></div>` : `<p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>분기 실적을 받지 못했습니다(-).</span></p>`;
-    $("t-det").textContent = `${p.n} · ${CTRY[p.ctry] || p.ctry} · ${p.cat}${p.seg1 ? " · " + p.seg1 : ""}`;
-    const LN = { s: "매출", o: "영업이익", ni: "순이익", ta: "총자산", tl: "총부채", te: "자본" };
-    const loc = p.loc && p.loc.s ? `원 통화(${p.loc.unit}) ${Object.keys(LN).filter((k) => p.loc[k]).map((k) => `${LN[k]} ${p.loc[k].map((v) => (v == null ? "-" : nf(v))).join("→")}`).join(" · ")}${p.fx ? ` · 평균환율 ${p.fx.map((x) => (x == null ? "-" : nf(x, x < 100 ? 2 : 1))).join("→")}원 (${p.fxs || "ECB"})` : ""}${p.pe ? ` · 결산일 ${p.pe.join(", ")}` : ""}` : "";
-    $("c-det").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(p.n)} 연간 매출(막대)과 영업이익률">${bs}${xl}</svg><p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(loc)}${loc ? " · " : ""}${p.url ? `출처 ${srcLink(p)}` : ""}</span></p>${qt}`;
+  // ---------- 기업 상세(대시보드 '기업 상세'와 같은 구성) ----------
+  const TYPES = SB.TYPES, TCOL = SB.TYPE_COLOR;
+  function signalsOf(r) {
+    const p = r.p, L = r.L, o0 = at(p.o, L - 1), out = [];
+    const d0 = at(p.te, L - 1) > 0 ? ratio(at(p.tl, L - 1), at(p.te, L - 1)) : null;
+    if (r.o1 != null && r.o1 < 0 && o0 != null && o0 >= 0) out.push({ sev: 1, label: "적자 전환", why: `영업이익 ${won(o0)} → ${won(r.o1)}`, check: "일회성 비용·충당금인지, 본업 수익성 악화인지 사업보고서 주석을 확인" });
+    else if (r.o1 != null && r.o1 < 0) out.push({ sev: 1, label: "영업적자", why: `${r.fy}년 영업이익 ${won(r.o1)}(이익률 ${pct(r.m) || "-"})`, check: "적자 원인과 개선 계획(가이던스)을 확인" });
+    if (r.dm != null && r.dm <= -5) out.push({ sev: 2, label: "이익률 급락", why: `영업이익률 ${ppp(r.dm)} (${pct(r.m - r.dm)} → ${pct(r.m)})`, check: "원가·가격·제품 구성 변화를 실적 발표 자료에서 확인" });
+    if (r.g != null && r.g < 0) out.push({ sev: 2, label: "매출 감소", why: `매출 ${sgn(r.g)} (${won(r.s0)} → ${won(r.s1)})`, check: "고객 수요·환율 영향(원화 환산)인지 구분해서 확인" });
+    if (r.debt != null && d0 != null && r.debt - d0 >= 30) out.push({ sev: 2, label: "부채비율 급등", why: `부채비율 ${pct(d0, 0)} → ${pct(r.debt, 0)}`, check: "차입·인수 등 자금 용도를 확인" });
+    return out;
+  }
+  function drawCompany() {
+    const list = all.slice().sort((a, b) => (b.s1 || 0) - (a.s1 || 0));
+    if (!list.length) { $("c-company").innerHTML = `<p class="db-empty">해외 기업 데이터가 없습니다.</p>`; return; }
+    $("co-dl").innerHTML = list.map((r) => `<option value="${esc(r.p.n)}"></option>`).join("");
+    const r = all.find((x) => x.p.k === state.co) || (rows.slice().sort((a, b) => (b.s1 || 0) - (a.s1 || 0))[0]) || list[0];
+    state.co = r.p.k; $("co-q").value = r.p.n;
+    const p = r.p, peersL = all.filter((x) => x.p.cat === p.cat), nP = peersL.length;
+    const rank = (key, v) => { if (v == null) return "-"; const vals = peersL.map((x) => x[key]).filter((x) => x != null), q = Math.round((vals.filter((x) => x > v).length / vals.length) * 100); return q <= 50 ? `상위 ${Math.max(1, q)}%` : `하위 ${Math.max(1, 100 - q)}%`; };
+    const salesRank = peersL.slice().sort((a, b) => (b.s1 || 0) - (a.s1 || 0)).findIndex((x) => x.p.k === p.k) + 1;
+    const dk = SOBU.includes(p.cat) ? domStat(dom.filter((x) => x.kind === p.cat)) : null;
+    const type = r.g != null && r.m != null ? SB.typeOf(r.g, r.m) : null;
+    const sigs = signalsOf(r);
+    const missing = [];
+    p.y.forEach((y, i) => { if (at(p.o, i) == null) missing.push(`${y}년 영업이익`); if (at(p.ni, i) == null) missing.push(`${y}년 순이익`); });
+    if (!p.q) missing.push("분기 실적(받지 못함)");
+    if (!(p.tl && p.tl.some((v) => v != null))) missing.push("총부채");
+    if (!(p.rd && p.rd.some((v) => v != null))) missing.push("연구개발비");
+    if (r.g == null) missing.push("전년 매출(성장률 비교 불가)");
+    const med_ = (k) => med(peersL.map((x) => x[k]));
+    const card = (k, v, sub) => `<div><span>${k}</span><b>${v}</b><small>${sub || ""}</small></div>`;
+    const sv_ = (t, src, why) => cell(t, src, why);
+    const yl = p.y.map((y) => `${y}년`), Sm = p.s, Om = p.o || [];
+    // 연도별 표(원화 환산 + 원 통화)
+    const L2 = p.loc || {}, row = (nm, arr, f, what) => `<tr><th class="l" scope="row">${nm}</th>${p.y.map((y, i) => `<td>${sv_(f(arr && arr[i]), srcPeer(p, what, i), `${y}년 ${what} 없음`)}</td>`).join("")}</tr>`;
+    const mgn = p.y.map((y, i) => ratio(at(p.o, i), at(p.s, i)));
+    const yt = `<div class="db-tbl-wrap"><table class="db-tbl cm-tbl"><thead><tr><th class="l">구분(억 원 환산)</th>${yl.map((y) => `<th>${y}</th>`).join("")}</tr></thead><tbody>
+      ${row("매출", Sm, won, "매출")}${row("영업이익", Om, won, "영업이익")}
+      <tr><th class="l" scope="row">영업이익률</th>${p.y.map((y, i) => `<td>${sv_(mgn[i] == null ? null : mgf(mgn[i]), srcPeer(p, "영업이익률", i), "영업이익이 없어 계산 불가")}</td>`).join("")}</tr>
+      ${row("순이익", p.ni, won, "순이익")}${row("연구개발비", p.rd, won, "연구개발비")}${row("총자산", p.ta, won, "총자산")}${row("총부채", p.tl, won, "총부채")}${row("자본", p.te, won, "자본")}
+      ${L2.s ? `<tr><th class="l" scope="row">매출(원 통화)</th>${L2.s.map((v, i) => `<td>${sv_(v == null ? null : `${nf(v)}<small>${esc(L2.unit)}</small>`, `${p.n} ${p.y[i]}년 매출 원 통화 · ${p.src}`, "없음")}</td>`).join("")}</tr>` : ""}
+      ${p.fx ? `<tr><th class="l" scope="row">평균 환율(원)</th>${p.fx.map((x) => `<td>${x == null ? NA("환율 없음") : nf(x, x < 100 ? 2 : 1)}</td>`).join("")}</tr>` : ""}
+      </tbody></table></div>`;
+    const q = p.q;
+    const qt = q ? `<div class="db-tbl-wrap"><table class="db-tbl cm-tbl"><thead><tr><th class="l">분기</th>${q.labels.map((l) => `<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>
+      <tr><th class="l" scope="row">매출</th>${q.sales.map((v) => `<td>${sv_(won(v), `${p.n} 분기 매출 · ${p.src} · 쪽 번호 없음`, "분기 매출 없음")}</td>`).join("")}</tr>
+      <tr><th class="l" scope="row">영업이익</th>${q.op.map((v) => `<td>${sv_(won(v), `${p.n} 분기 영업이익 · ${p.src} · 쪽 번호 없음`, "분기 영업이익 항목 없음")}</td>`).join("")}</tr>
+      <tr><th class="l" scope="row">영업이익률</th>${q.sales.map((s_, i) => { const m = ratio(q.op[i], s_); return `<td>${m == null ? NA("계산 불가") : mgf(m)}</td>`; }).join("")}</tr></tbody></table></div>` : "";
+    const mk = p.mk, pos = mk && mk.hi52 > mk.lo52 && mk.price ? Math.max(0, Math.min(100, ((mk.price - mk.lo52) / (mk.hi52 - mk.lo52)) * 100)) : null;
+    const up = mk && mk.target && mk.price ? (mk.target / mk.price - 1) * 100 : null;
+    const sm = (t, w) => sv_(t, srcMk(p, w), `${w} 없음`);
+    const stock = mk ? `<div class="mk-cells">${[["현재가", mk.price == null ? null : `${nf(mk.price, mk.price >= 1000 ? 0 : 2)} ${CUR[mk.cur] || mk.cur}`], ["시가총액", won(mk.cap)], ["PER", mk.per > 0 ? `${nf(mk.per, 1)}배` : null], ["PBR", mk.pbr > 0 ? `${nf(mk.pbr, 2)}배` : null],
+        ["ROE", pct(mk.roe)], ["배당수익률", pct(mk.dy, 2)], ["1년 수익률", sgn(mk.r1y, 0)], ["목표가 여력", sgn(up, 0)]].map(([k, v]) => `<div><span>${k}</span><b>${sm(v, k)}</b></div>`).join("")}</div>
+      ${pos == null ? "" : `<p class="mk-52"><span>52주 최저 ${nf(mk.lo52)}</span><span>최고 ${nf(mk.hi52)}</span></p><div class="mk-bar" role="img" aria-label="52주 범위에서 현재가 위치 ${Math.round(pos)}%"><i style="width:${pos}%"></i><b style="left:${pos}%"></b></div>`}
+      <div class="cm-trend">${sparkline(mk.trend)}<span>최근 1년 주가 흐름(시작=100)</span></div>`
+      : `<p class="db-empty">주가 지표를 받지 못했습니다(-).</p>`;
+    $("c-company").innerHTML = `
+      <section class="db-card db-co-head">
+        <div><h2>${esc(p.n)}</h2><p>${esc(p.cat)}${p.seg1 ? ` · ${esc(p.seg1)}${p.seg2 ? "·" + esc(p.seg2) : ""}` : ""} · ${CTRY[p.ctry] || p.ctry}${p.tk ? ` · ${esc(p.tk)}` : ""} · 결산 ${p.mt}월(${r.fy}년) · 통화 ${CUR[p.cur] || p.cur} · 출처 ${esc(p.src)} · 연결${p.st ? ` · ${stBadge(p.st, p.why)}` : ""}</p></div>
+        <div class="db-co-act">${p.url ? `<a class="db-btn ghost" href="${esc(p.url)}" target="_blank" rel="noopener"><i class="ph ph-arrow-square-out" aria-hidden="true"></i>원문 열기</a>` : ""}<a class="db-btn ghost" href="#perf">목록으로</a></div>
+      </section>
+      <div class="db-co-kpis">${card(`${r.fy}년 매출`, sv_(won(r.s1), srcPeer(p, "매출", r.L), "매출 없음"), `${p.cat} ${nP}곳 중 ${salesRank}위 · 원화 환산`)}
+        ${card("매출 성장률", sv_(sgn(r.g), srcPeer(p, "매출 증감률", r.L), "전년 매출 없음"), r.g == null ? "" : `구분 ${rank("g", r.g)} · 중앙값 ${sgn(med_("g")) || "-"}`)}
+        ${card("영업이익률", sv_(r.m == null ? null : mgf(r.m), srcPeer(p, "영업이익률", r.L), "영업이익 없음"), r.m == null ? "" : `구분 ${rank("m", r.m)} · 중앙값 ${pct(med_("m")) || "-"}${dk && dk.m != null ? ` · 국내 ${p.cat} ${pct(dk.m)}` : ""}`)}
+        ${card("부채비율", sv_(pct(r.debt, 0), srcPeer(p, "부채비율", r.L), "부채·자본 없음"), r.debt == null ? "자료 없음" : `구분 중앙값 ${pct(med_("debt"), 0) || "-"}`)}
+        ${card("R&D 비중", sv_(pct(r.rd), srcPeer(p, "R&D 비중", r.L), "연구개발비 없음"), r.rd == null ? "자료 없음" : `구분 ${rank("rd", r.rd)} · 중앙값 ${pct(med_("rd")) || "-"}`)}
+        ${card("기업 유형", type ? `<span style="color:${TCOL[type]}">${esc(type)}</span>` : "-", `성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준`)}</div>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>연도별 실적</h2></div><div class="db-chart">${combo(yl, Sm, Om, `${p.n} · ${p.src} · 원화 환산`)}${yt}</div></section>
+        <section class="db-card"><div class="db-card-head"><h2>분기별 실적</h2></div>${q ? `<div class="db-chart">${combo(q.labels, q.sales, q.op, `${p.n} 분기 · ${p.src} · 원화 환산`)}${qt}</div>` : `<p class="db-empty">분기 실적을 받지 못했습니다(-).</p>`}</section>
+      </div>
+      <div class="cm-2">
+        <section class="db-card"><div class="db-card-head"><h2>주가·밸류에이션 <small>${mk && mk.asof ? esc(mk.asof) + " 기준" : ""}</small></h2></div>${stock}</section>
+        <section class="db-card"><div class="db-card-head"><h2>경영 변화 신호</h2></div>${sigs.length ? `<ul class="db-plain">${sigs.map((x) => `<li><span class="db-tag sev${x.sev}">${x.label}</span> ${esc(x.why)}<small> · 확인: ${x.check}</small></li>`).join("")}</ul>` : `<p class="db-empty">해당하는 신호가 없습니다.</p>`}
+          <div class="db-card-head" style="margin-top:14px"><h2>데이터 기준·결측</h2></div><ul class="db-plain"><li>연결 재무제표, ${esc(p.src)}${p.std ? ` · ${esc(p.std)}` : ""} 기준 · 원화 환산(손익 평균 환율, 재무상태표 결산일 환율)</li><li>비교 집단: 해외 ${esc(p.cat)} ${nP}곳(상단 필터와 무관)</li>${missing.length ? [...new Set(missing)].map((m) => `<li class="down">결측: ${m}</li>`).join("") : "<li>결측 항목 없음</li>"}</ul></section>
+      </div>`;
   }
 
   // 주식
@@ -405,11 +505,13 @@
     a.download = `해외기업_재무_표준화_${P.updated || ""}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
-  const VIEWS = ["overview", "perf", "stock", "coverage", "domestic"];
+  const VIEWS = ["overview", "perf", "company", "stock", "coverage", "domestic"];
   function show(v) {
     if (!VIEWS.includes(v)) v = "overview";
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
+    document.body.dataset.view = v; // 기업 상세는 상단 필터와 무관하므로 필터 막대를 숨긴다
+    if (v === "company") drawCompany();
     window.scrollTo({ top: 0 });
     pill();
   }
@@ -440,10 +542,18 @@
   $("f-kind").addEventListener("change", (e) => { state.kind = e.target.value; render(); });
   $("f-ctry").addEventListener("change", (e) => { state.ctry = e.target.value; render(); });
   $("filters").addEventListener("reset", (e) => { e.preventDefault(); state.kind = "sobu"; state.ctry = "all"; drawFilters(); render(); });
+  // 분포의 점(또는 Enter·Space)으로 해당 기업의 상세(실적 비교 화면)로 이동
+  const openCompany = (k) => {
+    state.co = k;
+    if (location.hash !== "#company") location.hash = "company"; else show("company");
+  };
+  document.addEventListener("click", (e) => { const pt = e.target.closest("[data-pt]"); if (pt) openCompany(pt.dataset.pt); });
+  document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[data-pt]")) { e.preventDefault(); openCompany(e.target.dataset.pt); } });
   document.addEventListener("click", (e) => { if (e.target.closest("[data-checksort]")) { state.sortP = { k: "dm", d: 1 }; drawPerf(); } });
   document.addEventListener("click", (e) => { if (e.target.closest("[data-each]")) { state.each = !state.each; drawOverview(); } if (e.target.closest("[data-retall]")) { state.retAll = !state.retAll; drawStock(); } });
-  $("co-sel").addEventListener("change", (e) => { state.co = e.target.value; drawDetail(); });
-  document.addEventListener("click", (e) => { const a = e.target.closest("[data-co]"); if (a) { state.co = a.dataset.co; $("co-sel").value = state.co; drawDetail(); } });
+  $("co-q").addEventListener("change", (e) => { const r = all.find((x) => x.p.n.toLowerCase() === e.target.value.trim().toLowerCase()) || all.find((x) => x.p.n.toLowerCase().includes(e.target.value.trim().toLowerCase())); if (r) openCompany(r.p.k); else e.target.value = (all.find((x) => x.p.k === state.co) || { p: { n: "" } }).p.n; });
+  $("co-q").addEventListener("focus", (e) => e.target.select());
+  document.addEventListener("click", (e) => { const a = e.target.closest("[data-co]"); if (a) { e.preventDefault(); openCompany(a.dataset.co); } });
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
   window.addEventListener("resize", pill);
 

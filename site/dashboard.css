@@ -681,3 +681,12 @@ details.db-foot p { margin: 6px 0 0; }
 .cm-page .db-legend li { white-space: normal; min-width: 0; }
 .dm-tools .db-btn { flex: 0 0 auto; width: auto; }
 @media (max-width: 860px) { .dm-tools { flex-wrap: nowrap; } .dm-tools .mk-in { flex: 1 1 auto; min-width: 0; } }
+.cm-go { cursor: pointer; }
+.cm-go:hover circle, .cm-go:focus-visible circle { stroke: var(--text); stroke-width: 2.5; }
+.cm-trend { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--text-3); }
+.cm-trend .cm-spark { width: 140px; height: 40px; color: var(--blue); }
+.cm-page .db-co-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .cm-page .db-co-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .cm-page .db-co-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cm-page .db-co-pick input { min-width: 240px; }
+body[data-view="company"] .db-filters, body[data-view="company"] .db-filter-toggle { display: none !important; }
