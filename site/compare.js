@@ -143,23 +143,76 @@
     $("c-kb").innerHTML = kindBubbles();
   }
 
-  // 매출·영업이익 막대 + 영업이익률 선(위 띠). 값은 원화 환산 합계
-  function combo(labels, S, O, note) {
-    const n = labels.length, W = 520, H = 280, L = 12, R = 12, T = 70, B = 30, pw = W - L - R, ph = H - T - B, slot = pw / n, bw = Math.min(26, slot * 0.3);
-    const vals = [...S, ...O].filter((v) => v != null), lo = Math.min(0, ...vals), hi = Math.max(...vals, 1), y = (v) => T + ph - ((v - lo) / (hi - lo)) * ph;
-    const M = S.map((s, i) => (s > 0 && O[i] != null ? (O[i] / s) * 100 : null)), mv = M.filter((v) => v != null), mlo = mv.length ? Math.min(...mv) : 0, mhi = mv.length ? Math.max(...mv) : 1, sp = mhi - mlo || 1;
-    const ym = (v) => 18 + (1 - (v - mlo) / sp) * 34, cx = (i) => L + slot * i + slot / 2;
-    let g = `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
-    labels.forEach((lab, i) => {
-      const t = `${lab} · 매출 ${won(S[i]) || "-"} · 영업이익 ${won(O[i]) || "-"} · 이익률 ${M[i] == null ? "-" : nf(M[i], 1) + "%"}`;
-      g += `<g class="cm-pt" tabindex="0" data-src="${esc(t + " · " + note)}">`;
-      if (S[i] != null) g += `<rect x="${cx(i) - bw - 1}" y="${y(Math.max(S[i], 0))}" width="${bw}" height="${Math.abs(y(S[i]) - y(0))}" rx="3" fill="var(--blue)"/><text x="${cx(i) - bw / 2 - 1}" y="${y(Math.max(S[i], 0)) - 4}" text-anchor="middle" font-size="10" fill="var(--text-2)">${won(S[i])}</text>`;
-      if (O[i] != null) g += `<rect x="${cx(i) + 1}" y="${y(Math.max(O[i], 0))}" width="${bw}" height="${Math.max(1, Math.abs(y(O[i]) - y(0)))}" rx="3" fill="${O[i] < 0 ? "var(--down)" : "var(--green)"}"/>`;
-      g += `<text x="${cx(i)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="var(--text-3)">${esc(lab)}</text></g>`;
+  // 매출·영업이익 막대 + 영업이익률 선(위 띠). 대시보드 경영 개요와 같은 차트: 왼쪽 축=매출, 오른쪽 축=영업이익, 위 띠=이익률
+  // 값은 원화 환산 합계. 칸에 올리면(또는 누르면) 위 요약 띠에 그 시점 값이 뜬다
+  const CW = () => (window.innerWidth < 640 ? 380 : 520);
+  const niceStep = (v) => { const e = Math.pow(10, Math.floor(Math.log10(v || 1))), f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e; };
+  const wonRow = (vals) => (Math.max(...vals.filter((v) => v != null).map(Math.abs), 0) >= 10000 ? (v) => (v == null ? "-" : `${nf(v / 10000, 1)}조`) : (v) => won(v) || "-");
+  const w0 = (v) => won(v) || "-";
+  // 값 범위에 맞춘 축(0부터가 아니라 값 주변). 두 축이 같은 격자선을 쓰도록 눈금 수를 함께 고른다
+  function fitAxes(...series) {
+    const base = series.map((vals) => {
+      const v = vals.filter((x) => x != null);
+      if (!v.length) return { lo0: 0, top: 1 };
+      const mn = Math.min(...v), mx = Math.max(...v), up = Math.max((mx - mn) * 0.12, Math.abs(mx) * 0.01, 1), down = Math.max((mx - mn) * 0.35, Math.abs(mx) * 0.03, 1);
+      return { lo0: mn >= 0 ? Math.max(0, mn - down) : mn - down, top: mx + up };
     });
-    const pts = M.map((v, i) => (v == null ? null : [cx(i), ym(v), v])).filter(Boolean);
-    g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2"/>` + pts.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--orange)"/><text x="${p[0]}" y="${p[1] - 7}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--text)">${nf(p[2], 1)}%</text>`).join("");
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="매출·영업이익(막대)과 영업이익률(선) 추이">${g}</svg>`;
+    const fit = (b, k) => {
+      const e10 = Math.pow(10, Math.floor(Math.log10((b.top - b.lo0) / k || 1)));
+      for (const f of [1, 2, 2.5, 5, 10, 20, 25, 50]) { const step = f * e10, lo = Math.floor(b.lo0 / step) * step; if (lo + step * k >= b.top) return { lo, step, waste: (step * k) / (b.top - b.lo0) }; }
+      return null;
+    };
+    let best = null;
+    [3, 4, 5, 6].forEach((k) => { const ax = base.map((b) => fit(b, k)); if (ax.every(Boolean)) { const w = ax.reduce((t, x) => t + x.waste, 0); if (!best || w < best.w) best = { k, ax, w }; } });
+    return best;
+  }
+  function combo(labels, sales, ops, note, opt = {}) {
+    if (!sales.some((v) => v != null)) return `<p class="db-empty">표시할 실적이 없습니다.</p>`;
+    const W = CW(), n = labels.length, H = 300, L = 50, R = 50, T = 18, B = 28, pw = W - L - R, ph = H - T - B, band = 100;
+    const margins = sales.map((v, i) => (v > 0 && ops[i] != null ? (ops[i] / v) * 100 : null));
+    const fx = fitAxes(sales, ops);
+    if (!fx) return `<p class="db-empty">표시할 실적이 없습니다.</p>`;
+    const { k, ax: [A] } = fx;
+    const O = (() => { // 영업이익 축: 0에서 시작, 영업이익 막대가 같은 시점 매출 막대 높이의 90%를 넘지 않게
+      const hs = (i) => Math.max(0.05, (sales[i] - A.lo) / (A.step * k));
+      const req = Math.max(1, ...ops.map((o, i) => (o > 0 && sales[i] != null ? o / (0.9 * hs(i)) : 0)));
+      const ov = ops.filter((x) => x != null), mn = Math.min(0, ...ov), mx = Math.max(0, ...ov), e10 = Math.pow(10, Math.floor(Math.log10(req / k)));
+      for (const f of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 100]) {
+        const step = f * e10, lo = mn < 0 ? -Math.ceil((-mn * 1.15) / step) * step : 0;
+        if (step * k >= req && lo + step * k >= mx) return { lo, step };
+      }
+      return { lo: 0, step: niceStep(req / k) };
+    })();
+    const bh = ph - band, mk = (ax) => { const hi = ax.lo + ax.step * k; return (v) => T + band + bh - ((v - ax.lo) / (hi - ax.lo)) * bh; };
+    const yS = mk(A), yO = mk(O), base = (ax) => (ax.lo < 0 ? 0 : ax.lo);
+    const mv = margins.filter((v) => v != null), mn = mv.length ? Math.min(...mv) : 0, mx = mv.length ? Math.max(...mv) : 1, mpad = Math.max((mx - mn) * 0.2, 0.4), mLo = mn - mpad, span = mx + mpad - mLo || 1;
+    const ym = (v) => T + 16 + (1 - (v - mLo) / span) * (band - 30);
+    const slot = pw / n, bw = Math.min(opt.bw || (n > 5 ? 12 : n > 3 ? 22 : 34), slot * 0.32), cx = (i) => L + slot * i + slot / 2;
+    const stripOf = (i) => `<b class="st-l">${esc(labels[i])}</b><span class="st-b" style="--c:var(--blue)">매출 <b>${w0(sales[i])}</b></span><span class="st-b" style="--c:var(--green)">영업이익 <b>${w0(ops[i])}</b></span><span class="st-b" style="--c:var(--orange)">이익률 <b>${pct(margins[i]) || "-"}</b></span>`;
+    const lastI = (() => { for (let i = n - 1; i >= 0; i--) if (sales[i] != null) return i; return -1; })();
+    const legend = opt.legend ? `<ul class="db-legend db-mini-leg"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul>` : "";
+    const strip = `<div class="db-strip th-only" aria-live="polite">${stripOf(lastI)}</div>`;
+    let g = `<text class="ax" x="${L - 6}" y="${T + 12}" text-anchor="end">이익률</text><line class="grid" x1="${L}" x2="${W - R}" y1="${T + band - 4}" y2="${T + band - 4}" stroke-dasharray="2 3"/>`;
+    const fS = wonRow([A.lo, A.lo + A.step * k]), fO = wonRow([O.lo, O.lo + O.step * k]);
+    for (let i = 0; i <= k; i++) {
+      const vs = A.lo + A.step * i, vo = O.lo + O.step * i, yy = yS(vs);
+      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text class="ax axl" x="${L - 6}" y="${yy + 4}" text-anchor="end">${fS(vs)}</text><text class="ax axr" x="${W - R + 6}" y="${yy + 4}">${fO(vo)}</text>`;
+    }
+    if (O.lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${yO(0)}" y2="${yO(0)}" stroke="var(--text-3)" stroke-width="1"/>`;
+    labels.forEach((l, i) => {
+      const x = cx(i), s = sales[i], o = ops[i];
+      if (s == null) { g += `<text class="ax" x="${x}" y="${yS(base(A)) - 6}" text-anchor="middle">결측</text><text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${esc(l)}</text>`; return; }
+      const tip = `${l} · ${note}`;
+      g += `<g class="slot" style="--i:${i}" tabindex="0" data-strip="${esc(stripOf(i))}" data-src="${esc(tip)}"><rect class="colbg" x="${x - slot / 2 + 2}" y="${T}" width="${slot - 4}" height="${ph}" rx="10"/>`;
+      g += `<rect class="bar${s < 0 ? " neg" : ""}" x="${x - bw - 1}" y="${Math.min(yS(s), yS(base(A)))}" width="${bw}" height="${Math.max(1, Math.abs(yS(s) - yS(base(A))))}" rx="3" fill="var(--blue)"/>`;
+      if (o != null) g += `<rect class="bar${o < 0 ? " neg" : ""}" x="${x + 1}" y="${Math.min(yO(o), yO(base(O)))}" width="${bw}" height="${Math.max(1, Math.abs(yO(o) - yO(base(O))))}" rx="3" fill="${o < 0 ? "var(--down)" : "var(--green)"}"/>`;
+      if (n <= 4) g += `<text class="val" x="${x - bw / 2 - 1}" y="${yS(s) - 5}" text-anchor="middle">${w0(s)}</text>`;
+      g += `<text class="ax" x="${x}" y="${H - 8}" text-anchor="middle">${esc(l)}</text><rect class="hit" x="${x - slot / 2}" y="${T}" width="${slot}" height="${ph}"/></g>`;
+    });
+    const pts = margins.map((m, i) => (m == null ? null : [cx(i), ym(m), m])).filter(Boolean);
+    g += `<polyline points="${pts.map((p) => p[0] + "," + p[1]).join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>`;
+    pts.forEach((p) => (g += `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="${p[0]}" y="${p[1] - 8}" text-anchor="middle">${pct(p[2])}</text>`));
+    return `${legend}${strip}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="매출·영업이익(막대)과 영업이익률(선) 추이">${g}</svg>`;
   }
   // 회사마다 결산월이 달라 달력 연도로 맞추면 표본이 줄어든다 → 각 사의 '최근 회계연도'를 기준으로 거꾸로 맞춘다
   function yearly() {
@@ -343,8 +396,8 @@
         ${card("R&D 비중", sv_(pct(r.rd), srcPeer(p, "R&D 비중", r.L), "연구개발비 없음"), r.rd == null ? "자료 없음" : `구분 ${rank("rd", r.rd)} · 중앙값 ${pct(med_("rd")) || "-"}`)}
         ${card("기업 유형", type ? `<span style="color:${TCOL[type]}">${esc(type)}</span>` : "-", `성장 ${SB.HI_GROWTH}%·이익률 ${SB.HI_MARGIN}% 기준`)}</div>
       <div class="cm-2">
-        <section class="db-card"><div class="db-card-head"><h2>연도별 실적</h2></div><div class="db-chart">${combo(yl, Sm, Om, `${p.n} · ${p.src} · 원화 환산`)}${yt}</div></section>
-        <section class="db-card"><div class="db-card-head"><h2>분기별 실적</h2></div>${q ? `<div class="db-chart">${combo(q.labels, q.sales, q.op, `${p.n} 분기 · ${p.src} · 원화 환산`)}${qt}</div>` : `<p class="db-empty">분기 실적을 받지 못했습니다(-).</p>`}</section>
+        <section class="db-card"><div class="db-card-head"><h2>연도별 실적</h2></div><div class="db-chart">${combo(yl, Sm, Om, `${p.n} · ${p.src} · 원화 환산`, { legend: 1 })}${yt}</div></section>
+        <section class="db-card"><div class="db-card-head"><h2>분기별 실적</h2></div>${q ? `<div class="db-chart">${combo(q.labels, q.sales, q.op, `${p.n} 분기 · ${p.src} · 원화 환산`, { legend: 1 })}${qt}</div>` : `<p class="db-empty">분기 실적을 받지 못했습니다(-).</p>`}</section>
       </div>
       <div class="cm-2">
         <section class="db-card"><div class="db-card-head"><h2>주가·밸류에이션 <small>${mk && mk.asof ? esc(mk.asof) + " 기준" : ""}</small></h2></div>${stock}</section>
@@ -556,6 +609,29 @@
   document.addEventListener("click", (e) => { const a = e.target.closest("[data-co]"); if (a) { e.preventDefault(); openCompany(a.dataset.co); } });
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
   window.addEventListener("resize", pill);
+
+
+  // ---------- 차트 위 요약 띠(대시보드와 같은 동작): 올리면 그 칸 값, 벗어나면 최근 값, 누르면 고정·다시 누르면 해제 ----------
+  const stripOfSlot = (g) => { const box = g.closest(".db-chart"); return box && box.querySelector(".db-strip"); };
+  const showStrip = (g) => { const st = stripOfSlot(g); if (!st) return; if (!st.dataset.def) st.dataset.def = st.innerHTML; st.innerHTML = g.dataset.strip; };
+  const resetStrip = (g) => { const st = stripOfSlot(g); if (st && st.dataset.def) st.innerHTML = st.classList.contains("pinned") ? st.dataset.pinHtml : st.dataset.def; };
+  document.addEventListener("mouseover", (e) => { const g = e.target.closest && e.target.closest("g.slot"); if (g) showStrip(g); });
+  document.addEventListener("mouseout", (e) => { const g = e.target.closest && e.target.closest("g.slot"); if (g && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("g.slot"))) resetStrip(g); });
+  document.addEventListener("focusin", (e) => { const g = e.target.closest && e.target.closest("g.slot"); if (g) showStrip(g); });
+  document.addEventListener("focusout", (e) => { const g = e.target.closest && e.target.closest("g.slot"); if (g) resetStrip(g); });
+  document.addEventListener("click", (e) => {
+    const g = e.target.closest && e.target.closest("g.slot"), st = g && stripOfSlot(g);
+    if (!st) return;
+    if (!st.dataset.def) st.dataset.def = st.innerHTML;
+    const was = g.classList.contains("pin");
+    g.closest(".db-chart").querySelectorAll("g.slot.pin").forEach((x) => x.classList.remove("pin"));
+    if (was) { st.classList.remove("pinned"); st.innerHTML = st.dataset.def; }
+    else { g.classList.add("pin"); st.classList.add("pinned"); st.dataset.pinHtml = g.dataset.strip; st.innerHTML = g.dataset.strip; }
+    st.classList.remove("pulse"); void st.offsetWidth; st.classList.add("pulse");
+  });
+  // 화면 폭이 바뀌어 차트 크기 단계(380/520)가 달라지면 다시 그린다
+  let lastCW = CW();
+  window.addEventListener("resize", () => { if (CW() !== lastCW) { lastCW = CW(); render(); } });
 
   // ---------- 출처 말풍선(마우스·키보드·터치) ----------
   const tip = $("cm-tip");
