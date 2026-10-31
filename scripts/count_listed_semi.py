@@ -294,7 +294,10 @@ def main():
     for code, nm_, kind_, why_ in extra_rows:
         d = by_stock.get(code.strip())
         if not d: extra_unmatched.append(f"{nm_}({code})"); continue
-        if d["s"] in have: continue
+        if d["s"] in have:  # 이미 명단으로 매칭된 회사는 사용자 지정 구분으로 바꾼다
+            for x in part:
+                if x["종목코드"] == d["s"]: x["구분"], x["추정"] = kind_, False
+            continue
         part.append({"회사": d["n"], "입력명": nm_, "시장": {"Y": "코스피", "K": "코스닥", "N": "코넥스"}.get(d["cls"], d["cls"]), "종목코드": d["s"], "업종코드": d["ind"], "구분": kind_, "추정": False, "세부": "추가·" + why_[:30], "추가": True})
     excl = {r[0].strip() for r in list(csv.reader(open(ROOT / "scripts/partner_excluded.tsv", encoding="utf-8"), delimiter="\t"))[1:]}
     excluded_names = [x["회사"] for x in part if x["종목코드"] in excl]
