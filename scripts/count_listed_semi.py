@@ -121,8 +121,10 @@ def naver_caps():
             for x in rows:
                 if x.get("type") not in (None, "ST"): continue  # 주식만(ETF·ETN 제외)
                 ms = x.get("marketSum")
-                if ms and str(ms).isdigit():
-                    out[sosok][x["itemcode"]] = round(int(ms) / 1e8)
+                try: msv = float(str(ms).replace(",", "")) if ms not in (None, "") else 0
+                except ValueError: msv = 0
+                if msv > 0:  # 소수점·쉼표가 섞여 있어도 읽는다
+                    out[sosok][x["itemcode"]] = round(msv / 1e8)
                     extra[x["itemcode"]] = x.get("itemname")
             print(f"[naver-api] {mt} {len(out[sosok])}종목 · 시총 합계 {sum(out[sosok].values()) / 10000:,.1f}조 원", flush=True)
         except Exception as e:
