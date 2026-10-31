@@ -34,26 +34,21 @@ def dicts_with(j, *keys):
     return best
 
 
-def pages(path, params, size=None, maxp=400):
-    if size is None:  # 쪽 크기가 크면 400이 나므로 줄여 가며 첫 쪽이 열리는 크기를 찾는다
-        for size in (100, 50, 30, 20, 10):
-            try:
-                get(path, **params, startIdx=0, pageSize=size); break
-            except requests.HTTPError as e:
-                if e.response is None or e.response.status_code != 400: raise
-        else:
-            raise RuntimeError("쪽 크기 400")
-        print(f"## {path} 쪽 크기 {size}", flush=True)
+def pages(path, params, size=10, maxp=400):
+    """서버가 쪽당 10건만 주는 것으로 보여 쪽 크기를 10으로 고정한다. startIdx 가 쪽 번호인지 건너뛴 개수인지는 둘째 쪽이 첫 쪽과 겹치는지로 판별."""
     seen, out, mode = set(), [], "page"
+    key = lambda r: str(r.get("itemcode") or r.get("itemCode") or r.get("no") or json.dumps(r, sort_keys=True)[:120])
     for i in range(maxp):
         start = i if mode == "page" else i * size
         rows = dicts_with(get(path, **params, startIdx=start, pageSize=size), "itemcode", "itemCode", "no", "name")
-        ids = [json.dumps(r, sort_keys=True)[:200] for r in rows]
+        ids = [key(r) for r in rows]
         if i == 1 and ids and len(set(ids) & seen) > len(ids) // 2 and mode == "page":
-            mode = "offset"; rows = dicts_with(get(path, **params, startIdx=size, pageSize=size), "itemcode", "itemCode", "no", "name"); ids = [json.dumps(r, sort_keys=True)[:200] for r in rows]
+            mode = "offset"
+            rows = dicts_with(get(path, **params, startIdx=size, pageSize=size), "itemcode", "itemCode", "no", "name"); ids = [key(r) for r in rows]
         new = [r for r, k in zip(rows, ids) if k not in seen]
         seen.update(ids); out += new
-        if not rows or not new: break  # 서버는 쪽당 최대 10건만 줄 수 있어, 비어 있을 때까지 넘긴다
+        if not rows or not new: break
+    print(f"## {path} {len(out)}건(쪽 크기 {size}, startIdx={mode})", flush=True)
     return out
 
 
