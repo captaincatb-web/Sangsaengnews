@@ -4,7 +4,7 @@
 3) 반도체 관련 업종코드별로 세고, 대시보드 명단(universe.js·segments.js)의 구분별 상장 수도 센다
 DART 는 '소부장' 여부를 따로 주지 않는다. 업종코드와 직접 분류(segments.js)로 나눈 숫자다.
 결과는 로그의 [semi-count-json] 줄에 한 줄 JSON 으로 남긴다."""
-import io, json, os, re, sys, time, zipfile
+import csv, io, json, os, re, sys, time, zipfile
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -23,7 +23,7 @@ def dart(path, **p):
             r = S.get(f"https://opendart.fss.or.kr/api/{path}", params={"crtfc_key": KEY, **p}, timeout=30)
             d = r.json()
             if d.get("status") == "020":  # 요청 한도: 잠시 쉰다
-                time.sleep(5 * (i + 1)); continue
+                time.sleep(3 * (i + 1)); continue
             return d
         except Exception:
             time.sleep(2 * (i + 1))
@@ -183,26 +183,35 @@ def main():
     listed = [r for r in rows if r["s"]]
     print(f"[corpCode] 전체 {len(rows)} · 상장(종목코드 있음) {len(listed)}", flush=True)
     t0 = time.time()
-    det = []
     cache = ROOT / "semi_det.json"
-    if cache.exists():  # 앞선 실행이 저장한 DART 기업개황(actions/cache): 상장사 수가 같으면 다시 조회하지 않는다
+    have = {}
+    if cache.exists():  # 앞선 실행이 저장한 DART 기업개황(actions/cache): 이미 받은 회사는 건너뛰고 이어서 조회
         try:
-            cached = json.loads(cache.read_text(encoding="utf-8"))
-            if len(cached) == len(listed) and all(c.get("ok") for c in cached):
-                det = cached; print(f"[company] 캐시 사용 {len(det)}곳", flush=True)
+            have = {d["c"]: d for d in json.loads(cache.read_text(encoding="utf-8")) if d.get("ok")}
+            print(f"[company] 저장된 {len(have)}곳 사용", flush=True)
         except Exception:
-            det = []
-    if not det:
-        with ThreadPoolExecutor(6) as ex:
-            for i, d in enumerate(ex.map(info, listed), 1):
-                det.append(d)
-                if i % 500 == 0:
-                    print(f"[company] {i}/{len(listed)} · {time.time() - t0:.0f}초", flush=True)
-        if all(d["ok"] for d in det):
-            cache.write_text(json.dumps(det, ensure_ascii=False), encoding="utf-8")
-    bad = [d for d in det if not d["ok"]]
-    print(f"[company] 조회 {len(det)} · 실패 {len(bad)} · {time.time() - t0:.0f}초", flush=True)
-    det = [d for d in det if d["ok"]]
+            have = {}
+    norm0 = lambda t: re.sub(r"\(주\)|주식회사|㈜|\s", "", t or "")
+    prio_names = {norm0(r[2]) for r in csv.reader(open(ROOT / "scripts/partner_listed.tsv", encoding="utf-8"), delimiter="\t")}
+    prio_codes = {r[0].strip() for r in csv.reader(open(ROOT / "scripts/partner_listed_extra.tsv", encoding="utf-8"), delimiter="\t")}
+    todo = [r for r in listed if r["c"] not in have]
+    todo.sort(key=lambda r: 0 if (norm0(r["n"]) in prio_names or r["s"] in prio_codes) else 1)  # 명단 회사부터
+    budget = int(os.environ.get("DART_BUDGET_SEC", "1500"))
+    fails = 0
+    with ThreadPoolExecutor(6) as ex:
+        for i in range(0, len(todo), 60):
+            if time.time() - t0 > budget:
+                print(f"[company] 시간 예산 {budget}초 소진 · 남은 {len(todo) - i}곳은 다음 실행에서 이어서 조회", flush=True); break
+            for d in ex.map(info, todo[i:i + 60]):
+                if d["ok"]: have[d["c"]] = d
+                else: fails += 1
+            if (i // 60) % 5 == 4:
+                print(f"[company] {min(i + 60, len(todo))}/{len(todo)} · 실패 {fails} · {time.time() - t0:.0f}초", flush=True)
+                cache.write_text(json.dumps(list(have.values()), ensure_ascii=False), encoding="utf-8")
+    cache.write_text(json.dumps(list(have.values()), ensure_ascii=False), encoding="utf-8")
+    det = list(have.values())
+    print(f"[company] 조회 범위 {len(det)}/{len(listed)}곳 · 실패 {fails}", flush=True)
+    bad = []
     mk = {}
     for d in det: mk[d["cls"]] = mk.get(d["cls"], 0) + 1
     by_code = {}
@@ -260,7 +269,6 @@ def main():
     share_code = pack([(d["s"], CODE_KIND[d["ind"]], d["cls"]) for d in det if d["ind"] in CODE_KIND])
 
     # ---- 협력사 상장 명단(사용자 제공, scripts/partner_listed.tsv) ----
-    import csv
     segs_all = curated()[2]
     seg_sub = dict(re.findall(r'"(\d{8})":\s*\["[^"]+",\s*"([^"]*)"\]', (ROOT / "site/data/segments.js").read_text(encoding="utf-8")))
     plist = {}
@@ -296,7 +304,7 @@ def main():
     share_partner = pack([(x["종목코드"], x["구분"], {"코스피": "Y", "코스닥": "K"}.get(x["시장"], "N")) for x in sobu])
     partner_out = {"입력(고유 법인)": len(plist), "DART 매칭": len(part), "미매칭": unmatched, "구분별(시장)": pk, "소부장 합계": len(sobu), "추가후보 DART 미매칭": extra_unmatched, "추가 반영": [x["회사"] for x in part if x.get("추가")], "시장비중": share_partner,
                    "명단": [f"{x['회사']}|{x['시장']}|{x['업종코드']}|{x['구분']}{'(추정)' if x['추정'] else ''}|{x['세부']}" for x in part]}
-    out = {"전체상장": len(listed), "조회실패": len(bad), "시장별": mk, "업종후보": cand,
+    out = {"전체상장": len(listed), "조회한 상장사": len(det), "조회실패": fails, "시장별": mk, "업종후보": cand,
            "업종코드별(26·29·20·24·27 시작)": {c: len(n) for c, n in sorted(by_code.items()) if c[:2] in ("26", "29", "20", "24", "27")},
            "업종코드별 회사명": show, "대시보드명단": cur, "시장비중_대시보드명단(직접분류)": share_cur, "시장비중_업종코드후보": share_code, "시장비중_네이버업종278": share_up, "시총출처": caps_src, "협력사명단": partner_out}
     print("[semi-count-json]" + json.dumps(out, ensure_ascii=False), flush=True)
