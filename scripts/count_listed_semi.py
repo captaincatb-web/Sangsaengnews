@@ -73,7 +73,7 @@ def find_items(j, key="itemcode"):
     return []
 
 
-def ns_pages(path, params, page_size=None, max_pages=80):
+def ns_pages(path, params, page_size=None, max_pages=400):
     """stock.naver.com 목록을 쪽 단위로 읽는다. startIdx 가 쪽 번호인지 건너뛴 개수인지 둘째 쪽 겹침으로 판별. 403·429는 즉시 중단.
     쪽 크기가 크면 400이 나므로 100→50→30→20 순으로 줄여 첫 쪽이 열리는 크기를 쓴다."""
     if page_size is None:
@@ -102,7 +102,7 @@ def ns_pages(path, params, page_size=None, max_pages=80):
         seen.update(c for c in codes if c)
         out += new
         time.sleep(0.2)
-        if len(rows) < page_size or not new:
+        if not rows or not new:  # 서버는 쪽당 최대 10건만 줄 수 있어, 비어 있을 때까지 넘긴다
             break
     return out
 
@@ -183,11 +183,22 @@ def main():
     print(f"[corpCode] 전체 {len(rows)} · 상장(종목코드 있음) {len(listed)}", flush=True)
     t0 = time.time()
     det = []
-    with ThreadPoolExecutor(6) as ex:
-        for i, d in enumerate(ex.map(info, listed), 1):
-            det.append(d)
-            if i % 500 == 0:
-                print(f"[company] {i}/{len(listed)} · {time.time() - t0:.0f}초", flush=True)
+    cache = ROOT / "semi_det.json"
+    if cache.exists():  # 앞선 실행이 저장한 DART 기업개황(actions/cache): 상장사 수가 같으면 다시 조회하지 않는다
+        try:
+            cached = json.loads(cache.read_text(encoding="utf-8"))
+            if len(cached) == len(listed) and all(c.get("ok") for c in cached):
+                det = cached; print(f"[company] 캐시 사용 {len(det)}곳", flush=True)
+        except Exception:
+            det = []
+    if not det:
+        with ThreadPoolExecutor(6) as ex:
+            for i, d in enumerate(ex.map(info, listed), 1):
+                det.append(d)
+                if i % 500 == 0:
+                    print(f"[company] {i}/{len(listed)} · {time.time() - t0:.0f}초", flush=True)
+        if all(d["ok"] for d in det):
+            cache.write_text(json.dumps(det, ensure_ascii=False), encoding="utf-8")
     bad = [d for d in det if not d["ok"]]
     print(f"[company] 조회 {len(det)} · 실패 {len(bad)} · {time.time() - t0:.0f}초", flush=True)
     det = [d for d in det if d["ok"]]

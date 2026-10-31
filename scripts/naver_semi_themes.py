@@ -34,7 +34,7 @@ def dicts_with(j, *keys):
     return best
 
 
-def pages(path, params, size=None, maxp=60):
+def pages(path, params, size=None, maxp=400):
     if size is None:  # 쪽 크기가 크면 400이 나므로 줄여 가며 첫 쪽이 열리는 크기를 찾는다
         for size in (100, 50, 30, 20, 10):
             try:
@@ -53,7 +53,7 @@ def pages(path, params, size=None, maxp=60):
             mode = "offset"; rows = dicts_with(get(path, **params, startIdx=size, pageSize=size), "itemcode", "itemCode", "no", "name"); ids = [json.dumps(r, sort_keys=True)[:200] for r in rows]
         new = [r for r, k in zip(rows, ids) if k not in seen]
         seen.update(ids); out += new
-        if len(rows) < size or not new: break
+        if not rows or not new: break  # 서버는 쪽당 최대 10건만 줄 수 있어, 비어 있을 때까지 넘긴다
     return out
 
 
