@@ -7,10 +7,10 @@ on:
 jobs:
   count:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 175
     env:
       DART_API_KEY: ${{ secrets.DART_API_KEY }}
-      DART_BUDGET_SEC: "480"  # 명단 기준 집계: 명단 회사를 먼저 받고 나머지는 8분만
+      DART_BUDGET_SEC: "9000"  # 모집단 확보: 상장사 전체를 끝까지 받는다(최대 150분, 저장해 둔 값은 건너뜀)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
