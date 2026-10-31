@@ -74,10 +74,8 @@ def find_items(j, key="itemcode"):
 
 
 def ns_pages(path, params, page_size=10, max_pages=400):
-    """stock.naver.com 목록을 쪽 단위로 읽는다. 서버가 쪽당 10건만 주는 것으로 보여 크기를 10으로 고정하고,
-    startIdx 가 쪽 번호인지 건너뛴 개수인지는 둘째 쪽이 첫 쪽과 겹치는지로 판별. 403·429는 즉시 중단."""
-    seen, out, mode = set(), [], "page"
-
+    """stock.naver.com 목록을 쪽 단위로 읽는다. 서버가 쪽당 10건만 줘 크기를 10으로 고정한다. startIdx 해석은 첫 두 쪽(0, 1)을 비교해 판별:
+    같은 쪽이면 1부터 세는 쪽 번호(0과 1이 같은 쪽) → 2, 3, … / 일부만 겹치면 건너뛴 개수 → 10, 20, … / 전부 새것이면 0부터 쪽 번호. 403·429는 즉시 중단."""
     def fetch(start):
         r = S.get(NS + path, params={**params, "startIdx": start, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
         if r.status_code in (403, 429) or 300 <= r.status_code < 400:
@@ -85,18 +83,28 @@ def ns_pages(path, params, page_size=10, max_pages=400):
         r.raise_for_status()
         time.sleep(0.15)
         return find_items(r.json())
-
+    cd = lambda x: x.get("itemcode") or x.get("itemCode")
+    seen, out = set(), []
+    def take(rows):
+        n = 0
+        for x in rows:
+            c = cd(x)
+            if c and c not in seen: seen.add(c); out.append(x); n += 1
+        return n
+    r0 = fetch(0); take(r0)
+    if not r0: return out
+    r1 = fetch(1); k0, k1 = {cd(x) for x in r0}, {cd(x) for x in r1}
+    if k1 == k0: mode, nxt = "page1", 2
+    elif k1 & k0: mode, nxt = "offset", page_size; take(r1)
+    else: mode, nxt = "page0", 2; take(r1)
+    miss = 0
     for i in range(max_pages):
-        rows = fetch(i if mode == "page" else i * page_size)
-        codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
-        if i == 1 and codes and len(set(codes) & seen) > len(codes) // 2 and mode == "page":
-            mode = "offset"; rows = fetch(page_size); codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
-        new = [x for x, c in zip(rows, codes) if c and c not in seen]
-        seen.update(c for c in codes if c)
-        out += new
-        if not rows or not new:
-            break
-    print(f"[naver] {path} {len(out)}건(startIdx={mode})", flush=True)
+        rows = fetch(nxt + i if mode != "offset" else nxt + i * page_size)
+        if not rows or take(rows) == 0:
+            miss += 1
+            if not rows or miss >= 2: break
+        else: miss = 0
+    print(f"[naver] {path} {len(out)}건(해석={mode})", flush=True)
     return out
 
 
