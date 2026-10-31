@@ -1,0 +1,17 @@
+name: naver-semi-themes
+
+# 네이버증권 '반도체' 관련 테마·업종 구성 종목 수집(수동 실행, 소부장 후보 발굴용). 결과는 로그의 [semi-themes-json] 줄.
+on:
+  workflow_dispatch:
+
+jobs:
+  themes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - run: python scripts/naver_semi_themes.py
