@@ -13,7 +13,9 @@ def get(path, **params):
     r = S.get(NS + path, params=params, headers=H, timeout=25, allow_redirects=False)
     if r.status_code in (403, 429) or 300 <= r.status_code < 400:
         sys.exit(f"중단: HTTP {r.status_code} {path}")
-    r.raise_for_status()
+    if r.status_code >= 400:
+        print(f"## HTTP {r.status_code} {path} {params} → {r.text[:300]}", flush=True)  # 서버가 알려 주는 오류 이유
+        r.raise_for_status()
     time.sleep(0.25)
     return r.json()
 
@@ -56,7 +58,14 @@ def pages(path, params, size=None, maxp=60):
 
 
 def members(kind, no):
-    rows = pages(f"/api/domestic/market/{kind}/{no}/stocklist", {"marketType": "ALL", "orderType": "marketSum"})
+    rows, err = [], None
+    for order in ("quantTop", "marketSum", "up"):  # 화면 정렬 값: 어떤 값이 열리는지 순서대로 시도
+        try:
+            rows = pages(f"/api/domestic/market/{kind}/{no}/stocklist", {"marketType": "ALL", "orderType": order}); break
+        except (requests.HTTPError, RuntimeError) as e:
+            err = e
+    else:
+        raise RuntimeError(f"모든 정렬 실패: {err}")
     res = []
     for r in rows:
         code = r.get("itemcode") or r.get("itemCode")
