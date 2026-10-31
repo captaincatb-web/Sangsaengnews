@@ -314,6 +314,23 @@ def main():
     share_partner = pack([(x["종목코드"], x["구분"], {"코스피": "Y", "코스닥": "K"}.get(x["시장"], "N")) for x in sobu])
     partner_out = {"입력(고유 법인)": len(plist), "DART 매칭": len(part), "미매칭": unmatched, "구분별(시장)": pk, "소부장 합계": len(sobu), "추가후보 DART 미매칭": extra_unmatched, "사용자 지정 제외": excluded_names, "추가 반영": [x["회사"] for x in part if x.get("추가")], "시장비중": share_partner,
                    "명단": [f"{x['회사']}|{x['시장']}|{x['업종코드']}|{x['구분']}{'(추정)' if x['추정'] else ''}|{x['세부']}" for x in part]}
+    # ---- 후보 전체 목록(모집단): 업종코드를 넓게 잡고 이름 기준 후보도 더한다. 기존 123곳과 구분 ----
+    TIER_A = ("2611", "2612", "2927", "26299", "26310")                      # 반도체 직접
+    TIER_B = ("261", "262", "263", "27", "291", "292", "201", "202", "203", "204", "205", "2419", "242", "231", "232", "233", "25", "28", "465", "721")  # 인접
+    NAME_C = re.compile(r"반도체|세미|웨이퍼|파운드리|플라즈마|진공|클린|가스|케미|머티|머트|소재|이엔지|테스|세정|식각|증착|노광|패키|프로브|IPS|이오|칩")
+    kept = {x["종목코드"] for x in part if x["구분"] in ("소재", "부품", "장비")}
+    nonsobu = {x["종목코드"] for x in part if x["종목코드"] not in kept}
+    mkname = {"Y": "코스피", "K": "코스닥", "N": "코넥스"}
+    cand_n = {"기존 소부장": 0, "기존 비소부장": 0, "지정 제외": 0, "신규": 0}
+    for d in sorted(det, key=lambda d: (d["ind"], d["n"])):
+        if d["cls"] not in mkname: continue  # ETF 등 기타 상장 상품 제외
+        tier = "A" if d["ind"].startswith(TIER_A) else "B" if d["ind"].startswith(TIER_B) else "C" if NAME_C.search(d["n"]) else ""
+        st = "기존 소부장" if d["s"] in kept else "지정 제외" if d["s"] in excl else "기존 비소부장" if d["s"] in nonsobu else "신규"
+        if not tier and st == "신규": continue
+        cand_n[st] += 1
+        print(f"[cand]\t{d['n']}\t{d['s']}\t{mkname[d['cls']]}\t{d['ind']}\t{tier or '-'}\t{st}", flush=True)
+    print(f"[cand-summary] {json.dumps(cand_n, ensure_ascii=False)} · 조회한 주식 상장사 {sum(1 for d in det if d['cls'] in mkname)} (코스피 {sum(1 for d in det if d['cls']=='Y')} · 코스닥 {sum(1 for d in det if d['cls']=='K')} · 코넥스 {sum(1 for d in det if d['cls']=='N')}) · 조회 범위 {len(det)}/{len(listed)}", flush=True)
+    for nm_ in unmatched: print(f"[unmatched]\t{nm_}", flush=True)
     out = {"전체상장": len(listed), "조회한 상장사": len(det), "조회실패": fails, "시장별": mk, "업종후보": cand,
            "업종코드별(26·29·20·24·27 시작)": {c: len(n) for c, n in sorted(by_code.items()) if c[:2] in ("26", "29", "20", "24", "27")},
            "업종코드별 회사명": show, "대시보드명단": cur, "시장비중_대시보드명단(직접분류)": share_cur, "시장비중_업종코드후보": share_code, "시장비중_네이버업종278": share_up, "시총출처": caps_src, "협력사명단": partner_out}
