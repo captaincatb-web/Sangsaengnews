@@ -32,7 +32,16 @@ def dicts_with(j, *keys):
     return best
 
 
-def pages(path, params, size=100, maxp=30):
+def pages(path, params, size=None, maxp=60):
+    if size is None:  # 쪽 크기가 크면 400이 나므로 줄여 가며 첫 쪽이 열리는 크기를 찾는다
+        for size in (100, 50, 30, 20, 10):
+            try:
+                get(path, **params, startIdx=0, pageSize=size); break
+            except requests.HTTPError as e:
+                if e.response is None or e.response.status_code != 400: raise
+        else:
+            raise RuntimeError("쪽 크기 400")
+        print(f"## {path} 쪽 크기 {size}", flush=True)
     seen, out, mode = set(), [], "page"
     for i in range(maxp):
         start = i if mode == "page" else i * size
