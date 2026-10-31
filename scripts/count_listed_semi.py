@@ -73,37 +73,30 @@ def find_items(j, key="itemcode"):
     return []
 
 
-def ns_pages(path, params, page_size=None, max_pages=400):
-    """stock.naver.com 목록을 쪽 단위로 읽는다. startIdx 가 쪽 번호인지 건너뛴 개수인지 둘째 쪽 겹침으로 판별. 403·429는 즉시 중단.
-    쪽 크기가 크면 400이 나므로 100→50→30→20 순으로 줄여 첫 쪽이 열리는 크기를 쓴다."""
-    if page_size is None:
-        for page_size in (100, 50, 30, 20):
-            r0 = S.get(NS + path, params={**params, "startIdx": 0, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
-            if r0.status_code in (403, 429) or 300 <= r0.status_code < 400:
-                raise RuntimeError(f"HTTP {r0.status_code}")
-            if r0.status_code == 200: break
-        else:
-            raise RuntimeError("쪽 크기 400")
-        print(f"[naver] {path} 쪽 크기 {page_size}", flush=True)
+def ns_pages(path, params, page_size=10, max_pages=400):
+    """stock.naver.com 목록을 쪽 단위로 읽는다. 서버가 쪽당 10건만 주는 것으로 보여 크기를 10으로 고정하고,
+    startIdx 가 쪽 번호인지 건너뛴 개수인지는 둘째 쪽이 첫 쪽과 겹치는지로 판별. 403·429는 즉시 중단."""
     seen, out, mode = set(), [], "page"
-    for i in range(max_pages):
-        start = i if mode == "page" else i * page_size
+
+    def fetch(start):
         r = S.get(NS + path, params={**params, "startIdx": start, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
         if r.status_code in (403, 429) or 300 <= r.status_code < 400:
             raise RuntimeError(f"HTTP {r.status_code}")
         r.raise_for_status()
-        rows = find_items(r.json())
+        time.sleep(0.15)
+        return find_items(r.json())
+
+    for i in range(max_pages):
+        rows = fetch(i if mode == "page" else i * page_size)
         codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
         if i == 1 and codes and len(set(codes) & seen) > len(codes) // 2 and mode == "page":
-            mode = "offset"; rows = []  # 둘째 쪽이 첫 쪽과 겹침 → startIdx 는 건너뛴 개수
-            r = S.get(NS + path, params={**params, "startIdx": page_size, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
-            rows = find_items(r.json()); codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
+            mode = "offset"; rows = fetch(page_size); codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
         new = [x for x, c in zip(rows, codes) if c and c not in seen]
         seen.update(c for c in codes if c)
         out += new
-        time.sleep(0.2)
-        if not rows or not new:  # 서버는 쪽당 최대 10건만 줄 수 있어, 비어 있을 때까지 넘긴다
+        if not rows or not new:
             break
+    print(f"[naver] {path} {len(out)}건(startIdx={mode})", flush=True)
     return out
 
 
