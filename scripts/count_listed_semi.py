@@ -54,10 +54,83 @@ NAME_SHOW = ("2611", "2612", "2927", "2631")
 
 NAVER = "https://finance.naver.com/sise/sise_market_sum.naver"
 NH = {"User-Agent": "Mozilla/5.0 (compatible; Sangsaengnews research)", "Referer": "https://finance.naver.com/"}
+NS = "https://stock.naver.com"
+NSH = {"User-Agent": "Mozilla/5.0 (compatible; Sangsaengnews research)", "Accept": "application/json", "Referer": "https://stock.naver.com/"}
+
+
+def find_items(j, key="itemcode"):
+    """응답 어디에 있든 종목 코드 키를 가진 dict 목록을 찾는다(참고: dd3ok/naverstock-api-skill, 응답 형태가 경로마다 다름)."""
+    if isinstance(j, list):
+        if j and isinstance(j[0], dict) and any(k.lower() == key for k in j[0]): return j
+        for x in j:
+            r = find_items(x, key)
+            if r: return r
+    elif isinstance(j, dict):
+        for v in j.values():
+            r = find_items(v, key)
+            if r: return r
+    return []
+
+
+def ns_pages(path, params, page_size=100, max_pages=60):
+    """stock.naver.com 목록을 쪽 단위로 읽는다. startIdx 가 쪽 번호인지 건너뛴 개수인지 둘째 쪽 겹침으로 판별. 403·429는 즉시 중단."""
+    seen, out, mode = set(), [], "page"
+    for i in range(max_pages):
+        start = i if mode == "page" else i * page_size
+        r = S.get(NS + path, params={**params, "startIdx": start, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
+        if r.status_code in (403, 429) or 300 <= r.status_code < 400:
+            raise RuntimeError(f"HTTP {r.status_code}")
+        r.raise_for_status()
+        rows = find_items(r.json())
+        codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
+        if i == 1 and codes and len(set(codes) & seen) > len(codes) // 2 and mode == "page":
+            mode = "offset"; rows = []  # 둘째 쪽이 첫 쪽과 겹침 → startIdx 는 건너뛴 개수
+            r = S.get(NS + path, params={**params, "startIdx": page_size, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
+            rows = find_items(r.json()); codes = [x.get("itemcode") or x.get("itemCode") for x in rows]
+        new = [x for x, c in zip(rows, codes) if c and c not in seen]
+        seen.update(c for c in codes if c)
+        out += new
+        time.sleep(0.2)
+        if len(rows) < page_size or not new:
+            break
+    return out
 
 
 def naver_caps():
-    """네이버 증권 시가총액 순위 표(코스피 sosok=0, 코스닥 sosok=1)에서 종목코드별 시가총액(억 원)을 읽는다."""
+    """네이버증권 시장 목록(코스피·코스닥, 시가총액순)에서 종목코드별 시가총액(억 원)을 읽는다. 실패하면 PC 웹 표로 대체."""
+    out = {"0": {}, "1": {}}
+    extra = {}
+    ok = True
+    for sosok, mt in (("0", "KOSPI"), ("1", "KOSDAQ")):
+        try:
+            rows = ns_pages("/api/domestic/market/stock/default", {"tradeType": "KRX", "marketType": mt, "orderType": "marketSum"})
+            for x in rows:
+                if x.get("type") not in (None, "ST"): continue  # 주식만(ETF·ETN 제외)
+                ms = x.get("marketSum")
+                if ms and str(ms).isdigit():
+                    out[sosok][x["itemcode"]] = round(int(ms) / 1e8)
+                    extra[x["itemcode"]] = x.get("itemname")
+            print(f"[naver-api] {mt} {len(out[sosok])}종목 · 시총 합계 {sum(out[sosok].values()) / 10000:,.1f}조 원", flush=True)
+        except Exception as e:
+            print(f"[naver-api] {mt} 실패: {e}", flush=True); ok = False
+    if ok and out["0"] and out["1"]:
+        return out, "stock.naver.com API"
+    return naver_caps_html(), "finance.naver.com 표(대체)"
+
+
+def naver_upjong(industry_no="278"):
+    """네이버 업종 '반도체와반도체장비'(no 278) 구성 종목을 읽는다. 응답 구조를 로그에 남긴다."""
+    try:
+        rows = ns_pages(f"/api/domestic/market/upjong/{industry_no}/stocklist", {"marketType": "ALL", "orderType": "marketSum"})
+        print(f"[naver-upjong] {industry_no} 구성 {len(rows)}종목 · 예시 {json.dumps(rows[:1], ensure_ascii=False)[:400]}", flush=True)
+        return [(x.get("itemcode") or x.get("itemCode")) for x in rows]
+    except Exception as e:
+        print(f"[naver-upjong] 실패: {e}", flush=True)
+        return []
+
+
+def naver_caps_html():
+    """(대체) 네이버 금융 시가총액 순위 표 파싱."""
     out = {"0": {}, "1": {}}
     for sosok in out:
         page, empty = 1, 0
@@ -78,7 +151,7 @@ def naver_caps():
             empty = empty + 1 if not new else 0
             page += 1
             time.sleep(0.15)
-        print(f"[naver] {'코스피' if sosok == '0' else '코스닥'} {len(out[sosok])}종목 · 합계 {sum(out[sosok].values()):,}억 원 · {page - 1}쪽", flush=True)
+        print(f"[naver-html] {'코스피' if sosok == '0' else '코스닥'} {len(out[sosok])}종목 · 합계 {sum(out[sosok].values()):,}억 원", flush=True)
     return out
 
 
@@ -131,7 +204,8 @@ def main():
         b = cur["구분별"].setdefault(kind, {"상장": 0, "비상장": 0})
         b["상장" if lst else "비상장"] += 1
     # ---- 시장 비중(네이버 시가총액) ----
-    caps = naver_caps()
+    caps, caps_src = naver_caps()
+    up278 = naver_upjong("278")
     MK = {"Y": ("코스피", "0"), "K": ("코스닥", "1")}
     def pack(items):  # items: [(종목코드, 구분, 시장)]
         res = {}
@@ -153,10 +227,11 @@ def main():
             res[mname] = {"시장 전체": {"DART 상장사 수": n_mkt, "네이버 종목수": len(tot), "시가총액 합계(억)": tot_cap}, "구분별": kinds, "합계": allb}
         return res
     share_cur = pack([m for m in members if m[1] in ("소재", "부품", "장비")])
+    share_up = pack([(c, "네이버 업종 반도체와반도체장비", "Y" if c in caps["0"] else "K") for c in up278 if c in caps["0"] or c in caps["1"]])
     share_code = pack([(d["s"], CODE_KIND[d["ind"]], d["cls"]) for d in det if d["ind"] in CODE_KIND])
     out = {"전체상장": len(listed), "조회실패": len(bad), "시장별": mk, "업종후보": cand,
            "업종코드별(26·29·20·24·27 시작)": {c: len(n) for c, n in sorted(by_code.items()) if c[:2] in ("26", "29", "20", "24", "27")},
-           "업종코드별 회사명": show, "대시보드명단": cur, "시장비중_대시보드명단(직접분류)": share_cur, "시장비중_업종코드후보": share_code}
+           "업종코드별 회사명": show, "대시보드명단": cur, "시장비중_대시보드명단(직접분류)": share_cur, "시장비중_업종코드후보": share_code, "시장비중_네이버업종278": share_up, "시총출처": caps_src}
     print("[semi-count-json]" + json.dumps(out, ensure_ascii=False), flush=True)
     Path("semi_count.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
 
