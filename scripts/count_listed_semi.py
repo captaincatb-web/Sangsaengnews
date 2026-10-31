@@ -39,7 +39,7 @@ def corp_list():
 
 def info(row):
     d = dart("company.json", corp_code=row["c"])
-    return {**row, "cls": d.get("corp_cls", ""), "ind": d.get("induty_code", ""), "ok": d.get("status") == "000"}
+    return {**row, "cls": d.get("corp_cls", ""), "ind": d.get("induty_code", ""), "jur": (d.get("jurir_no") or "").replace("-", "").strip(), "biz": (d.get("bizr_no") or "").replace("-", "").strip(), "ok": d.get("status") == "000"}
 
 
 # 반도체 소부장 후보 업종코드(KSIC 10차). 이 목록은 '후보'이며 직접 분류가 우선한다
@@ -49,6 +49,7 @@ CODE_KIND = {
     "26299": "부품", "26310": "부품",                        # 기타 전자부품·인쇄회로기판
     "20121": "소재", "20119": "소재", "20129": "소재",        # 산업용 가스·기초 무기화학
 }
+KSIC_RULES = [("2927", "장비"), ("29", "장비"), ("27", "장비"), ("2611", "소재"), ("20", "소재"), ("21", "소재"), ("22", "소재"), ("24", "소재"), ("23", "부품"), ("25", "부품"), ("26", "부품"), ("28", "부품"), ("30", "부품")]
 NAME_SHOW = ("2611", "2612", "2927", "2631")
 
 
@@ -169,8 +170,12 @@ def main():
     listed = [r for r in rows if r["s"]]
     print(f"[corpCode] 전체 {len(rows)} · 상장(종목코드 있음) {len(listed)}", flush=True)
     t0 = time.time()
+    det = []
     with ThreadPoolExecutor(6) as ex:
-        det = list(ex.map(info, listed))
+        for i, d in enumerate(ex.map(info, listed), 1):
+            det.append(d)
+            if i % 500 == 0:
+                print(f"[company] {i}/{len(listed)} · {time.time() - t0:.0f}초", flush=True)
     bad = [d for d in det if not d["ok"]]
     print(f"[company] 조회 {len(det)} · 실패 {len(bad)} · {time.time() - t0:.0f}초", flush=True)
     det = [d for d in det if d["ok"]]
@@ -229,9 +234,37 @@ def main():
     share_cur = pack([m for m in members if m[1] in ("소재", "부품", "장비")])
     share_up = pack([(c, "네이버 업종 반도체와반도체장비", "Y" if c in caps["0"] else "K") for c in up278 if c in caps["0"] or c in caps["1"]])
     share_code = pack([(d["s"], CODE_KIND[d["ind"]], d["cls"]) for d in det if d["ind"] in CODE_KIND])
+
+    # ---- 협력사 상장 명단(사용자 제공, scripts/partner_listed.tsv) ----
+    import csv
+    segs_all = curated()[2]
+    seg_sub = dict(re.findall(r'"(\d{8})":\s*\["[^"]+",\s*"([^"]*)"\]', (ROOT / "site/data/segments.js").read_text(encoding="utf-8")))
+    plist = {}
+    for r in list(csv.reader(open(ROOT / "scripts/partner_listed.tsv", encoding="utf-8"), delimiter="\t"))[1:]:
+        plist.setdefault(r[1].strip(), r)
+    jur = {d["jur"]: d for d in det if d["jur"]}
+    norm = lambda t: re.sub(r"\(주\)|주식회사|㈜|\s", "", t)
+    nm = {norm(d["n"]): d for d in det}
+    part, unmatched = [], []
+    for j, r in plist.items():
+        d = jur.get(j) or nm.get(norm(re.sub(r"\s*\S*(지점|공장|사업장|영업소|사업부)$", "", r[2])))
+        if not d: unmatched.append(r[2]); continue
+        seg = segs_all.get(d["c"]); est = False
+        if seg is None:
+            kind = next((k for p, k in KSIC_RULES if d["ind"].startswith(p)), "미분류"); est = True
+        else: kind = seg
+        part.append({"회사": d["n"], "입력명": r[2], "시장": {"Y": "코스피", "K": "코스닥", "N": "코넥스"}.get(d["cls"], d["cls"]), "종목코드": d["s"], "업종코드": d["ind"], "구분": kind, "추정": est, "세부": seg_sub.get(d["c"], "")})
+    pk = {}
+    for x in part:
+        b = pk.setdefault(x["구분"], {"코스피": 0, "코스닥": 0, "코넥스": 0}); b[x["시장"]] += 1
+    print(f"[partner] 입력 {len(plist)}곳 · DART 매칭 {len(part)} · 미매칭 {len(unmatched)} {unmatched}", flush=True)
+    sobu = [x for x in part if x["구분"] in ("소재", "부품", "장비")]
+    share_partner = pack([(x["종목코드"], x["구분"], {"코스피": "Y", "코스닥": "K"}.get(x["시장"], "N")) for x in sobu])
+    partner_out = {"입력(고유 법인)": len(plist), "DART 매칭": len(part), "미매칭": unmatched, "구분별(시장)": pk, "소부장 합계": len(sobu), "시장비중": share_partner,
+                   "명단": [f"{x['회사']}|{x['시장']}|{x['업종코드']}|{x['구분']}{'(추정)' if x['추정'] else ''}|{x['세부']}" for x in part]}
     out = {"전체상장": len(listed), "조회실패": len(bad), "시장별": mk, "업종후보": cand,
            "업종코드별(26·29·20·24·27 시작)": {c: len(n) for c, n in sorted(by_code.items()) if c[:2] in ("26", "29", "20", "24", "27")},
-           "업종코드별 회사명": show, "대시보드명단": cur, "시장비중_대시보드명단(직접분류)": share_cur, "시장비중_업종코드후보": share_code, "시장비중_네이버업종278": share_up, "시총출처": caps_src}
+           "업종코드별 회사명": show, "대시보드명단": cur, "시장비중_대시보드명단(직접분류)": share_cur, "시장비중_업종코드후보": share_code, "시장비중_네이버업종278": share_up, "시총출처": caps_src, "협력사명단": partner_out}
     print("[semi-count-json]" + json.dumps(out, ensure_ascii=False), flush=True)
     Path("semi_count.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
 
