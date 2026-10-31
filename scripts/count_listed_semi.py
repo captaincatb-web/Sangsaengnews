@@ -116,6 +116,8 @@ def naver_caps():
     for sosok, mt in (("0", "KOSPI"), ("1", "KOSDAQ")):
         try:
             rows = ns_pages("/api/domestic/market/stock/default", {"tradeType": "KRX", "marketType": mt, "orderType": "marketSum"})
+            from collections import Counter
+            print(f"[naver-diag] {mt} 행 {len(rows)} · type={dict(Counter(x.get('type') for x in rows))} · marketSum 있음 {sum(1 for x in rows if x.get('marketSum'))} · 키 예시 {sorted(rows[-1].keys())[:25] if rows else []}", flush=True)
             for x in rows:
                 if x.get("type") not in (None, "ST"): continue  # 주식만(ETF·ETN 제외)
                 ms = x.get("marketSum")
@@ -179,6 +181,8 @@ def curated():
 
 
 def main():
+    if os.environ.get("NAVER_ONLY"):  # 네이버 시총만 확인(진단)
+        caps, src = naver_caps(); print(src, {k: len(v) for k, v in caps.items()}, flush=True); return
     rows = corp_list()
     listed = [r for r in rows if r["s"]]
     print(f"[corpCode] 전체 {len(rows)} · 상장(종목코드 있음) {len(listed)}", flush=True)
