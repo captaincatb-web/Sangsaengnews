@@ -35,20 +35,32 @@ def dicts_with(j, *keys):
 
 
 def pages(path, params, size=10, maxp=400):
-    """서버가 쪽당 10건만 주는 것으로 보여 쪽 크기를 10으로 고정한다. startIdx 가 쪽 번호인지 건너뛴 개수인지는 둘째 쪽이 첫 쪽과 겹치는지로 판별."""
-    seen, out, mode = set(), [], "page"
+    """서버가 쪽당 10건만 줘 쪽 크기를 10으로 고정한다. startIdx 해석은 첫 두 쪽(0, 1)을 비교해 판별:
+    같은 쪽이면 1부터 세는 쪽 번호(0과 1이 같은 쪽) → 2, 3, … / 일부만 겹치면 건너뛴 개수 → 10, 20, … / 전부 새것이면 0부터 쪽 번호."""
     key = lambda r: str(r.get("itemcode") or r.get("itemCode") or r.get("no") or json.dumps(r, sort_keys=True)[:120])
+    fetch = lambda st: dicts_with(get(path, **params, startIdx=st, pageSize=size), "itemcode", "itemCode", "no", "name")
+    seen, out = set(), []
+    def take(rows):
+        n = 0
+        for r in rows:
+            k = key(r)
+            if k not in seen: seen.add(k); out.append(r); n += 1
+        return n
+    r0 = fetch(0); take(r0)
+    if not r0: return out
+    r1 = fetch(1); k0, k1 = {key(r) for r in r0}, {key(r) for r in r1}
+    if k1 == k0: mode, nxt = "page1", 2
+    elif k1 & k0: mode, nxt = "offset", size; take(r1)
+    else: mode, nxt = "page0", 2; take(r1)
+    miss = 0
     for i in range(maxp):
-        start = i if mode == "page" else i * size
-        rows = dicts_with(get(path, **params, startIdx=start, pageSize=size), "itemcode", "itemCode", "no", "name")
-        ids = [key(r) for r in rows]
-        if i == 1 and ids and len(set(ids) & seen) > len(ids) // 2 and mode == "page":
-            mode = "offset"
-            rows = dicts_with(get(path, **params, startIdx=size, pageSize=size), "itemcode", "itemCode", "no", "name"); ids = [key(r) for r in rows]
-        new = [r for r, k in zip(rows, ids) if k not in seen]
-        seen.update(ids); out += new
-        if not rows or not new: break
-    print(f"## {path} {len(out)}건(쪽 크기 {size}, startIdx={mode})", flush=True)
+        st = nxt + i if mode != "offset" else nxt + i * size
+        rows = fetch(st)
+        if not rows or take(rows) == 0:
+            miss += 1
+            if not rows or miss >= 2: break
+        else: miss = 0
+    print(f"## {path} {len(out)}건(쪽 크기 {size}, 해석={mode})", flush=True)
     return out
 
 
