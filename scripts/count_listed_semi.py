@@ -296,13 +296,16 @@ def main():
         if not d: extra_unmatched.append(f"{nm_}({code})"); continue
         if d["s"] in have: continue
         part.append({"회사": d["n"], "입력명": nm_, "시장": {"Y": "코스피", "K": "코스닥", "N": "코넥스"}.get(d["cls"], d["cls"]), "종목코드": d["s"], "업종코드": d["ind"], "구분": kind_, "추정": False, "세부": "추가·" + why_[:30], "추가": True})
+    excl = {r[0].strip() for r in list(csv.reader(open(ROOT / "scripts/partner_excluded.tsv", encoding="utf-8"), delimiter="\t"))[1:]}
+    excluded_names = [x["회사"] for x in part if x["종목코드"] in excl]
+    part = [x for x in part if x["종목코드"] not in excl]  # 사용자가 소부장이 아니라고 지정한 회사
     pk = {}
     for x in part:
         b = pk.setdefault(x["구분"], {"코스피": 0, "코스닥": 0, "코넥스": 0}); b[x["시장"]] += 1
     print(f"[partner] 입력 {len(plist)}곳 · DART 매칭 {len(part)} · 미매칭 {len(unmatched)} {unmatched}", flush=True)
     sobu = [x for x in part if x["구분"] in ("소재", "부품", "장비")]
     share_partner = pack([(x["종목코드"], x["구분"], {"코스피": "Y", "코스닥": "K"}.get(x["시장"], "N")) for x in sobu])
-    partner_out = {"입력(고유 법인)": len(plist), "DART 매칭": len(part), "미매칭": unmatched, "구분별(시장)": pk, "소부장 합계": len(sobu), "추가후보 DART 미매칭": extra_unmatched, "추가 반영": [x["회사"] for x in part if x.get("추가")], "시장비중": share_partner,
+    partner_out = {"입력(고유 법인)": len(plist), "DART 매칭": len(part), "미매칭": unmatched, "구분별(시장)": pk, "소부장 합계": len(sobu), "추가후보 DART 미매칭": extra_unmatched, "사용자 지정 제외": excluded_names, "추가 반영": [x["회사"] for x in part if x.get("추가")], "시장비중": share_partner,
                    "명단": [f"{x['회사']}|{x['시장']}|{x['업종코드']}|{x['구분']}{'(추정)' if x['추정'] else ''}|{x['세부']}" for x in part]}
     out = {"전체상장": len(listed), "조회한 상장사": len(det), "조회실패": fails, "시장별": mk, "업종후보": cand,
            "업종코드별(26·29·20·24·27 시작)": {c: len(n) for c, n in sorted(by_code.items()) if c[:2] in ("26", "29", "20", "24", "27")},
