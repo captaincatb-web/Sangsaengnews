@@ -132,7 +132,9 @@ def naver_caps():
 def naver_upjong(industry_no="278"):
     """네이버 업종 '반도체와반도체장비'(no 278) 구성 종목을 읽는다. 응답 구조를 로그에 남긴다."""
     try:
-        rows = ns_pages(f"/api/domestic/market/upjong/{industry_no}/stocklist", {"marketType": "ALL", "orderType": "marketSum"})
+        rows = []
+        for mt in ("KOSPI", "KOSDAQ"):  # 서버는 marketType 으로 KOSPI·KOSDAQ 만 받는다(ALL 은 400)
+            rows += ns_pages(f"/api/domestic/market/upjong/{industry_no}/stocklist", {"marketType": mt, "orderType": "marketSum"})
         print(f"[naver-upjong] {industry_no} 구성 {len(rows)}종목 · 예시 {json.dumps(rows[:1], ensure_ascii=False)[:400]}", flush=True)
         return [(x.get("itemcode") or x.get("itemCode")) for x in rows]
     except Exception as e:

@@ -58,18 +58,13 @@ def pages(path, params, size=None, maxp=60):
 
 
 def members(kind, no):
-    rows, err = [], None
-    for order in ("quantTop", "marketSum", "up"):  # 화면 정렬 값: 어떤 값이 열리는지 순서대로 시도
-        try:
-            rows = pages(f"/api/domestic/market/{kind}/{no}/stocklist", {"marketType": "ALL", "orderType": order}); break
-        except (requests.HTTPError, RuntimeError) as e:
-            err = e
-    else:
-        raise RuntimeError(f"모든 정렬 실패: {err}")
+    """구성 종목. 서버는 marketType 으로 KOSPI·KOSDAQ 만 받으므로(ALL 은 400) 두 시장을 따로 읽어 합친다."""
     res = []
-    for r in rows:
-        code = r.get("itemcode") or r.get("itemCode")
-        if code: res.append({"c": code, "n": r.get("itemname") or r.get("itemName"), "m": {"0": "코스피", "1": "코스닥"}.get(str(r.get("sosok")), str(r.get("sosok"))), "cap": r.get("marketSum")})
+    for mt, label in (("KOSPI", "코스피"), ("KOSDAQ", "코스닥")):
+        rows = pages(f"/api/domestic/market/{kind}/{no}/stocklist", {"marketType": mt, "orderType": "marketSum"})
+        for r in rows:
+            code = r.get("itemcode") or r.get("itemCode")
+            if code: res.append({"c": code, "n": r.get("itemname") or r.get("itemName"), "m": label, "cap": r.get("marketSum")})
     return res
 
 
