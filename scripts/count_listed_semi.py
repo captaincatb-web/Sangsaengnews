@@ -73,8 +73,18 @@ def find_items(j, key="itemcode"):
     return []
 
 
-def ns_pages(path, params, page_size=100, max_pages=60):
-    """stock.naver.com 목록을 쪽 단위로 읽는다. startIdx 가 쪽 번호인지 건너뛴 개수인지 둘째 쪽 겹침으로 판별. 403·429는 즉시 중단."""
+def ns_pages(path, params, page_size=None, max_pages=80):
+    """stock.naver.com 목록을 쪽 단위로 읽는다. startIdx 가 쪽 번호인지 건너뛴 개수인지 둘째 쪽 겹침으로 판별. 403·429는 즉시 중단.
+    쪽 크기가 크면 400이 나므로 100→50→30→20 순으로 줄여 첫 쪽이 열리는 크기를 쓴다."""
+    if page_size is None:
+        for page_size in (100, 50, 30, 20):
+            r0 = S.get(NS + path, params={**params, "startIdx": 0, "pageSize": page_size}, headers=NSH, timeout=25, allow_redirects=False)
+            if r0.status_code in (403, 429) or 300 <= r0.status_code < 400:
+                raise RuntimeError(f"HTTP {r0.status_code}")
+            if r0.status_code == 200: break
+        else:
+            raise RuntimeError("쪽 크기 400")
+        print(f"[naver] {path} 쪽 크기 {page_size}", flush=True)
     seen, out, mode = set(), [], "page"
     for i in range(max_pages):
         start = i if mode == "page" else i * page_size
