@@ -1,0 +1,23 @@
+name: semi-count
+
+# DART 로 국내 상장사 전체를 훑어 반도체 소부장(소재·부품·장비) 숫자를 센다(수동 실행). 결과는 로그의 [semi-count-json] 줄과 artifact.
+on:
+  workflow_dispatch:
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DART_API_KEY: ${{ secrets.DART_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install requests
+      - run: python scripts/count_listed_semi.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semi-count
+          path: semi_count.json
