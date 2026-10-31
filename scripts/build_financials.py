@@ -310,6 +310,11 @@ def main() -> int:
     if not records:
         print("받은 데이터가 없어 financials.js 를 바꾸지 않습니다.")
         return 1
+    # OpenDART 접속이 끊기거나 시간이 모자라 일부만 받았으면 저장하지 않는다(일부만 배포되면 대시보드 기업 수가 줄어든다).
+    # 실패로 끝내면 배포 워크플로가 지난번 전체 수집 값을 다시 쓴다
+    if stop[0] or len(records) < 0.85 * len(targets):
+        print(f"일부만 받아({len(records)}/{len(targets)}곳{', OpenDART 접속 중단' if stop[0] else ''}) financials.js 를 바꾸지 않습니다. 지난번 저장 값을 씁니다.")
+        return 1
     ordered = [records[c] for c in targets if c in records]
     meta = {"updated": datetime.now().strftime("%Y-%m-%d"), "missing": missing, "ambiguous": ambiguous}
     OUT_PATH.write_text(

@@ -76,8 +76,12 @@ jobs:
           path: |
             site/data/profiles.js
             site/data/financials.js
-          key: site-data-${{ github.run_id }}
-          restore-keys: site-data-
+          key: site-data-v2-${{ github.run_id }}
+          # 2026-10-31 정기 수집이 OpenDART 접속 오류로 134곳 중 76곳만 저장해 그 캐시(site-data-41156831573)가 최신이 됐다.
+          # 새 접두사(v2)로 바꾸고, v2가 없으면 마지막 전체 수집(2026-10-30 정기 실행) 캐시를 쓴다
+          restore-keys: |
+            site-data-v2-
+            site-data-40989705827
 
       # 저장해 둔 데이터가 없으면 새로 수집한다
       - name: Fall back to collecting
@@ -122,7 +126,7 @@ jobs:
           path: |
             site/data/profiles.js
             site/data/financials.js
-          key: site-data-${{ github.run_id }}
+          key: site-data-v2-${{ github.run_id }}
 
       # 새로 수집하다 한쪽이 실패하면, 실패한 쪽은 지난번 저장 값으로 되돌린다(기본 틀 파일이 배포되지 않게)
       - name: Keep fresh results before fallback
@@ -140,8 +144,12 @@ jobs:
           path: |
             site/data/profiles.js
             site/data/financials.js
-          key: site-data-${{ github.run_id }}
-          restore-keys: site-data-
+          key: site-data-v2-${{ github.run_id }}
+          # 2026-10-31 정기 수집이 OpenDART 접속 오류로 134곳 중 76곳만 저장해 그 캐시(site-data-41156831573)가 최신이 됐다.
+          # 새 접두사(v2)로 바꾸고, v2가 없으면 마지막 전체 수집(2026-10-30 정기 실행) 캐시를 쓴다
+          restore-keys: |
+            site-data-v2-
+            site-data-40989705827
 
       - name: Put fresh results back
         if: ${{ steps.need.outputs.collect == 'true' && (steps.profiles.outcome == 'failure' || steps.financials.outcome == 'failure') }}
