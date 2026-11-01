@@ -2,7 +2,7 @@
 :root { --site-nav-font: "Pretendard GOV", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
 header.krds-header nav.gnb {
   box-sizing: border-box; border-top: 1px solid var(--side-2, var(--line, #e5e7eb));
-  border-bottom: 1px solid var(--line, transparent); background: var(--surface, var(--bg, #fff));
+  border-bottom: 1px solid var(--line, transparent); background: inherit;
   padding-inline: clamp(8px, 2vw, 24px);
 }
 header.krds-header nav.gnb ul {
