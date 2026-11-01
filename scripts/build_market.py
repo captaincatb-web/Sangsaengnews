@@ -11,7 +11,9 @@ import json
 import os
 import re
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -47,6 +49,7 @@ def num(text):
 MAX_FAILS = 6  # 연속 접속 실패가 이만큼이면 네이버에 닿지 않는 것으로 보고 중단
 TIME_BUDGET = 25 * 60
 _fails = [0]
+_lock = threading.Lock()  # 여러 스레드가 연속 실패 횟수를 함께 센다
 
 
 class Unreachable(Exception):
@@ -58,13 +61,15 @@ def get(url, **params):
         r = requests.get(url, params=params, headers=HEADERS, timeout=(5, 15))
         r.raise_for_status()
     except requests.RequestException:
-        _fails[0] += 1
-        if _fails[0] >= MAX_FAILS:
-            raise Unreachable()
+        with _lock:
+            _fails[0] += 1
+            if _fails[0] >= MAX_FAILS:
+                raise Unreachable()
         raise
     finally:
         time.sleep(0.3)
-    _fails[0] = 0
+    with _lock:
+        _fails[0] = 0
     return r
 
 
@@ -167,15 +172,27 @@ def main() -> int:
     items = list(targets.items())[:limit] if limit else list(targets.items())
     print(f"[market] 대상 상장사 {len(items)}곳")
     out, failed, started = {}, [], time.monotonic()
-    for i, (stock, (corp, name)) in enumerate(items, 1):
-        if time.monotonic() - started > TIME_BUDGET:
-            print("[market] 시간 한도를 넘겨 남은 기업은 건너뜀")
-            break
+    workers = max(1, int(os.environ.get("MARKET_WORKERS") or 4))  # 회사별 수집은 서로 독립이라 몇 곳씩 동시에 받는다(스레드마다 요청 사이 0.3초는 그대로)
+    stop = threading.Event()
+
+    def work(stock):
+        if stop.is_set() or time.monotonic() - started > TIME_BUDGET:
+            return "skip", None
         try:
-            rec = collect(stock)
+            return "ok", collect(stock)
         except Unreachable:
-            print("[market] 네이버증권에 연속으로 닿지 않아 중단합니다")
-            break
+            stop.set()
+            return "unreachable", None
+
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        results = list(ex.map(work, [stock for stock, _ in items]))  # 입력 순서대로 돌려받아 출력·저장 순서가 일정하다
+    if any(state == "unreachable" for state, _ in results):
+        print("[market] 네이버증권에 연속으로 닿지 않아 중단합니다")
+    if any(state == "skip" for state, _ in results) and not stop.is_set():
+        print("[market] 시간 한도를 넘겨 남은 기업은 건너뜀")
+    for i, ((stock, (corp, name)), (state, rec)) in enumerate(zip(items, results), 1):
+        if state != "ok":
+            continue
         if rec.get("price") is None and "fa" not in rec:
             failed.append(name)
             continue
