@@ -1,0 +1,13 @@
+.site-data-status { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line, #e5e7eb); border-radius: 12px; background: var(--surface, var(--card, #fff)); color: var(--text, #1f2937); font-family: var(--site-font, "Pretendard GOV", sans-serif); }
+.site-data-status__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; }
+.site-data-status__head strong { font-size: 13px; font-weight: 700; }
+.site-data-status__head small { color: var(--text-3, #667085); font-size: 11px; }
+.site-data-status__list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.site-data-status__item { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; min-width: 0; padding: 5px 8px; border-radius: 8px; background: var(--subtle, var(--grid, #f2f4f7)); font-size: 11px; line-height: 1.4; }
+.site-data-status__name { font-weight: 700; }
+.site-data-status__date { color: var(--text-2, #475467); font-variant-numeric: tabular-nums; }
+.site-data-status__state { font-weight: 600; }
+.site-data-status__state.is-fresh { color: #16734a; }
+.site-data-status__state.is-cached { color: #8a5b13; }
+.site-data-status__state.is-missing { color: #b42318; }
+@media (max-width: 600px) { .site-data-status { margin-bottom: 12px; padding: 10px; } .site-data-status__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .site-data-status__item { align-content: start; } }
