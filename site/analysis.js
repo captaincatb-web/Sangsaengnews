@@ -290,5 +290,64 @@
   const filled = (k) => all.filter((c) => c[k] !== NA && c[k] != null).length;
   $("lead").innerHTML = `기업 <strong>${all.length}</strong>곳의 매출·영업이익 성장 추이를 상장 여부, 소재·부품·장비, 지역 등으로 나눠 비교합니다.`;
   $("meta").innerHTML = [`분석 가능 ${withData.length}곳`, `분류 ${filled("kind")}곳`, `기업규모 ${filled("size")}곳 입력`, upd ? `${esc(upd)} 갱신` : ""].filter(Boolean).map((t) => `<li>${t}</li>`).join("");
+
+  // Growth-analysis tabs: keyboard navigation, deep links and accessible panel state.
+  function initAnalysisTabs() {
+    const nav = $("tabs");
+    if (!nav) return;
+    const buttons = [...nav.querySelectorAll("[data-tab]")];
+    const panels = buttons.map((button) => $(button.dataset.tab));
+    if (!buttons.length || panels.some((panel) => !panel)) return;
+    const ids = buttons.map((button) => button.dataset.tab);
+    buttons.forEach((button, index) => {
+      button.id = button.id || `tab-${button.dataset.tab}`;
+      button.setAttribute("aria-controls", panels[index].id);
+      panels[index].setAttribute("aria-labelledby", button.id);
+      panels[index].setAttribute("tabindex", "0");
+    });
+    const activate = (id, options = {}) => {
+      if (!ids.includes(id)) id = ids[0];
+      buttons.forEach((button, index) => {
+        const active = button.dataset.tab === id;
+        button.setAttribute("aria-selected", String(active));
+        button.tabIndex = active ? 0 : -1;
+        panels[index].hidden = !active;
+      });
+      if (options.focus) buttons[ids.indexOf(id)].focus();
+      if (options.updateHash && location.hash !== `#${id}`) {
+        history.replaceState(null, "", `${location.pathname}${location.search}#${id}`);
+      }
+      const active = buttons[ids.indexOf(id)];
+      if (active && matchMedia("(max-width: 860px)").matches) {
+        active.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    };
+    nav.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-tab]");
+      if (button && nav.contains(button)) activate(button.dataset.tab, { updateHash: true });
+    });
+    nav.addEventListener("keydown", (event) => {
+      const button = event.target.closest("[data-tab]");
+      if (!button) return;
+      const index = ids.indexOf(button.dataset.tab);
+      let next = null;
+      if (event.key === "ArrowRight") next = (index + 1) % ids.length;
+      else if (event.key === "ArrowLeft") next = (index - 1 + ids.length) % ids.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = ids.length - 1;
+      if (next == null) return;
+      event.preventDefault();
+      activate(ids[next], { focus: true, updateHash: true });
+    });
+    window.addEventListener("hashchange", () => {
+      const id = decodeURIComponent(location.hash.slice(1));
+      if (ids.includes(id)) activate(id, { updateHash: false });
+    });
+    const initial = decodeURIComponent(location.hash.slice(1));
+    const selected = buttons.find((button) => button.getAttribute("aria-selected") === "true");
+    activate(ids.includes(initial) ? initial : selected ? selected.dataset.tab : ids[0], { updateHash: false });
+  }
+
+  initAnalysisTabs();
   update();
 })();
