@@ -113,4 +113,8 @@ theme_css = (SITE / "theme.page.css").read_text(encoding="utf-8")
 assert ".an2-body > .an2-details .an-filter-grid" in theme_css, "Growth analysis filter card layout is missing"
 assert "padding-inline: 0" in nav_css and "nav.gnb > .inner" in nav_css, "GNB inner wrapper must not add extra padding"
 
+# 기업 현황·성장 분석·이용 안내(main.pg-page)는 소부장 경영 정보(body.db)와 같은 치수: 사이드바 왼쪽 끝, 본문 좌우 여백·최대폭 1600px 동일
+assert re.search(r"main\.pg-page\s*\{[^}]*max-width:\s*none[^}]*padding:\s*0", side_css), "main.pg-page must not inset the sidebar (same as body.db)"
+assert "--pg-gutter: clamp(20px, 2.2vw, 36px)" in side_css and "1600px - 2 * var(--pg-gutter)" in side_css, "main.pg-page content width must match .db-main"
+
 print("PASS: six primary pages, auxiliary GNB, HTML body structure, growth tabs, mobile scrolling and data status")
