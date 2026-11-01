@@ -1,0 +1,46 @@
+/* 이용 안내 전용 서식(guide.html). 색·모양은 theme.page.css 의 토큰을 따른다. */
+.gd-lead { max-width: 46em; }
+.gd-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; margin: 0 0 8px; padding: 8px 0; background: var(--bg); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.gd-nav::-webkit-scrollbar { display: none; }
+.gd-nav a { flex: none; padding: 8px 16px; border-radius: 999px; font-size: 16px; font-weight: 700; color: var(--text-2); text-decoration: none; transition: background-color .15s, color .15s; }
+.gd-nav a:hover { background: var(--nav-hover); color: var(--text); }
+.gd-nav a[aria-current] { background: var(--brand-soft); color: var(--brand); }
+.gd-sec { scroll-margin-top: 72px; margin-top: 56px; }
+.gd-sec > h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -.01em; color: var(--text-strong); }
+.gd-sec > .gd-intro { margin: 0 0 20px; max-width: 46em; color: var(--text-2); }
+.gd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.gd-card { padding: 22px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--card-shadow); min-width: 0; }
+.gd-card h3 { margin: 0 0 6px; font-size: 19px; color: var(--text-strong); display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.gd-card h3 .tag { font-size: 13px; font-weight: 700; color: var(--brand); background: var(--brand-soft); border-radius: 999px; padding: 2px 10px; }
+.gd-card p { margin: 0; font-size: 16px; color: var(--text-2); }
+.gd-card .gd-link { display: inline-flex; align-items: center; gap: 2px; margin-top: 10px; font-size: 15px; font-weight: 700; color: var(--primary-text); text-decoration: none; }
+.gd-card .gd-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.gd-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.gd-steps li { counter-increment: step; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--card-shadow); min-width: 0; }
+.gd-steps li::before { content: "STEP " counter(step); display: block; margin-bottom: 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; color: var(--brand); }
+.gd-steps h3 { margin: 0 0 6px; font-size: 18px; color: var(--text-strong); }
+.gd-steps p { margin: 0; font-size: 15px; color: var(--text-2); }
+.gd-callout { display: flex; gap: 12px; align-items: flex-start; margin: 20px 0 0; padding: 16px 20px; border-radius: var(--r-card); background: var(--brand-soft); color: var(--text); }
+.gd-callout .ph { flex: none; margin-top: 3px; font-size: 22px; color: var(--brand); }
+.gd-callout p { margin: 0; font-size: 16px; } .gd-callout p + p { margin-top: 6px; color: var(--text-2); font-size: 15px; }
+.gd-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.gd-table th, .gd-table td { padding: 12px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); color: var(--text-2); }
+.gd-table thead th { color: var(--text-3); font-size: 14px; white-space: nowrap; }
+.gd-table tbody th { color: var(--text-strong); white-space: nowrap; }
+.gd-box { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--card-shadow); padding: 8px 12px 12px; overflow-x: auto; }
+.gd-disc { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: d; }
+.gd-disc li { counter-increment: d; padding: 18px 22px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); }
+.gd-disc h3 { margin: 0 0 4px; font-size: 17px; color: var(--text-strong); display: flex; gap: 10px; align-items: baseline; }
+.gd-disc h3::before { content: counter(d); flex: none; min-width: 1.6em; text-align: center; font-size: 13px; font-weight: 700; color: var(--brand); background: var(--brand-soft); border-radius: 999px; padding: 1px 6px; }
+.gd-disc p { margin: 0 0 0 calc(1.6em + 10px + 12px); font-size: 15.5px; color: var(--text-2); }
+.gd-end { margin: 20px 0 0; padding: 16px 22px; border-radius: var(--r-card); border: 1px solid var(--brand); color: var(--brand); font-weight: 700; font-size: 17px; background: var(--surface); }
+.gd-note { margin: 16px 0 0; font-size: 14px; color: var(--text-3); }
+.gd-menu { width: 100%; border-collapse: collapse; font-size: 15px; }
+.gd-menu th, .gd-menu td { padding: 11px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.gd-menu th { white-space: nowrap; color: var(--text-strong); } .gd-menu td { color: var(--text-2); }
+.gd-menu a { color: inherit; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; } .gd-menu a:hover { color: var(--brand); }
+@media (max-width: 900px) { .gd-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+  .gd-grid, .gd-steps { grid-template-columns: minmax(0, 1fr); } .gd-sec { margin-top: 40px; } .gd-sec > h2 { font-size: 21px; }
+  .gd-disc p { margin-left: 0; } .gd-card { padding: 18px; }
+}
