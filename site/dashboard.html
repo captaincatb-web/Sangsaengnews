@@ -29,8 +29,7 @@
         <li><a href="dashboard.html" aria-current="page">대시보드</a></li>
         <li><a href="domestic.html">국내 실적</a></li>
         <li><a href="compare.html">해외 비교</a></li>
-        <li><a href="report.html">경영 현황 보고</a></li>
-        <li><a href="./#guide">이용 안내</a></li>
+        <li><a href="guide.html">이용 안내</a></li>
       </ul>
     </nav>
   </header>
@@ -45,7 +44,7 @@
         <li><a href="#portfolio" data-view="portfolio"><i class="ph ph-chart-scatter" aria-hidden="true"></i><span class="l">기업 포트폴리오</span><span class="s" aria-hidden="true">기업군</span></a></li>
         <li><a href="#signals" data-view="signals"><i class="ph ph-warning-diamond" aria-hidden="true"></i><span class="l">경영 변화·위험 신호</span><span class="s" aria-hidden="true">위험 신호</span></a></li>
         <li><a href="#company" data-view="company"><i class="ph ph-identification-card" aria-hidden="true"></i><span class="l">기업 상세</span><span class="s" aria-hidden="true">기업 상세</span></a></li>
-        <li><a href="#report" data-view="report"><i class="ph ph-presentation-chart" aria-hidden="true"></i><span class="l">경영진 보고서</span><span class="s" aria-hidden="true">보고서</span></a></li>
+        <li><a href="#report" data-view="report"><i class="ph ph-presentation-chart" aria-hidden="true"></i><span class="l">실적 내려받기</span><span class="s" aria-hidden="true">내려받기</span></a></li>
       </ul>
     </nav>
     <div class="db-need th-only" id="need" hidden><p class="db-need-t">확인 필요</p><ul id="need-list"></ul></div>
@@ -213,14 +212,13 @@
       <div id="c-company"></div>
     </div>
 
-    <!-- 06 경영진 보고서 -->
+    <!-- 06 실적 모판 내려받기 -->
     <div class="db-view" id="v-report" data-view="report" hidden>
       <section class="db-card db-rep">
-        <div><h2>경영진 보고서 2장</h2><p>지금 선택한 조건과 같은 산식으로 보고서를 만듭니다.</p></div>
+        <div><h2>실적 모판 내려받기</h2><p>지금 선택한 조건과 같은 산식으로 기업별 실적 표를 CSV로 받습니다.</p></div>
         <dl class="db-rep-meta" id="c-repmeta"></dl>
-        <div class="db-rep-act"><a class="db-btn" id="rep-open" href="report.html">보고서 열기<i class="ph ph-arrow-right" aria-hidden="true"></i></a><button class="db-btn ghost" type="button" id="csv"><i class="ph ph-download-simple" aria-hidden="true"></i>실적 모판 내려받기(CSV)</button></div>
+        <div class="db-rep-act"><button class="db-btn ghost" type="button" id="csv"><i class="ph ph-download-simple" aria-hidden="true"></i>실적 모판 내려받기(CSV)</button></div>
       </section>
-      <section class="db-card db-preview"><div class="db-card-head"><h2>미리보기</h2><span class="db-mini">현재 조건으로 만든 보고서입니다</span></div><iframe id="rep-frame" title="경영진 보고서 미리보기" loading="lazy"></iframe></section>
       <div class="db-grid r1">
         <section class="db-card"><div class="db-card-head"><h2>보고서 구성</h2></div>
           <ul class="db-plain"><li><b>1장 산업 현황 및 핵심 변화</b>: 분석 범위·기준, 핵심 KPI, 매출·수익성 추이, 업종별 성장률, 핵심 메시지</li><li><b>2장 기업군 분석 및 시사점</b>: 성장·수익성 매트릭스, 업종·상장 비교, 양극화·취약 지표, 추가 확인 사항</li><li>모든 장에 기준일·필터 조건·생성 시각을 표기하고, 사실(관측)과 해석을 나눠 적습니다.</li></ul></section>

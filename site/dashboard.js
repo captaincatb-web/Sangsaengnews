@@ -72,7 +72,6 @@
     if (fl.classList.contains("open")) { fl.classList.remove("open"); document.getElementById("filter-toggle").setAttribute("aria-expanded", false); }
     if (v === "company") drawCompany();
     if (v === "market" && window.MarketView) MarketView.draw();
-    if (v === "report") loadPreview();
     syncUrl();
     window.scrollTo({ top: 0 });
     movePill();
@@ -616,25 +615,12 @@
       </div>`;
   }
 
-  // ---------- 06 경영진 보고서 ----------
+  // ---------- 06 실적 모판 내려받기 ----------
   function drawReport(S) {
     const qs = SB.toQuery(state);
-    $("rep-open").href = `report.html${qs ? `?${qs}` : ""}`;
     $("c-repmeta").innerHTML = `<div><dt>조건</dt><dd>${SB.describe(state)}</dd></div><div><dt>분석 대상</dt><dd>${S.n}곳</dd></div><div><dt>기준 데이터</dt><dd>DART 수집 ${SB.meta.updated || "-"}</dd></div>${internal ? "<div><dt>내부 정보</dt><dd>보고서 링크에는 넣지 않습니다</dd></div>" : ""}`;
   }
   $("c-formulas").innerHTML = SB.FORMULAS.map((f) => `<li>${f}</li>`).join("");
-  // 보고서 화면을 열었을 때만 미리보기를 불러온다(조건이 바뀌면 다시)
-  function loadPreview() {
-    const href = $("rep-open").getAttribute("href"), fr = $("rep-frame"), src = `${href}${href.includes("?") ? "&" : "?"}embed=1`;
-    if (fr && fr.getAttribute("src") !== src) fr.setAttribute("src", src);
-  }
-  function fitPreview() {
-    const fr = $("rep-frame");
-    try { const h = fr.contentDocument.documentElement.scrollHeight; if (h) fr.style.height = `${h}px`; } catch (e) { /* 다른 출처면 CSS 높이 유지 */ }
-  }
-  $("rep-frame").addEventListener("load", () => { fitPreview(); setTimeout(fitPreview, 300); });
-  window.addEventListener("resize", () => setTimeout(fitPreview, 200));
-
   // ---------- 그리기 ----------
   function render() {
     W = chartW();
@@ -676,7 +662,6 @@
     drawReport(S);
     if (!$("v-company").hidden) drawCompany();
     if (!$("v-market").hidden && window.MarketView) MarketView.draw();
-    if (!$("v-report").hidden) loadPreview();
     syncUrl();
     updateFilterCount();
   }
