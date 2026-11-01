@@ -361,7 +361,6 @@
   function drawCompany() {
     const list = all.slice().sort((a, b) => (b.s1 || 0) - (a.s1 || 0));
     if (!list.length) { $("c-company").innerHTML = `<p class="db-empty">해외 기업 데이터가 없습니다.</p>`; return; }
-    $("co-dl").innerHTML = list.map((r) => `<option value="${esc(r.p.n)}"></option>`).join("");
     const r = all.find((x) => x.p.k === state.co) || (rows.slice().sort((a, b) => (b.s1 || 0) - (a.s1 || 0))[0]) || list[0];
     state.co = r.p.k; $("co-q").value = r.p.n;
     const p = r.p, peersL = all.filter((x) => x.p.cat === p.cat), nP = peersL.length;
@@ -522,7 +521,7 @@
   function limits() {
     const fy = rows.length ? [...new Set(rows.map((r) => r.fy))].sort().join("·") : "-";
     $("c-lim").innerHTML = [
-      "해외는 연결, 국내는 개별 재무제표라 같은 기준이 아닙니다. 해외 기업은 규모와 사업 구조가 커 국내 협력사와 '업종 이름'만 같을 수 있습니다.",
+      "해외는 연결, 국내는 개별 재무제표라 같은 기준이 아닙니다. 해외 기업은 규모와 사업 구조가 커 국내 기업과 '업종 이름'만 같을 수 있습니다.",
       `결산월(해외 최근 ${fy}년 결산 vs 국내 ${FY}년)과 환율(평균환율 환산)이 달라 작은 차이는 의미가 없습니다. 비교 기업은 대표 기업을 고른 표본입니다.`,
       "해외 값은 공시·시세 API에서 받아 쪽 번호가 없고, 받지 못한 항목은 '-'로 두었습니다. 주가 지표는 비공식 출처(야후)를 포함합니다.",
     ].map((t) => `<li>${esc(t)}</li>`).join("");
@@ -623,8 +622,44 @@
   document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[data-pt]")) { e.preventDefault(); openCompany(e.target.dataset.pt); } });
   document.addEventListener("click", (e) => { if (e.target.closest("[data-checksort]")) { state.sortP = { k: "dm", d: 1 }; drawPerf(); } });
   document.addEventListener("click", (e) => { if (e.target.closest("[data-each]")) { state.each = !state.each; drawOverview(); } if (e.target.closest("[data-retall]")) { state.retAll = !state.retAll; drawStock(); } });
-  $("co-q").addEventListener("change", (e) => { const r = all.find((x) => x.p.n.toLowerCase() === e.target.value.trim().toLowerCase()) || all.find((x) => x.p.n.toLowerCase().includes(e.target.value.trim().toLowerCase())); if (r) openCompany(r.p.k); else e.target.value = (all.find((x) => x.p.k === state.co) || { p: { n: "" } }).p.n; });
-  $("co-q").addEventListener("focus", (e) => e.target.select());
+  // 기업 선택: 국내(소부장 경영 정보)와 같은 검색형 목록. 입력한 글자로 거르고 매출이 큰 순서로 보여 준다
+  const coAll = () => all.map((r) => ({ r, key: r.p.n.replace(/\s/g, "").toLowerCase(), last: r.s1 || 0 }));
+  let coHits = [], coIdx = -1;
+  function coRender(allList) {
+    const q = allList ? "" : $("co-q").value.replace(/\s/g, "").toLowerCase(); // 처음 누르면 선택된 이름과 상관없이 전체 목록
+    coHits = coAll().filter((x) => !q || x.key.includes(q)).sort((a, b) => (q ? (b.key.startsWith(q) - a.key.startsWith(q)) : 0) || b.last - a.last).slice(0, 80);
+    coIdx = coHits.length ? 0 : -1;
+    $("co-list").innerHTML = coHits.length
+      ? coHits.map((x, i) => `<li role="option" id="co-opt-${i}" data-i="${i}" aria-selected="${i === coIdx}"><b>${esc(x.r.p.n)}</b><span>${esc(x.r.p.cat)} · ${CTRY[x.r.p.ctry] || x.r.p.ctry} · ${won(x.last) || "-"}</span></li>`).join("")
+      : `<li class="empty">"${esc($("co-q").value)}"와 맞는 기업이 없습니다.</li>`;
+    $("co-list").hidden = false;
+    $("co-q").setAttribute("aria-expanded", "true");
+  }
+  function coClose() { $("co-list").hidden = true; $("co-q").setAttribute("aria-expanded", "false"); }
+  function coPick(i) {
+    const x = coHits[i];
+    if (!x) return;
+    coClose(); openCompany(x.r.p.k);
+    if (matchMedia("(pointer: coarse)").matches) $("co-q").blur();
+  }
+  function coMove(d) {
+    if (!coHits.length) return;
+    coIdx = (coIdx + d + coHits.length) % coHits.length;
+    $("co-list").querySelectorAll("li[data-i]").forEach((li) => li.setAttribute("aria-selected", Number(li.dataset.i) === coIdx));
+    const el = $("co-opt-" + coIdx); if (el) el.scrollIntoView({ block: "nearest" });
+    $("co-q").setAttribute("aria-activedescendant", "co-opt-" + coIdx);
+  }
+  $("co-q").addEventListener("focus", () => { $("co-q").select(); coRender(true); });
+  $("co-q").addEventListener("input", () => coRender());
+  $("co-q").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); if ($("co-list").hidden) coRender(true); else coMove(1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); coMove(-1); }
+    else if (e.key === "Enter") { e.preventDefault(); coPick(coIdx); }
+    else if (e.key === "Escape") { coClose(); $("co-q").value = (all.find((x) => x.p.k === state.co) || { p: { n: "" } }).p.n; }
+  });
+  $("co-list").addEventListener("mousedown", (e) => e.preventDefault()); // 누르는 동안 입력칸이 포커스를 잃지 않게
+  $("co-list").addEventListener("click", (e) => { const li = e.target.closest("li[data-i]"); if (li) coPick(Number(li.dataset.i)); });
+  $("co-q").addEventListener("blur", () => setTimeout(() => { coClose(); $("co-q").value = (all.find((x) => x.p.k === state.co) || { p: { n: "" } }).p.n; }, 150));
   document.addEventListener("click", (e) => { const a = e.target.closest("[data-co]"); if (a) { e.preventDefault(); openCompany(a.dataset.co); } });
   window.addEventListener("hashchange", () => show(location.hash.slice(1)));
   window.addEventListener("resize", pill);

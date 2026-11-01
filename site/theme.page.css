@@ -122,6 +122,38 @@ input:checked + .switch-track, .switch input:checked ~ .switch-track { backgroun
 .f-notice a { color: var(--primary-text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .guide-more { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 20px 0 0; }
 .guide-more span { color: var(--text-3); font-size: 15px; }
+
+/* ---------- 왼쪽 선택 메뉴(대시보드·국내 소부장·해외 비교와 같은 배치) ---------- */
+.pg-side-title { margin: 2px 12px 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--text-3); }
+.pg-side { min-width: 0; }
+.pg-sticky { display: grid; gap: 14px; }
+.pg-menu { display: grid; gap: 4px; }
+.pg-menu button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-width: 0; min-height: 44px; padding: 10px 14px; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--text-2); font: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; transition: background-color .2s, color .2s; }
+.pg-menu button::after { display: none; }
+.pg-menu button:hover { background: var(--subtle); color: var(--text); }
+.pg-menu button .count { margin-left: auto; font-size: 13px; font-weight: 400; opacity: .85; font-variant-numeric: tabular-nums; }
+.pg-menu button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pg-menu button[aria-checked="true"], .pg-menu button[aria-selected="true"],
+:root[data-theme="dark"] .pg-menu button[aria-checked="true"], :root[data-theme="dark"] .pg-menu button[aria-selected="true"] { background: var(--brand); color: var(--brand-ink); box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 24%, transparent); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pg-menu button[aria-checked="true"], :root:not([data-theme="light"]) .pg-menu button[aria-selected="true"] { background: var(--brand); color: var(--brand-ink); } }
+@media (min-width: 861px) {
+  main.pg-page { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; max-width: none; padding-inline: 0; margin: 0; }
+  main.pg-page > .pg-side, main.pg-page .an2-layout > .pg-side { grid-column: 1; grid-row: 1 / span 30; align-self: stretch; min-height: calc(100vh - 120px); padding: 16px 12px; background: color-mix(in srgb, var(--surface) 72%, transparent); border: 0; border-right: 1px solid var(--line); border-radius: 0; box-shadow: none; position: static; }
+  main.pg-page .pg-sticky { position: sticky; top: 16px; }
+  main.pg-page > *:not(.pg-side):not(.an2-layout) { grid-column: 2; margin-inline: 28px; }
+  main.pg-page .an2-layout { display: contents; }
+  main.pg-page .an2-body { grid-column: 2; margin-inline: 28px; }
+  main.pg-page > .breadcrumb { padding-top: 20px; }
+  main.pg-page .an2-details > summary { margin-bottom: 8px; }
+}
+@media (max-width: 860px) {
+  main.pg-page > .pg-side { margin: 12px 0 0; }
+  .pg-menu { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pg-menu button { width: auto; min-height: 40px; padding: 8px 14px; border-radius: 999px; font-size: 14.5px; }
+  .pg-menu button .count { margin-left: 6px; }
+  .pg-side-title { margin-left: 4px; }
+  .an2-side.pg-side { position: static; }
+}
 @media (max-width: 767px) {
   .krds-header .inner { padding-inline: 16px; }
   .krds-header .gnb ul { gap: 4px; overflow-x: auto; scrollbar-width: none; }
@@ -132,3 +164,4 @@ input:checked + .switch-track, .switch input:checked ~ .switch-track { backgroun
 }
 @media (prefers-reduced-motion: reduce) { .th-switch, .th-switch * { transition: none !important; } }
 @media print { body { background: #fff !important; } .th-btn { display: none !important; } .krds-header { border-bottom-color: #ccc; } }
+.pg-menu button[aria-checked="true"] .count, .pg-menu button[aria-selected="true"] .count { opacity: 1; }

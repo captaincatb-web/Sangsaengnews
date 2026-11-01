@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>성장 분석 대시보드 | 소부장 협력사 분석</title>
-  <meta name="description" content="협력 기업의 매출·영업이익 성장 추이를 상장 여부, 업종, 지역별로 비교합니다.">
+  <title>성장 분석 대시보드 | 소부장 분석</title>
+  <meta name="description" content="기업의 매출·영업이익 성장 추이를 상장 여부, 업종, 지역별로 비교합니다.">
   <link rel="icon" href="data:,">
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
@@ -19,7 +19,7 @@
   <header class="krds-header">
     <div class="inner head-inner">
       <div class="branding">
-        <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 협력사 분석<small>반도체 소재·부품·장비 협력 기업 정보</small></span></a>
+        <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 분석<small>반도체 소재·부품·장비 기업 정보</small></span></a>
         <div class="head-actions"><a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a></div>
       </div>
     </div>
@@ -28,8 +28,8 @@
         <ul>
           <li><a href="./">기업 현황</a></li>
           <li><a href="analysis2.html" aria-current="page">성장 분석</a></li>
-          <li><a href="dashboard.html">대시보드</a></li>
-          <li><a href="domestic.html">국내 실적</a></li>
+          <li><a href="dashboard.html">소부장 경영 정보</a></li>
+          <li><a href="domestic.html">국내 소부장</a></li>
           <li><a href="compare.html">해외 비교</a></li>
           <li><a href="guide.html">이용 안내</a></li>
         </ul>
@@ -37,7 +37,7 @@
     </nav>
   </header>
 
-    <main id="content" class="inner an2">
+    <main id="content" class="inner an2 pg-page">
     <section class="page-head" aria-labelledby="title">
       <h1 id="title">성장 분석 대시보드</h1>
       <p class="lead" id="lead"></p>
@@ -45,12 +45,21 @@
     </section>
 
     <div class="an2-layout">
-      <aside class="an2-side" aria-label="분석 대상 선택">
-        <details class="an2-details" open>
+      <aside class="an2-side pg-side" aria-label="보기와 분석 대상 선택">
+        <div class="pg-sticky">
+        <p class="pg-side-title">보기</p>
+          <div class="krds-tabs an2-tabs pg-menu" role="tablist" id="tabs">
+            <button type="button" role="tab" aria-selected="true" data-tab="p-seg">구분별</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="p-list">상장·비상장</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="p-sc">성장과 수익성</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="p-region">지역별</button>
+          </div>
+          <details class="an2-details" open>
           <summary>분석 대상 <span class="an-count" id="count" aria-live="polite"></span></summary>
           <div class="an-filter-grid" id="filters"></div>
           <button class="btn btn-tertiary btn-sm" type="button" id="reset"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>초기화</button>
         </details>
+        </div>
       </aside>
 
       <div class="an2-body">
@@ -69,15 +78,10 @@
         </div>
 
         <section class="an-card" aria-label="세부 비교">
-          <div class="krds-tabs an2-tabs" role="tablist" id="tabs">
-            <button type="button" role="tab" aria-selected="true" data-tab="p-seg">구분별</button>
-            <button type="button" role="tab" aria-selected="false" data-tab="p-list">상장·비상장</button>
-            <button type="button" role="tab" aria-selected="false" data-tab="p-sc">성장과 수익성</button>
-            <button type="button" role="tab" aria-selected="false" data-tab="p-region">지역별</button>
-          </div>
+          <h2 id="h-detail">세부 비교</h2>
           <div id="p-seg" role="tabpanel"><p class="an-sub" id="s-seg"></p><div class="an-chart" id="c-seg"></div></div>
           <div id="p-list" role="tabpanel" hidden><p class="an-sub">매출 성장률과 영업이익률 비교입니다.</p><div class="an-chart" id="c-list"></div></div>
-          <div id="p-region" role="tabpanel" hidden><p class="an-sub">협력사 명단의 사업장 지역 기준입니다. 재무가 수집된 기업만 성장률을 계산합니다.</p><div class="an-chart" id="c-region"></div></div>
+          <div id="p-region" role="tabpanel" hidden><p class="an-sub">기업 명단의 사업장 지역 기준입니다. 재무가 수집된 기업만 성장률을 계산합니다.</p><div class="an-chart" id="c-region"></div></div>
           <div id="p-sc" role="tabpanel" hidden><p class="an-sub">가로 매출 성장률, 세로 영업이익률. 점 하나가 기업 하나입니다.</p><div class="an-chart" id="c-sc"></div></div>
         </section>
 
@@ -100,7 +104,7 @@
 
   <footer class="krds-footer">
     <div class="inner">
-      <p class="f-logo"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span>소부장 협력사 분석</p>
+      <p class="f-logo"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span>소부장 분석</p>
       <div class="f-cnt">
         <div class="f-info">
           <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 주가 Yahoo Finance</p>
@@ -113,7 +117,7 @@
         </ul>
       </div>
       <div class="f-btm">
-        <p class="f-copy">© 2026 소부장 협력사 분석</p>
+        <p class="f-copy">© 2026 소부장 분석</p>
         <p class="f-credit">글꼴: Pretendard GOV (SIL OFL 1.1) · 아이콘: Phosphor Icons (MIT)</p>
       </div>
     </div>
