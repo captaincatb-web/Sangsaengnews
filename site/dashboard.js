@@ -1,4 +1,4 @@
-// 소부장 협력사 경영 대시보드: 6개 화면(Overview·산업·포트폴리오·위험 신호·기업 상세·보고서).
+// 소부장 경영 정보: 6개 화면(Overview·산업·포트폴리오·위험 신호·기업 상세·보고서).
 // 데이터 정의와 산식은 metrics.js(SB) 한 곳에서 가져오고, 모든 화면이 같은 필터 상태를 쓴다.
 (() => {
   const SB = window.SB;
@@ -195,12 +195,17 @@
       const hs = (i) => Math.max(0.05, (sales[i] - A.lo) / (A.step * k));
       const req = Math.max(1, ...ops.map((o, i) => (o > 0 && sales[i] != null ? o / (0.9 * hs(i)) : 0)));
       const mn = Math.min(0, ...ops.filter((x) => x != null)), mx = Math.max(0, ...ops.filter((x) => x != null));
-      const e10 = Math.pow(10, Math.floor(Math.log10(req / k)));
-      for (const f of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 100]) {
-        const step = f * e10, lo = mn < 0 ? -Math.ceil((-mn * 1.15) / step) * step : 0;
-        if (step * k >= req && lo + step * k >= mx) return { lo, step };
+      // 영업적자 막대가 축 아래로 나가지 않게, 적자 크기(1.15배)와 최대 흑자를 함께 담는 범위를 먼저 구한다.
+      // (이전에는 적자뿐인 기업에서 눈금 간격을 못 찾아 축 범위가 무너지고 막대가 차트 밖으로 길게 그려졌다)
+      const need = mn < 0 ? Math.max(req, -mn * 1.15 + mx) : req;
+      const e10 = Math.pow(10, Math.floor(Math.log10(need / k)));
+      for (let pass = 0; pass < 3; pass++) {
+        for (const f of [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) {
+          const step = f * e10 * Math.pow(10, pass), lo = mn < 0 ? -Math.ceil((-mn * 1.15) / step) * step : 0;
+          if (step * k >= need && lo + step * k >= mx) return { lo, step };
+        }
       }
-      return { lo: 0, step: niceStep(req / k) };
+      return { lo: mn < 0 ? -Math.ceil(-mn * 1.15) : 0, step: Math.ceil(need / k) };
     })();
     const bh = ph - band, mk = (ax) => { const hi = ax.lo + ax.step * k; return (v) => T + band + bh - ((v - ax.lo) / (hi - ax.lo)) * bh; };
     const yS = mk(A), yO = mk(O), base = (ax) => (ax.lo < 0 ? 0 : ax.lo); // 막대는 0(축 안에 있으면) 또는 축 하한에서 시작
@@ -861,7 +866,7 @@
     paint();
   }
 
-  // 좁은 화면: 사이트 메뉴는 접어 두고 '메뉴' 버튼으로 연다(대시보드 메뉴는 아래 탭)
+  // 좁은 화면: 사이트 메뉴는 접어 두고 '메뉴' 버튼으로 연다(소부장 경영 정보 메뉴는 아래 탭)
   $("site-menu").addEventListener("click", () => {
     const open = document.querySelector(".krds-header").classList.toggle("open");
     $("site-menu").setAttribute("aria-expanded", open);

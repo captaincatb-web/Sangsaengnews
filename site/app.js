@@ -149,9 +149,11 @@
     if (b) setGroup(b.dataset.group);
   });
   $("group-filter").addEventListener("keydown", (e) => {
-    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const fwd = e.key === "ArrowRight" || e.key === "ArrowDown", back = e.key === "ArrowLeft" || e.key === "ArrowUp";
+    if (!fwd && !back) return;
+    e.preventDefault();
     const i = tabs.findIndex((t) => t.id === state.group);
-    const next = tabs[(i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+    const next = tabs[(i + (fwd ? 1 : -1) + tabs.length) % tabs.length];
     setGroup(next.id);
     $("group-filter").querySelector(`[data-group="${next.id}"]`).focus();
   });
@@ -211,7 +213,7 @@
     clone.querySelectorAll("thead th").forEach((th, i) => { th.textContent = COLUMNS[i].word; });
     clone.querySelectorAll(".grp-row th").forEach((th) => { th.textContent = th.textContent.replace(/\s+/g, " ").trim(); });
     const box = document.createElement("div");
-    box.innerHTML = `<h2>반도체 협력 기업 현황${updated ? ` (${esc(updated)} 기준)` : ""}</h2>`
+    box.innerHTML = `<h2>반도체 기업 현황${updated ? ` (${esc(updated)} 기준)` : ""}</h2>`
       + `<p class="copy-note">${esc($("table-note").textContent)}</p>`;
     box.appendChild(clone);
     window.CopyKit.copyNode(box, "표를 복사했습니다. Word나 Excel에 붙여 넣으세요.");

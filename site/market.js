@@ -1,4 +1,4 @@
-/* 시장·밸류에이션 화면: 상장 협력사의 주가 지표(네이버증권, data/market.js)를 대시보드 필터와 함께 본다.
+/* 시장·밸류에이션 화면: 상장 기업의 주가 지표(네이버증권, data/market.js)를 대시보드 필터와 함께 본다.
    dashboard.js 가 window.DB.rows() 로 현재 필터의 기업 목록을 넘겨 주고, 이 파일은 그 화면(#v-market)만 그린다. */
 (function () {
   "use strict";

@@ -185,8 +185,8 @@
     universe.forEach((u) => new Set(u[2].map((s) => s[1])).forEach((c) => (cityN[c] = (cityN[c] || 0) + 1)));
     const top = Object.entries(cityN).sort((x, z) => z[1] - x[1]).slice(0, 10).map(([c, v]) => ({ label: c, v, c: 0 }));
     const ga = AREAS.map((r, i) => { const rs = p.rows.filter((x) => x.areas[0] === r); return rs.length ? { label: `${r} ${rs.length}곳`, v: agg(rs).g, c: i % 5, signed: 1, note: `영업이익률 ${rate(agg(rs).m[2])}` } : null; }).filter(Boolean);
-    return `<p class="an-mini">권역별 협력사 수 (명단 ${universe.length}곳 기준, 사업장이 여러 권역이면 각각 셉니다)</p>` + hbars(byArea, { fmt: cnt, label: "권역별 협력사 수" })
-      + `<p class="an-mini">도시별 협력사 수 상위 10</p>` + hbars(top, { fmt: cnt, label: "도시별 협력사 수" })
+    return `<p class="an-mini">권역별 기업 수 (명단 ${universe.length}곳 기준, 사업장이 여러 권역이면 각각 셉니다)</p>` + hbars(byArea, { fmt: cnt, label: "권역별 기업 수" })
+      + `<p class="an-mini">도시별 기업 수 상위 10</p>` + hbars(top, { fmt: cnt, label: "도시별 기업 수" })
       + `<p class="an-mini">권역별 매출 성장률 (본사 권역 기준, 선택한 기업)</p>` + hbars(ga, { label: "권역별 매출 성장률" });
   }
 
@@ -288,7 +288,7 @@
 
   const upd = window.COMPANY_PROFILES_UPDATED || "";
   const filled = (k) => all.filter((c) => c[k] !== NA && c[k] != null).length;
-  $("lead").innerHTML = `협력 기업 <strong>${all.length}</strong>곳의 매출·영업이익 성장 추이를 상장 여부, 소재·부품·장비, 지역 등으로 나눠 비교합니다.`;
+  $("lead").innerHTML = `기업 <strong>${all.length}</strong>곳의 매출·영업이익 성장 추이를 상장 여부, 소재·부품·장비, 지역 등으로 나눠 비교합니다.`;
   $("meta").innerHTML = [`분석 가능 ${withData.length}곳`, `분류 ${filled("kind")}곳`, `기업규모 ${filled("size")}곳 입력`, upd ? `${esc(upd)} 갱신` : ""].filter(Boolean).map((t) => `<li>${t}</li>`).join("");
   update();
 })();
