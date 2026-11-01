@@ -17,11 +17,12 @@ def assignment(path: Path, name: str, default):
     if not path.exists():
         return default
     source = path.read_text(encoding="utf-8")
-    match = re.search(rf"window\.{re.escape(name)}\s*=\s*(.*?);", source, re.S)
+    match = re.search(rf"window\\.{re.escape(name)}\\s*=\\s*", source)
     if not match:
         return default
     try:
-        return json.loads(match.group(1))
+        value, _ = json.JSONDecoder().raw_decode(source[match.end():])
+        return value
     except (json.JSONDecodeError, TypeError):
         return default
 
