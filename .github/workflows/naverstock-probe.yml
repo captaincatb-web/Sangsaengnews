@@ -16,11 +16,9 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install requests
-      - run: python scripts/naver_278_probe.py
-      - run: python scripts/dart_entity_check.py
-        continue-on-error: true
+      - run: python scripts/naver_278_cursor_probe.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: naver-278-raw
-          path: out/
+          name: naver-278-cursor-raw
+          path: out2/
