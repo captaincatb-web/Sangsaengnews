@@ -15,6 +15,8 @@ on:
       - "scripts/build_market.py"
       - "scripts/peers_master.csv"
       - "scripts/company_highlights.py"
+      - "scripts/build_data_status.py"
+      - "scripts/test_site_ui.py"
       - ".github/workflows/pages.yml"
   schedule:
     # 매일 07:30 KST = 전날 22:30 UTC (DART 데이터·주가 갱신)
@@ -223,6 +225,17 @@ jobs:
             site/data/peers.js
             site/data/market.js
           key: extra-data-${{ github.run_id }}
+
+      - name: Build data freshness manifest
+        env:
+          PROFILE_OUTCOME: ${{ steps.profiles.outcome }}
+          FINANCIALS_OUTCOME: ${{ steps.financials.outcome }}
+          PEERS_OUTCOME: ${{ steps.extra.outputs.peers }}
+          MARKET_OUTCOME: ${{ steps.extra.outputs.market }}
+        run: python scripts/build_data_status.py
+
+      - name: Validate site structure and navigation
+        run: python scripts/test_site_ui.py
 
       - uses: actions/configure-pages@v5
 
