@@ -62,6 +62,13 @@ for page in PAGES:
         assert asset in html, f"{page}: missing {asset}"
     assert "sidebar.shared.css" in html, f"{page}: missing shared sidebar stylesheet"
 
+utility_html = (SITE / "internal-tool.html").read_text(encoding="utf-8")
+utility_parser = PageParser()
+utility_parser.feed(utility_html)
+assert utility_parser.body_open == 1 and utility_parser.body_close == 1, "internal-tool.html: expected exactly one body pair"
+assert [label for _, label in utility_parser.gnb_links] == EXPECTED_LABELS, "internal-tool.html: GNB labels/order mismatch"
+assert "navigation.shared.css" in utility_html, "internal-tool.html: shared GNB stylesheet missing"
+
 compare = (SITE / "compare.html").read_text(encoding="utf-8")
 assert compare.count("<body") == 1, "compare.html: duplicate body tag remains"
 analysis_html = (SITE / "analysis2.html").read_text(encoding="utf-8")
