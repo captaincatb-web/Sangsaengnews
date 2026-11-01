@@ -395,12 +395,7 @@ body.db { display: block; }
 .krds-header .btn-navi { margin-left: auto; display: inline-flex; flex-direction: column; align-items: center; padding: 4px 12px; border-radius: 6px; color: var(--side-text); text-decoration: none; font-weight: 700; font-size: 15px; }
 .krds-header .btn-navi i { font-size: 20px; }
 .krds-header .btn-navi:hover { background: var(--side-2); color: #fff; }
-.krds-header .gnb { border-top: 1px solid var(--side-2); padding: 0 24px; }
-.krds-header .gnb ul { display: flex; gap: 16px; margin: 0; padding: 0; list-style: none; }
-.krds-header .gnb a { position: relative; display: inline-flex; align-items: center; height: 52px; padding: 0 16px; color: var(--side-text); font-size: 17px; font-weight: 700; text-decoration: none; }
-.krds-header .gnb a:hover { background: var(--side-2); color: #fff; }
-.krds-header .gnb a[aria-current="page"] { color: #fff; }
-.krds-header .gnb a[aria-current="page"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--accent); }
+
 @media (min-width: 861px) {
   /* 머리글 아래 왼쪽 세로 메뉴(흰 바탕) + 오른쪽 본문 */
   body.db { display: grid; grid-template-columns: 232px minmax(0, 1fr); align-items: start; }
@@ -422,11 +417,7 @@ body.db { display: block; }
   .krds-header .brand-mark { width: 32px; height: 32px; font-size: 17px; border-radius: 8px; }
   .krds-header .brand-name { font-size: 18px; }
   .krds-header .brand-name small { display: none; }
-  .krds-header .gnb { padding: 0 6px; }
-  .krds-header .gnb ul { gap: 0; overflow-x: auto; scrollbar-width: none; }
-  .krds-header .gnb ul::-webkit-scrollbar { display: none; }
-  .krds-header .gnb li { flex: none; }
-  .krds-header .gnb a { font-size: 15px; height: 46px; padding: 0 10px; white-space: nowrap; }
+
 }
 
 /* 개요: 연도별·분기별 실적(매출·영업이익 막대 + 이익률 선) */
@@ -545,7 +536,7 @@ body[data-view="company"] .db-filters, body[data-view="company"] .db-filter-togg
   .db-sig em { display: none; }
   .db-sig b { font-size: 20px; }
   #c-signal tbody th a { display: inline-block; padding: 8px 0; }
-  .krds-header .gnb a { font-size: 14px; padding: 0 7px; }
+
 }
 .db-bigswitch { flex-wrap: wrap; column-gap: 6px; } .db-bigswitch span { white-space: nowrap; }
 
