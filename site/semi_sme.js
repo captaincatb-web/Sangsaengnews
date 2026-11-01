@@ -12,7 +12,7 @@
   const nf = (v, d = 0) => (v == null || !isFinite(v) ? "-" : v.toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d }));
   const pct = (v) => (v == null || !isFinite(v) ? "-" : `${v.toFixed(2)}%`);
   const jo = (eok) => (eok == null ? "-" : Math.abs(eok) >= 10000 ? `${(eok / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}조 원` : `${nf(eok)}억 원`);
-  const state = { mk: "all", kind: "all", status: "all", q: "", sort: "cap", all: false };
+  const state = { mk: "all", kind: "all", status: "all", q: "", sort: "cap", all: false, tab: "share" };
   const PAGE = 20; // 처음에는 시가총액 상위 20곳만 보여 주고 '전체 보기'로 펼친다
   const members = () => (D.members || []).filter((m) => MK.some(([k]) => k === m.market) && KINDS.includes(m.kind));
   const statusInfo = () => ({
@@ -87,8 +87,12 @@
     return `<div class="sm-chips" id="${id}" role="group">${opts.map(([v, l]) => `<button type="button" class="sm-chip" data-v="${v}" aria-pressed="${String(cur === v)}">${l}</button>`).join("")}</div>`;
   }
 
+  let priceDrawn = false;
+  function showPrice() { const el = $("sm-pane-price"); if (state.tab === "price" && el && window.SemiPriceView && !priceDrawn) { SemiPriceView.draw(el); priceDrawn = true; } }
+
   function draw() {
     const root = $("c-semi");
+    priceDrawn = false;
     if (!root) return;
     const c = calc(), si = statusInfo(), mkt = D.market || {}, has = members().length > 0;
     const capNote = !D.cap || !D.cap.asOf ? "시가총액 기준일이 아직 없습니다." : c.capOk ? `시가총액 기준일 ${esc(D.cap.asOf)} · ${esc(D.cap.basis || "증권유형 미표기")}` : `시가총액 기준일(${esc(D.cap.asOf)})이 시장 기준일(${esc(mkt.asOf)})과 달라 시총 비중을 계산하지 않았습니다.`;
@@ -96,7 +100,7 @@
       ? `국내 상장 반도체 소부장은 <b>${nf(c.total.n)}곳</b>(장비 ${nf(c.total.byKind.장비)} · 부품 ${nf(c.total.byKind.부품)} · 소재 ${nf(c.total.byKind.소재)})이고, 전체 상장사(${nf(c.total.companies)}곳)의 <b>${pct(c.total.pCo)}</b>입니다.`
       : `국내 상장 반도체 소부장 분석 — <b>확정 전</b>입니다. 소재·부품·장비 기업 수와 시장 비중은 사용자 승인 후 채워집니다.`;
     const tag = D.status === "approved" ? "" : `<b class="sm-tag">${D.status === "preview" ? "검토용" : "확정 전"}</b> `;
-    root.innerHTML = `
+    const share = `
       <p class="db-headline sm-head" aria-live="polite">${tag}${head}</p>
       <section class="sm-status ${si.cls}" role="status"><i class="ph ${si.icon}" aria-hidden="true"></i><div><strong>${si.label}</strong><span>${si.text}</span></div>
         <dl><div><dt>시장 기준일</dt><dd>${esc(mkt.asOf || "-")}</dd></div><div><dt>시장 출처</dt><dd>${esc(mkt.source || "-")}</dd></div><div><dt>시총 기준</dt><dd>${capNote}</dd></div></dl></section>
@@ -125,6 +129,10 @@
         <li><b>회사 수·종목 수</b> 기업 수는 법인 기준 중복 제거, 종목 수는 우선주 등 상장증권 단위입니다.</li>
         <li><b>시가총액</b> 기준일·증권유형·출처를 함께 표기합니다. 값이 없으면 0으로 바꾸지 않고 '-'로 둡니다.</li>
         <li><b>한계</b> 시장 기준값은 사용자 제공 KRX 현황이며 독립 검증 전입니다. 코넥스 시총은 별도 원천이 필요합니다.</li></ul></details>`;
+    const tabs = `<div class="sm-tabs" role="tablist" aria-label="분석 화면 선택"><button type="button" role="tab" class="sm-tab" data-tab="share" aria-selected="${state.tab === "share"}"><i class="ph ph-chart-pie-slice" aria-hidden="true"></i>기업 수·시장 비중</button><button type="button" role="tab" class="sm-tab" data-tab="price" aria-selected="${state.tab === "price"}"><i class="ph ph-chart-line-up" aria-hidden="true"></i>주가 추이<em>검토용</em></button></div>`;
+    root.innerHTML = tabs + `<div id="sm-pane-share" class="sm-pane"${state.tab === "share" ? "" : " hidden"}>${share}</div><div id="sm-pane-price" class="sm-pane"${state.tab === "price" ? "" : " hidden"}></div>`;
+    root.querySelector(".sm-tabs").addEventListener("click", (e) => { const t = e.target.closest(".sm-tab"); if (!t) return; state.tab = t.dataset.tab; root.querySelectorAll(".sm-tab").forEach((x) => x.setAttribute("aria-selected", x === t)); $("sm-pane-share").hidden = state.tab !== "share"; $("sm-pane-price").hidden = state.tab !== "price"; showPrice(); });
+    showPrice();
     wire();
   }
 
