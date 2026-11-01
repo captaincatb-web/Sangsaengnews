@@ -1,17 +1,26 @@
 name: naverstock-probe
 
-# stock.naver.com 공개 JSON 응답 구조를 소량 확인(수동 실행). 결과는 로그에서 본다.
+# (임시 검증 브랜치 test/naver-278-pagination 용) 네이버 업종 278 페이지네이션 검증 + DART 기업 식별 점검. 수동 실행, 로그와 artifact 로 결과 확인.
 on:
   workflow_dispatch:
 
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
+    env:
+      DART_API_KEY: ${{ secrets.DART_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: pip install requests
-      - run: python scripts/naverstock_probe.py
+      - run: python scripts/naver_278_probe.py
+      - run: python scripts/dart_entity_check.py
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: naver-278-raw
+          path: out/
