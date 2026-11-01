@@ -726,3 +726,18 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 :root { --c0: #3b6fe0; --c1: #16a06a; --c2: #f08a1c; --c3: #9aa3b5; --c4: #12a3b8; --c5: #3b6fe0; --c6: #16a06a; --pos: #12804f; --neg: #c93a2e; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c0: #7aa2ff; --c1: #4fd394; --c2: #f5a524; --c3: #a4adba; --c4: #4fc6d6; --c5: #7aa2ff; --c6: #4fd394; } }
 :root[data-theme="dark"] { --c0: #7aa2ff; --c1: #4fd394; --c2: #f5a524; --c3: #a4adba; --c4: #4fc6d6; --c5: #7aa2ff; --c6: #4fd394; }
+
+
+/* Shared GNB typography: consistent across all top-level pages. */
+header.krds-header nav.gnb ul li a {
+  font-family: "Pretendard GOV", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.4;
+}
+@media (max-width: 767px) {
+  header.krds-header nav.gnb ul li a {
+    font-size: 15px;
+  }
+}
