@@ -62,7 +62,7 @@
   });
 
   // ---------- 화면 전환(#overview 등) ----------
-  const VIEWS = ["overview", "market", "industry", "portfolio", "signals", "company", "report"];
+  const VIEWS = ["overview", "semi", "market", "industry", "portfolio", "signals", "company", "report"];
   function showView(v) {
     if (!VIEWS.includes(v)) v = "overview";
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
@@ -72,6 +72,10 @@
     if (fl.classList.contains("open")) { fl.classList.remove("open"); document.getElementById("filter-toggle").setAttribute("aria-expanded", false); }
     if (v === "company") drawCompany();
     if (v === "market" && window.MarketView) MarketView.draw();
+    if (v === "semi" && window.SemiSmeView) SemiSmeView.draw();
+    const ttl = document.querySelector(".db-top h1"); // 소부장 분석 화면은 협력사 경영 지표와 다른 주제라 제목·부제를 바꾼다
+    if (ttl) { if (!ttl.dataset.t0) ttl.dataset.t0 = ttl.textContent; ttl.textContent = v === "semi" ? "국내 반도체 소부장 분석" : ttl.dataset.t0; }
+    const sb = $("sub"); if (sb) sb.hidden = v === "semi";
     if (v === "report") loadPreview();
     syncUrl();
     window.scrollTo({ top: 0 });
@@ -886,7 +890,7 @@
   $("foot").textContent = "자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 개별(별도) 기준. 분기 추이는 상장사만 포함합니다. "
     + "업종은 직접 분류 외에는 회사명·DART 업종코드로 추정했고, 매출 규모는 법적 기업규모 입력 전까지 쓰는 매출액 구간입니다. "
     + `12월 결산이 아닌 ${offFy}곳은 해당 사업연도로 맞췄습니다. 수요기업(삼성전자·SK하이닉스 등)과 IT·서비스 업종 7곳은 제외했습니다.`;
-  if (!recs.length) { $("kpis").innerHTML = `<p class="db-empty">실적 데이터가 아직 없습니다. 다음 자동 갱신 후에 표시됩니다.</p>`; return; }
+  if (!recs.length) { $("kpis").innerHTML = `<p class="db-empty">실적 데이터가 아직 없습니다. 다음 자동 갱신 후에 표시됩니다.</p>`; if (location.hash.slice(1) === "semi") showView("semi"); return; } // 소부장 분석 화면은 협력사 실적과 무관하게 열린다
   drawFilters();
   render();
   ready = true;

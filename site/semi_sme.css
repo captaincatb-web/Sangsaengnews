@@ -1,0 +1,81 @@
+/* 국내 반도체 소부장 분석 화면(#v-semi) 전용 스타일. 색·모션은 대시보드 토큰(--card, --line, --brand 등)과 dashboard-motion 규격을 따른다. */
+#v-semi { display: grid; gap: 16px; }
+#c-semi { display: grid; gap: 16px; }
+body[data-view="semi"] .db-filters, body[data-view="semi"] .db-filter-toggle { display: none !important; }
+
+.sm-head b { color: var(--text); }
+.sm-status { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: start; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); }
+.sm-status > i { font-size: 22px; margin-top: 2px; }
+.sm-status strong { display: inline-block; font-size: 14px; margin-right: 8px; }
+.sm-status > div > span { font-size: 13px; color: var(--text-2); }
+.sm-status.pending { border-left: 4px solid var(--orange); } .sm-status.pending > i { color: var(--orange); }
+.sm-status.preview { border-left: 4px solid var(--purple); } .sm-status.preview > i { color: var(--purple); }
+.sm-status.approved { border-left: 4px solid var(--green); } .sm-status.approved > i { color: var(--green); }
+.sm-status dl { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 8px 0 0; padding-top: 10px; border-top: 1px dashed var(--line); }
+.sm-status dl div { min-width: 0; }
+.sm-status dt { font-size: 11.5px; color: var(--text-3); }
+.sm-status dd { margin: 2px 0 0; font-size: 13px; color: var(--text); font-variant-numeric: tabular-nums; }
+
+.sm-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.sm-kpi strong { font-size: 24px; }
+.sm-kpi.hero { grid-column: auto; }
+.sm-tag { display: inline-block; padding: 1px 8px; margin-right: 4px; border-radius: 999px; font-size: 12px; background: color-mix(in srgb, var(--orange) 18%, transparent); color: var(--text); }
+.sm-kpi.hero { background: var(--brand-soft, color-mix(in srgb, var(--blue) 10%, var(--card))); }
+.sm-grid { grid-template-columns: 1.35fr 1fr; }
+.sm-card .db-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; margin-bottom: 10px; }
+
+/* 시장별 누적 가로 막대: 왼쪽에서 자라나는 입장 모션(transform), 칸마다 45ms 간격 */
+.sm-stack { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 14px; }
+.sm-stack li { display: grid; grid-template-columns: 56px 1fr 112px; gap: 10px; align-items: center; font-size: 13px; }
+.sm-stack .nm { color: var(--text-2); }
+.sm-stack .track { display: flex; height: 26px; border-radius: 6px; background: var(--grid); overflow: hidden; position: relative; }
+.sm-stack .seg { flex: 0 0 var(--w); background: var(--c); transform-origin: 0 50%; animation: sm-grow-x .75s var(--ease, cubic-bezier(.2,.8,.2,1)) both; animation-delay: calc(var(--i, 0) * 45ms); transition: filter .2s; }
+.sm-stack .seg:hover { filter: brightness(1.08) saturate(1.05); }
+.sm-stack .empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: var(--text-3); }
+.sm-stack .v { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sm-stack .v em { display: block; font-style: normal; font-weight: 400; font-size: 11px; color: var(--text-3); }
+.sm-leg { margin-top: 12px; }
+@keyframes sm-grow-x { from { transform: scaleX(.02); opacity: .35; } to { transform: none; opacity: 1; } }
+
+.sm-scroll { overflow-x: auto; }
+.sm-krx, .sm-share, .sm-co { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.sm-krx th, .sm-krx td, .sm-share th, .sm-share td, .sm-co th, .sm-co td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.sm-krx th:first-child, .sm-krx td:first-child, .sm-share th:first-child, .sm-co th, .sm-co td { text-align: left; }
+.sm-krx thead th, .sm-share thead th, .sm-co thead th { font-size: 12px; color: var(--text-3); font-weight: 600; }
+.sm-share thead th small { display: block; font-weight: 400; font-size: 11px; }
+.sm-share td b { display: block; font-size: 16px; }
+.sm-share td small { color: var(--text-3); font-size: 11.5px; }
+.sm-co .r { text-align: right; }
+.sm-co .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-2); }
+.sm-co tbody tr { animation: th-row .32s var(--ease, cubic-bezier(.2,.8,.2,1)) both; animation-delay: calc(var(--i, 0) * 12ms); transition: background .12s; }
+.sm-co tbody tr:hover { background: var(--grid); }
+.sm-co .sq { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+.sm-co .na { color: var(--text-3); }
+.sm-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.sm-count { font-size: 12px; color: var(--text-3); }
+.sm-toggle { border: 1px solid var(--line); background: var(--card); }
+.sm-empty { display: flex; gap: 8px; align-items: center; margin: 4px 0; padding: 18px 14px; border: 1px dashed var(--line); border-radius: 10px; color: var(--text-3); font-size: 13px; }
+.sm-empty i { font-size: 18px; }
+.sm-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; background: var(--grid); color: var(--text-2); }
+.sm-badge.확정 { background: color-mix(in srgb, var(--green) 15%, transparent); color: var(--up); }
+.sm-badge.보류 { background: color-mix(in srgb, var(--orange) 16%, transparent); color: var(--text-2); }
+
+.sm-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sm-tools input { height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font-size: 13px; min-width: 190px; }
+.sm-tools input:focus-visible, .sm-chip:focus-visible, .sm-basis summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.sm-chips { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--grid); }
+.sm-chip { border: 0; background: transparent; color: var(--text-2); font-size: 12.5px; padding: 6px 10px; border-radius: 7px; cursor: pointer; transition: background .2s, color .2s; }
+.sm-chip[aria-pressed="true"] { background: var(--card); color: var(--text); font-weight: 700; box-shadow: var(--shadow); }
+.sm-chip:active { transform: scale(.96); transition-duration: .08s; }
+
+.sm-basis summary { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; list-style: none; }
+.sm-basis summary::-webkit-details-marker { display: none; }
+.sm-basis ul { margin: 12px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13px; color: var(--text-2); }
+
+@media (max-width: 1100px) { .sm-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sm-grid { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .sm-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sm-stack li { grid-template-columns: 48px 1fr; } .sm-stack .v { grid-column: 2; text-align: left; }
+  .sm-tools { width: 100%; } .sm-tools input { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .sm-stack .seg, .sm-co tbody tr { animation: none; } }
