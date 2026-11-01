@@ -13,7 +13,6 @@ on:
       - "scripts/build_peers.py"
       - "scripts/peers_sec.py"
       - "scripts/build_market.py"
-      - "scripts/build_market_totals.py"
       - "scripts/peers_master.csv"
       - "scripts/company_highlights.py"
       - ".github/workflows/pages.yml"
@@ -61,7 +60,7 @@ jobs:
           collect=true
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
             # 해외 비교·시장 정보 수집기는 매번 따로 돌리므로 바뀌어도 DART 전체 수집을 다시 하지 않는다
-            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers\.py|peers_sec\.py|build_market\.py|build_market_totals\.py|peers_master\.csv)$' || true)
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" | grep -vE '^scripts/(build_peers\.py|peers_sec\.py|build_market\.py|peers_master\.csv)$' || true)
             echo "$changed"
             if ! echo "$changed" | grep -qE '^(scripts/|requirements\.txt$|site/data/(companies|universe)\.js$)'; then collect=false; fi
           fi
@@ -182,7 +181,6 @@ jobs:
           path: |
             site/data/peers.js
             site/data/market.js
-            site/data/market_totals.js
           key: extra-data-${{ github.run_id }}
           restore-keys: extra-data-
 
@@ -197,7 +195,7 @@ jobs:
             echo "저장된 해외 비교·시장 정보 사용: ${{ steps.restore-extra.outputs.cache-matched-key }}"
           fi
 
-      # 세 수집기(해외 비교·시장 정보·시장 합계)는 서로 독립이라 동시에 돌린다(순서대로 돌리면 합쳐서 12분, 동시에 돌리면 긴 쪽만큼 걸린다).
+      # 두 수집기는 서로 독립이라 동시에 돌린다(순서대로 돌리면 합쳐서 12분, 동시에 돌리면 긴 쪽만큼 걸린다).
       # 한쪽이 실패해도 사이트는 배포하고, 실패한 쪽은 저장해 둔 이전 값을 쓴다
       - name: Collect overseas peers and market data (parallel)
         id: extra
@@ -208,28 +206,22 @@ jobs:
           pid_peers=$!
           python scripts/build_market.py > /tmp/market.log 2>&1 &
           pid_market=$!
-          python scripts/build_market_totals.py > /tmp/totals.log 2>&1 &
-          pid_totals=$!
-          rc_peers=0; rc_market=0; rc_totals=0
+          rc_peers=0; rc_market=0
           wait $pid_peers || rc_peers=$?
           wait $pid_market || rc_market=$?
-          wait $pid_totals || rc_totals=$?
           echo "::group::해외 비교 수집 로그"; cat /tmp/peers.log; echo "::endgroup::"
           echo "::group::시장 정보(네이버증권) 수집 로그"; cat /tmp/market.log; echo "::endgroup::"
-          echo "::group::시장 전체 시가총액 수집 로그"; cat /tmp/totals.log; echo "::endgroup::"
-          echo "해외 비교 종료 코드 $rc_peers, 시장 정보 종료 코드 $rc_market, 시장 합계 종료 코드 $rc_totals"
+          echo "해외 비교 종료 코드 $rc_peers, 시장 정보 종료 코드 $rc_market"
           echo "peers=$([ $rc_peers -eq 0 ] && echo success || echo failure)" >> "$GITHUB_OUTPUT"
           echo "market=$([ $rc_market -eq 0 ] && echo success || echo failure)" >> "$GITHUB_OUTPUT"
-          echo "totals=$([ $rc_totals -eq 0 ] && echo success || echo failure)" >> "$GITHUB_OUTPUT"
 
       - name: Save peers and market data
-        if: ${{ steps.extra.outputs.peers == 'success' || steps.extra.outputs.market == 'success' || steps.extra.outputs.totals == 'success' }}
+        if: ${{ steps.extra.outputs.peers == 'success' || steps.extra.outputs.market == 'success' }}
         uses: actions/cache/save@v4
         with:
           path: |
             site/data/peers.js
             site/data/market.js
-            site/data/market_totals.js
           key: extra-data-${{ github.run_id }}
 
       - uses: actions/configure-pages@v5

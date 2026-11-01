@@ -175,61 +175,40 @@
   }
 
   // ---------- 시장 비중(업종별 시가총액·시장 비중·종목 수·주요 종목) ----------
-  // 사이트의 기업 명단·분류(소재·부품·장비)와 네이버증권 시가총액(market.js)으로 계산한다. 상단 필터와 무관하게 상장 기업 전체 기준이다.
-  // 분모는 코스피·코스닥 시장 전체 시가총액(market_totals.js, 네이버증권 시장 목록 합계). 코넥스는 종목 수만 센다.
-  const MK = { Y: "KOSPI", K: "KOSDAQ", N: "KONEX" }, MKN = { KOSPI: "코스피", KOSDAQ: "코스닥", KONEX: "코넥스" };
+  // 검토 중인 소부장 123개사를 기준으로 집계해 둔 값(data/semi_share.js)을 보여 준다. 상단 실적 필터와 무관하다.
+  // 시장 비중 = 소부장 시가총액 ÷ 코스피·코스닥 전체 시가총액(같은 출처·같은 시점). 코넥스는 종목 수만 센다.
+  const MKN = { KOSPI: "코스피", KOSDAQ: "코스닥" };
   const KCOL = { 소재: "var(--blue)", 부품: "var(--teal, var(--green))", 장비: "var(--orange)" };
   const pc2 = (v) => (v == null || !isFinite(v) ? "-" : `${nf(v * 100, 2)}%`);
-  function shareData() {
-    const M = (window.MARKET && window.MARKET.list) || {}, T = window.MARKET_TOTALS || null;
-    const listed = SB.recs.filter((r) => r.l && MK[r.cls]);
-    const firm = (r) => { const m = M[r.c], cap = m && m.cap > 0 ? m.cap : null; return { n: r.n, c: r.c, kind: r.kind, market: MK[r.cls], cap, est: r.kindEst }; };
-    const firms = listed.map(firm);
-    const tot = (mk) => (T && T[mk] && T[mk].cap > 0 ? T[mk].cap : null);
-    const denomAll = tot("KOSPI") != null && tot("KOSDAQ") != null ? tot("KOSPI") + tot("KOSDAQ") : null;
-    const agg = (fs, denom) => {
-      const withCap = fs.filter((f) => f.cap != null), capSum = withCap.reduce((t, f) => t + f.cap, 0);
-      const sharable = fs.filter((f) => f.market !== "KONEX" && f.cap != null).reduce((t, f) => t + f.cap, 0); // 코넥스는 비중 계산에서 뺀다
-      const top = withCap.slice().sort((a, b) => b.cap - a.cap).slice(0, 3);
-      return { n: fs.length, nCap: withCap.length, cap: capSum, share: denom && withCap.length ? sharable / denom : null, top, est: fs.filter((f) => f.est).length };
-    };
-    const kinds = ["소재", "부품", "장비"], extra = [...new Set(firms.map((f) => f.kind))].filter((k) => !kinds.includes(k));
-    const groups = { 전체: agg(firms, denomAll) };
-    [...kinds, ...extra].forEach((k) => { const fs = firms.filter((f) => f.kind === k); if (fs.length || kinds.includes(k)) groups[k] = agg(fs, denomAll); });
-    const markets = {};
-    ["KOSPI", "KOSDAQ"].forEach((m) => { const fs = firms.filter((f) => f.market === m), d = tot(m); markets[m] = { ...agg(fs, d), mcap: d, kinds: Object.fromEntries([...kinds, ...extra].filter((k) => fs.some((f) => f.kind === k) || kinds.includes(k)).map((k) => [k, agg(fs.filter((f) => f.kind === k), d)])) }; });
-    return { groups, markets, T, denomAll, konex: firms.filter((f) => f.market === "KONEX").length, nNoCap: firms.filter((f) => f.cap == null).length, haveMarket: Object.keys(M).length > 0, n: firms.length };
-  }
   function drawShare() {
     const root = $("c-share"); if (!root) return;
-    const D = shareData();
-    if (!D.n) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>${SB.recs.length ? "상장 기업이 없습니다." : "기업 실적 데이터를 아직 받지 못했습니다. 다음 자동 갱신 후 표시됩니다."}</p></section>`; return; }
+    const D = window.SEMI_SHARE;
+    if (!D || !D.groups) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>시가총액·시장 비중 자료가 아직 없습니다.</p></section>`; return; }
     const G = D.groups, maxSh = Math.max(0, ...Object.values(G).map((g) => g.share || 0));
-    const tops = (g) => (g.top.length ? g.top.map((f) => `<span class="ms-co">${esc(f.n)}<small>${won(f.cap)}</small></span>`).join("") : '<span class="ms-na">-</span>');
+    const tops = (g) => (g.top && g.top.length ? g.top.map((f) => `<span class="ms-co">${esc(f.n)}<small>${won(f.cap)}</small></span>`).join("") : '<span class="ms-na">-</span>');
     const row = (k, nm, cls, col) => {
       const g = G[k]; if (!g) return "";
       const w = maxSh && g.share != null ? Math.max(2, (g.share / maxSh) * 100) : 0;
       return `<tr class="${cls}"><th scope="row">${col ? `<i class="sq" style="background:${col}"></i>` : ""}${nm}</th><td class="r">${g.nCap ? won(g.cap) : "-"}${g.nCap && g.nCap < g.n ? `<small class="ms-sub">${g.nCap}곳 합산</small>` : ""}</td>`
         + `<td class="r ms-sh">${g.share != null ? `<span class="ms-bar" aria-hidden="true"><i style="width:${w}%;${col ? `background:${col}` : ""}"></i></span><b>${pc2(g.share)}</b>` : "-"}</td><td class="r">${nf(g.n)}</td><td><div class="ms-tops">${tops(g)}</div></td></tr>`;
     };
-    const kindRows = ["소재", "부품", "장비", ...Object.keys(G).filter((k) => !["전체", "소재", "부품", "장비"].includes(k))];
-    const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${D.T ? `시가총액 ${esc(D.T.updated)} 기준` : "시장 전체 합계 미수집"}</small></h2></div>
+    const kinds = ["소재", "부품", "장비"];
+    const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${esc(D.asOf)} 종가 기준 · 검토용</small></h2></div>
       <div class="ms-scroll"><table class="ms-tbl"><caption class="sr-only">업종별 시가총액, 시장 비중, 종목 수, 주요 종목</caption><thead><tr><th scope="col">업종</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">시장 비중</th><th scope="col" class="r">종목 수</th><th scope="col">주요 종목 <small>(시가총액 상위)</small></th></tr></thead><tbody>`
-      + row("전체", "반도체 국내 소부장", "ms-total") + kindRows.map((k) => row(k, k, "ms-kind", KCOL[k])).join("") + `</tbody></table></div>
-      <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>시장 비중은 소부장 상장 기업(코스피·코스닥) 시가총액을 코스피·코스닥 전체 시가총액으로 나눈 값입니다. 코넥스 ${D.konex}곳은 종목 수에만 포함합니다.${D.denomAll == null ? " 시장 전체 합계를 받지 못해 비중은 표시하지 않습니다." : ""}</span></p></section>`;
+      + row("전체", "반도체 국내 소부장", "ms-total") + kinds.map((k) => row(k, k, "ms-kind", KCOL[k])).join("") + `</tbody></table></div>
+      <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.basis)}입니다. 시장 비중은 소부장 상장 기업(코스피·코스닥) 시가총액을 코스피·코스닥 전체 시가총액으로 나눈 값이며, 코넥스 ${D.konexN}곳은 종목 수에만 포함합니다.</span></p></section>`;
     const mkCard = (m) => {
-      const g = D.markets[m];
-      const rows = Object.entries(g.kinds).map(([k, x]) => `<tr><th scope="row">${KCOL[k] ? `<i class="sq" style="background:${KCOL[k]}"></i>` : ""}${k}</th><td class="r">${nf(x.n)}</td><td class="r">${x.nCap ? won(x.cap) : "-"}</td><td class="r">${pc2(x.share)}</td><td><div class="ms-tops">${tops(x)}</div></td></tr>`).join("");
-      return `<article class="ms-mk"><header><h3>${MKN[m]}</h3><p><b>${g.nCap ? won(g.cap) : "-"}</b> · 시장 비중 <b>${pc2(g.share)}</b> · ${nf(g.n)}개 종목</p><p class="ms-mut">${g.mcap != null ? `${MKN[m]} 전체 시가총액 ${won(g.mcap)} 중 소부장 비중` : "시장 전체 합계를 받지 못했습니다"}</p></header>`
+      const g = D.markets[m]; if (!g) return "";
+      const rows = kinds.filter((k) => g.kinds && g.kinds[k]).map((k) => { const x = g.kinds[k]; return `<tr><th scope="row"><i class="sq" style="background:${KCOL[k]}"></i>${k}</th><td class="r">${nf(x.n)}</td><td class="r">${x.nCap ? won(x.cap) : "-"}</td><td class="r">${pc2(x.share)}</td><td><div class="ms-tops">${tops(x)}</div></td></tr>`; }).join("");
+      return `<article class="ms-mk"><header><h3>${MKN[m]}</h3><p><b>${g.nCap ? won(g.cap) : "-"}</b> · 시장 비중 <b>${pc2(g.share)}</b> · ${nf(g.n)}개 종목</p><p class="ms-mut">${MKN[m]} 전체 시가총액 ${won(g.mcap)} 중 소부장 비중</p></header>`
         + `<div class="ms-scroll"><table class="ms-tbl"><thead><tr><th scope="col">구분</th><th scope="col" class="r">종목 수</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">${MKN[m]} 내 비중</th><th scope="col">주요 종목</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
     };
-    const estN = G["전체"].est;
     const notes = `<details class="db-card ms-notes"><summary><i class="ph ph-scales" aria-hidden="true"></i> 산출 기준과 한계</summary><ul>
-      <li><b>시가총액</b> 각 기업의 네이버증권 시가총액(수집 시점 현재가 × 보통주 상장주식 수)을 구분별로 더했습니다.${D.nNoCap ? ` 시가총액을 받지 못한 ${D.nNoCap}곳은 합산에서 빠집니다.` : ""}</li>
-      <li><b>시장 전체</b> ${D.T ? `${esc(D.T.src)} 기준 ${esc(D.T.updated)} 합계입니다(코스피 ${won(D.T.KOSPI && D.T.KOSPI.cap)} · 코스닥 ${won(D.T.KOSDAQ && D.T.KOSDAQ.cap)}). 우선주·ETF·리츠 등 모든 증권유형을 포함하므로 보통주만 센 소부장 비중은 다소 낮게 나올 수 있습니다.` : "아직 받지 못했습니다. 받으면 비중을 계산합니다."}</li>
-      <li><b>출처 차이</b> 한국거래소 공식 시장 합계와는 출처·시점 차이로 1~2% 다를 수 있습니다. 두 값을 같은 시점·같은 출처로 맞춘 비교가 아닙니다.</li>
-      <li><b>명단·분류</b> 이 사이트의 분석 대상 명단(수요기업·IT·서비스 업종 제외)과 소재·부품·장비 구분을 씁니다.${estN ? ` 구분이 '추정'인 ${estN}곳(DART 업종코드 기준)이 포함됩니다.` : ""} 분류가 바뀌면 값도 바뀌며, 대형 겸업 기업의 포함 여부에 따라 업종 시가총액이 크게 달라질 수 있습니다.</li>
-      <li><b>범위</b> 상단 필터와 무관하게 상장 기업 전체 기준이며 비상장 기업은 포함하지 않습니다.</li></ul></details>`;
+      <li><b>기준일·출처</b> ${esc(D.asOf)} ${esc(D.source)}. 위 표는 이 시점에 집계해 둔 값이며 자동으로 바뀌지 않습니다(다시 계산하면 갱신).</li>
+      <li><b>시장 전체</b> 코스피 ${won(D.marketTotal.KOSPI)} · 코스닥 ${won(D.marketTotal.KOSDAQ)}(같은 출처의 시장 목록 전 종목 합계, 우선주·ETF·리츠 등 모든 증권유형 포함). 보통주만 센 소부장 비중은 그만큼 다소 낮게 나옵니다.</li>
+      <li><b>출처 차이</b> 한국거래소 공식 시장 합계와는 출처·시점 차이로 1~2% 다를 수 있습니다(같은 날 비교: 코스피 -1.6%, 코스닥 -1.0%).</li>
+      <li><b>명단·분류</b> 검토 중인 123개사의 소재·부품·장비 구분이며 확정 전입니다. 대형 겸업 기업(고려아연·LG화학·두산 등)의 포함 여부에 따라 업종 시가총액이 크게 달라집니다.</li>
+      <li><b>범위</b> 상단 실적 필터와 무관합니다. 코넥스 ${D.konexN}곳은 상장주식 수를 확인하지 못해 시가총액·비중에서 빠지고 종목 수에만 들어갑니다.</li></ul></details>`;
     root.innerHTML = `${main}<section class="db-card" aria-labelledby="ms-t2"><div class="db-card-head"><h2 id="ms-t2">코스피·코스닥별 상세</h2></div><div class="ms-mks">${mkCard("KOSPI")}${mkCard("KOSDAQ")}</div></section>${notes}`;
   }
 
