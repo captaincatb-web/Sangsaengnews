@@ -140,9 +140,9 @@ input:checked + .switch-track, .switch input:checked ~ .switch-track { backgroun
   main.pg-page { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; max-width: none; padding-inline: 0; margin: 0; }
   main.pg-page > .pg-side, main.pg-page .an2-layout > .pg-side { grid-column: 1; grid-row: 1 / span 30; align-self: stretch; min-height: calc(100vh - 120px); padding: 16px 12px; background: color-mix(in srgb, var(--surface) 72%, transparent); border: 0; border-right: 1px solid var(--line); border-radius: 0; box-shadow: none; position: static; }
   main.pg-page .pg-sticky { position: sticky; top: 16px; }
-  main.pg-page > *:not(.pg-side):not(.an2-layout) { grid-column: 2; margin-inline: 28px; }
+  main.pg-page > *:not(.pg-side):not(.an2-layout) { grid-column: 2; }
   main.pg-page .an2-layout { display: contents; }
-  main.pg-page .an2-body { grid-column: 2; margin-inline: 28px; }
+  main.pg-page .an2-body { grid-column: 2; }
   main.pg-page > .breadcrumb { padding-top: 20px; }
   main.pg-page .an2-details > summary { margin-bottom: 8px; }
 }
