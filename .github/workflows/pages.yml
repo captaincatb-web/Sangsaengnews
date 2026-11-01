@@ -97,6 +97,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
 
       - run: pip install -r requirements.txt
 
@@ -157,7 +158,22 @@ jobs:
           cp /tmp/fresh/*.js site/data/ 2>/dev/null || true
           echo "이전 값으로 대체: profiles=${{ steps.profiles.outcome }}, financials=${{ steps.financials.outcome }}, 복원 키=${{ steps.fallback.outputs.cache-matched-key }}"
 
-      # 해외 비교 기업(DART·SEC·야후)과 시장 정보(네이버증권). 매번 새로 받되 실패하면 저장해 둔 이전 값을 쓴다
+      # 해외 비교 기업(DART·SEC·야후)과 시장 정보(네이버증권).
+      # 화면만 고친 푸시는 저장해 둔 값을 그대로 쓰고(수집 12분 절약), 정기 실행·수동 실행·수집 코드 변경일 때만 새로 받는다.
+      - name: Decide whether to collect peers and market data
+        id: extra_plan
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          run=true
+          if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
+            if ! echo "$changed" | grep -qE '^(scripts/|requirements\.txt$|\.github/workflows/pages\.yml$|site/data/(companies|universe|financials)\.js$)'; then run=false; fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "해외 비교·시장 정보 새로 수집: $run"
+
       - name: Restore peers and market data
         id: restore-extra
         uses: actions/cache/restore@v4
@@ -168,22 +184,39 @@ jobs:
           key: extra-data-${{ github.run_id }}
           restore-keys: extra-data-
 
-      - name: Collect overseas peers
-        id: peers
-        if: ${{ env.DART_API_KEY != '' }}
-        continue-on-error: true
-        timeout-minutes: 25
-        run: python scripts/build_peers.py
+      # 저장된 값이 없으면 새로 수집한다
+      - name: Fall back to collecting peers and market data
+        id: extra_need
+        run: |
+          if [ "${{ steps.extra_plan.outputs.run }}" = "true" ] || [ "${{ steps.restore-extra.outputs.cache-matched-key }}" = "" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "저장된 해외 비교·시장 정보 사용: ${{ steps.restore-extra.outputs.cache-matched-key }}"
+          fi
 
-      - name: Collect market data (Naver)
-        id: market
-        if: ${{ env.DART_API_KEY != '' }}
-        continue-on-error: true
+      # 두 수집기는 서로 독립이라 동시에 돌린다(순서대로 돌리면 합쳐서 12분, 동시에 돌리면 긴 쪽만큼 걸린다).
+      # 한쪽이 실패해도 사이트는 배포하고, 실패한 쪽은 저장해 둔 이전 값을 쓴다
+      - name: Collect overseas peers and market data (parallel)
+        id: extra
+        if: ${{ env.DART_API_KEY != '' && steps.extra_need.outputs.run == 'true' }}
         timeout-minutes: 30
-        run: python scripts/build_market.py
+        run: |
+          python scripts/build_peers.py > /tmp/peers.log 2>&1 &
+          pid_peers=$!
+          python scripts/build_market.py > /tmp/market.log 2>&1 &
+          pid_market=$!
+          rc_peers=0; rc_market=0
+          wait $pid_peers || rc_peers=$?
+          wait $pid_market || rc_market=$?
+          echo "::group::해외 비교 수집 로그"; cat /tmp/peers.log; echo "::endgroup::"
+          echo "::group::시장 정보(네이버증권) 수집 로그"; cat /tmp/market.log; echo "::endgroup::"
+          echo "해외 비교 종료 코드 $rc_peers, 시장 정보 종료 코드 $rc_market"
+          echo "peers=$([ $rc_peers -eq 0 ] && echo success || echo failure)" >> "$GITHUB_OUTPUT"
+          echo "market=$([ $rc_market -eq 0 ] && echo success || echo failure)" >> "$GITHUB_OUTPUT"
 
       - name: Save peers and market data
-        if: ${{ steps.peers.outcome == 'success' || steps.market.outcome == 'success' }}
+        if: ${{ steps.extra.outputs.peers == 'success' || steps.extra.outputs.market == 'success' }}
         uses: actions/cache/save@v4
         with:
           path: |
