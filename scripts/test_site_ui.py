@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
-PAGES = ["index.html", "analysis2.html", "dashboard.html", "domestic.html", "compare.html", "guide.html"]
+PAGES = ["index.html", "analysis2.html", "dashboard.html", "domestic.html", "compare.html", "guide.html", "profile.html", "analysis.html"]
 EXPECTED_LABELS = ["프로필", "성장 분석", "소부장 경영 정보", "국내 소부장", "해외 비교", "이용 안내"]
 REQUIRED_ASSETS = ["navigation.shared.css", "data-status.css", "data/status.js", "data-status.js"]
 
