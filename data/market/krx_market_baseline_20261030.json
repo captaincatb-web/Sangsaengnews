@@ -1,0 +1,17 @@
+{
+  "reference_date": "2026-10-30",
+  "source": "사용자 제공 KRX 상장종목 현황(직전영업일)",
+  "market_cap_unit": "십억원",
+  "markets": {
+    "KOSPI": {"company_count": 829, "security_count": 939, "listed_shares_million": 57694, "market_cap_billion_krw": 4730184, "new_listing_ytd": 2},
+    "KOSDAQ": {"company_count": 1826, "security_count": 1828, "listed_shares_million": 43007, "market_cap_billion_krw": 410401, "new_listing_ytd": 61},
+    "KONEX": {"company_count": 107, "security_count": 107, "listed_shares_million": 799, "market_cap_billion_krw": 3530, "new_listing_ytd": 5}
+  },
+  "totals": {"company_count": 2762, "security_count": 2874, "listed_shares_million": 101500, "market_cap_billion_krw": 5144115, "new_listing_ytd": 68},
+  "notes": [
+    "회사 수와 종목 수를 혼동하지 않는다.",
+    "KOSDAQ GLOBAL 50개는 KOSDAQ 1,828개에 포함되는 하위 구분이다.",
+    "분자·분모 시가총액 기준일을 일치시킨다.",
+    "사용자 제공 기준값이며 독립 원천 검증값이 아니다."
+  ]
+}
