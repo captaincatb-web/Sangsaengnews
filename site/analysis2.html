@@ -134,15 +134,6 @@
   <script src="data/attrs.js"></script>
   <script src="analysis.js"></script>
   <script>
-    document.getElementById("tabs").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-tab]");
-      if (!b) return;
-      document.querySelectorAll("#tabs [data-tab]").forEach((x) => {
-        const on = x === b;
-        x.setAttribute("aria-selected", on);
-        document.getElementById(x.dataset.tab).hidden = !on;
-      });
-    });
     if (matchMedia("(max-width: 900px)").matches) document.querySelector(".an2-details").open = false;
   </script>
 </body>
