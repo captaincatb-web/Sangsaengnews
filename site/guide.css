@@ -44,3 +44,7 @@
   .gd-grid, .gd-steps { grid-template-columns: minmax(0, 1fr); } .gd-sec { margin-top: 40px; } .gd-sec > h2 { font-size: 21px; }
   .gd-disc p { margin-left: 0; } .gd-card { padding: 18px; }
 }
+
+/* 사이드바 선택에 따라 이용 안내 콘텐츠 뷰를 전환 */
+.guide-page .gd-sec[hidden] { display: none !important; }
+.guide-page .gd-sec:not([hidden]) { margin-top: 0; }
