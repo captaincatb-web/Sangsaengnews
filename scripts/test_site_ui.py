@@ -103,4 +103,14 @@ assert "SITE_DATA_STATUS" in status_script and "insertAdjacentElement" in status
 status_manifest = (SITE / "data" / "status.js").read_text(encoding="utf-8")
 assert "SITE_DATA_STATUS" in status_manifest, "Data-status manifest is missing"
 
+# Layout regressions seen on the live site (2026-11-02): with the sidebar spanning rows 1-30 the header and
+# main content of body.db pages were auto-placed below it, and the growth-analysis filters became a 1-column wall.
+assert re.search(r"body\.db > \.krds-header\s*\{[^}]*grid-row:\s*1", side_css), "body.db header must stay on grid row 1"
+assert re.search(r"body\.db > \.site-side\s*\{[^}]*grid-row:\s*2", side_css), "body.db sidebar must start on grid row 2 (below the header)"
+assert re.search(r"body\.db > \.db-main\s*\{[^}]*grid-row:\s*2", side_css), "body.db main content must sit on grid row 2"
+assert "main.pg-page .table-wrap { margin-inline: 0" in side_css, "Mobile table wrappers must not extend past the page padding"
+theme_css = (SITE / "theme.page.css").read_text(encoding="utf-8")
+assert ".an2-body > .an2-details .an-filter-grid" in theme_css, "Growth analysis filter card layout is missing"
+assert "padding-inline: 0" in nav_css and "nav.gnb > .inner" in nav_css, "GNB inner wrapper must not add extra padding"
+
 print("PASS: six primary pages, auxiliary GNB, HTML body structure, growth tabs, mobile scrolling and data status")

@@ -14,6 +14,9 @@ body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-hei
     border: 0; border-right: 1px solid var(--line); border-radius: 0; box-shadow: none;
     position: static; overflow: visible;
   }
+  body.db > .krds-header { grid-column: 1 / -1; grid-row: 1; }
+  body.db > .site-side { grid-row: 2 / span 30; }
+  body.db > .db-main { grid-column: 2; grid-row: 2; }
   main.pg-page .site-side .pg-sticky, main.pg-page .an2-layout > .site-side .pg-sticky {
     position: sticky; top: 16px; display: grid; gap: 14px;
   }
@@ -115,6 +118,7 @@ body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-hei
   .site-side .db-nav a .l { display: none; }
   .site-side .db-nav a .s { display: inline; }
   main.pg-page .an2-layout { min-width: 0; }
+  main.pg-page .table-wrap { margin-inline: 0; padding-inline: 8px; }
   .pg-page .page-head h1, .db-main .db-top h1 { font-size: 23px; line-height: 1.3; font-weight: 700; }
   .pg-page .lead, .db-main .db-top > div > p { font-size: 14px; line-height: 1.55; }
   .db-main .db-card > h2, .db-main .an-card > h2, .pg-page .gd-sec > h2 { font-size: 17px; line-height: 1.4; font-weight: 700; }

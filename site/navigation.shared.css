@@ -1,10 +1,11 @@
 /* Single source of truth for the global navigation across all six pages. */
 :root { --site-nav-font: "Pretendard GOV", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
 header.krds-header nav.gnb {
-  box-sizing: border-box; border-top: 1px solid var(--side-2, var(--line, #e5e7eb));
+  box-sizing: border-box; border-top: 1px solid var(--line, #e5e7eb);
   border-bottom: 1px solid var(--line, transparent); background: inherit;
   padding-inline: clamp(8px, 2vw, 24px);
 }
+header.krds-header nav.gnb > .inner { max-width: none; margin: 0; padding-inline: 0; } /* 감싸는 틀이 있는 화면도 없는 화면과 같은 위치에서 시작 */
 header.krds-header nav.gnb ul {
   display: flex; align-items: stretch; gap: 4px; width: 100%; margin: 0; padding: 0;
   list-style: none; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
