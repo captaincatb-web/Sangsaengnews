@@ -1,9 +1,10 @@
-/* Shared layout and sidebar system. One canonical rule set for all site sections. */
+/* Shared layout and sidebar system. Keep page-specific content styles outside this file. */
 :root {
   --site-sidebar-width: 240px;
   --site-font: "Pretendard GOV", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
 }
 body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-height: 1.6; }
+
 @media (min-width: 861px) {
   body.db, main.pg-page { grid-template-columns: var(--site-sidebar-width) minmax(0, 1fr) !important; }
   body.db > .site-side, main.pg-page > .site-side, main.pg-page .an2-layout > .site-side {
@@ -16,15 +17,21 @@ body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-hei
   main.pg-page .site-side .pg-sticky, main.pg-page .an2-layout > .site-side .pg-sticky {
     position: sticky; top: 16px; display: grid; gap: 14px;
   }
-  .db-main { width: 100%; max-width: 1600px; margin-inline: auto; padding: 24px clamp(20px, 2.2vw, 36px) 36px; box-sizing: border-box; }
+  .db-main {
+    width: 100%; max-width: 1600px; margin-inline: auto;
+    padding: 24px clamp(20px, 2.2vw, 36px) 36px; box-sizing: border-box;
+  }
   main.pg-page { width: 100%; max-width: 1600px; margin-inline: auto; padding-inline: 24px; box-sizing: border-box; }
   .pg-page .page-head h1, .db-main .db-top h1 { font-size: 30px; line-height: 1.25; font-weight: 700; }
   .pg-page .lead, .db-main .db-top > div > p { font-size: 16px; line-height: 1.6; }
   .db-main .db-card > h2, .db-main .an-card > h2, .pg-page .gd-sec > h2 { font-size: 18px; line-height: 1.4; font-weight: 700; }
 }
+
 .site-side { min-width: 0; color: var(--text-2, #46524c); font-family: var(--site-font); }
 .site-side .db-brand { display: none; }
-.site-side .db-nav, .site-side .site-side-nav { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.site-side .db-nav, .site-side .site-side-nav {
+  display: grid; gap: 4px; margin: 0; padding: 0; list-style: none;
+}
 .site-side .db-nav a, .site-side .db-nav button, .site-side .site-side-nav a, .site-side .site-side-nav button {
   display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 44px;
   padding: 10px 14px; border: 0; border-radius: 12px; background: transparent;
@@ -41,29 +48,41 @@ body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-hei
 .site-side .db-nav a[aria-current="true"], .site-side .db-nav a[aria-current="page"],
 .site-side .db-nav button[aria-checked="true"], .site-side .db-nav button[aria-selected="true"],
 .site-side .site-side-nav button[aria-checked="true"], .site-side .site-side-nav button[aria-selected="true"] {
-  background: var(--brand-soft, var(--primary-10, #e1eeea)); color: var(--brand, var(--primary, #1f6f66)); font-weight: 700;
+  background: var(--brand-soft, var(--primary-10, #e1eeea));
+  color: var(--brand, var(--primary, #1f6f66)); font-weight: 700;
 }
 .site-side .db-nav a[aria-current="true"] i, .site-side .db-nav button[aria-checked="true"] i,
 .site-side .db-nav button[aria-selected="true"] i, .site-side .site-side-nav button[aria-selected="true"] i { color: currentColor; }
 .site-side .db-nav a:focus-visible, .site-side .db-nav button:focus-visible, .site-side .site-side-nav button:focus-visible {
   outline: 2px solid var(--brand, var(--primary, #1f6f66)); outline-offset: 2px;
 }
-.site-side .db-nav .count { margin-left: auto; color: var(--text-3, #5f6a64); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.site-side .db-nav .count {
+  margin-left: auto; color: var(--text-3, #5f6a64); font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums;
+}
 .site-side .db-refresh { margin-top: auto; }
-.site-side .an2-details { margin-top: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface, var(--card, #fff)); }
+.site-side .an2-details {
+  margin-top: 8px; padding: 12px; border: 1px solid var(--line);
+  border-radius: 14px; background: var(--surface, var(--card, #fff));
+}
 .site-side .an2-details summary { cursor: pointer; font-weight: 700; color: var(--text-2); }
 .site-side .an2-details .an-filter-grid { margin-top: 10px; }
 .site-side .an2-details > button { margin-top: 10px; }
+
 @media (max-width: 860px) {
   body.db { padding-bottom: calc(94px + env(safe-area-inset-bottom)); }
-  main.pg-page { width: 100%; max-width: none; margin: 0; padding: 16px 12px calc(104px + env(safe-area-inset-bottom)) !important; box-sizing: border-box; }
+  main.pg-page {
+    width: 100%; max-width: none; margin: 0;
+    padding: 16px 12px calc(112px + env(safe-area-inset-bottom)) !important; box-sizing: border-box;
+  }
   .db-main { width: 100%; max-width: none; margin: 0; padding: 16px 12px 24px !important; box-sizing: border-box; }
   main.pg-page > .site-side, main.pg-page .an2-layout > .site-side, body.db > .site-side {
-    position: fixed !important; z-index: 100; top: auto !important; bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+    position: fixed !important; z-index: 100; top: auto !important;
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
     left: 10px !important; right: 10px !important; width: auto !important; height: auto !important;
     min-height: 0 !important; max-height: none !important; margin: 0 !important; padding: 6px 8px !important;
     display: block !important; overflow: visible !important; border: 1px solid var(--line) !important;
-    border-radius: 18px !important; background: color-mix(in srgb, var(--surface, var(--card, #fff)) 96%, transparent) !important;
+    border-radius: 18px !important;
+    background: color-mix(in srgb, var(--surface, var(--card, #fff)) 96%, transparent) !important;
     color: var(--text-2) !important; box-shadow: 0 8px 26px rgb(20 30 25 / .18) !important;
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   }
@@ -73,18 +92,20 @@ body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-hei
   .site-side .db-brand, .site-side .db-refresh { display: none !important; }
   .site-side nav { min-width: 0; }
   .site-side .db-nav, .site-side .site-side-nav {
-    display: flex !important; flex-flow: row nowrap; align-items: stretch; gap: 2px; width: 100%; min-width: 0;
-    margin: 0; padding: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
-    scroll-snap-type: x proximity; scroll-padding-inline: 8px; scrollbar-width: none;
+    display: flex !important; flex-flow: row nowrap; align-items: stretch; gap: 3px;
+    width: 100%; min-width: 0; margin: 0; padding: 0;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;
+    scroll-padding-inline: 8px; scrollbar-width: none;
   }
   .site-side .db-nav::-webkit-scrollbar, .site-side .site-side-nav::-webkit-scrollbar { display: none; }
-  .site-side .db-nav > li { flex: 0 0 clamp(76px, 22vw, 112px); min-width: 0; scroll-snap-align: start; }
-  .site-side .site-side-nav > button { flex: 0 0 clamp(76px, 22vw, 112px); min-width: 76px; scroll-snap-align: start; }
+  .site-side .db-nav > li { flex: 0 0 clamp(84px, 24vw, 120px); min-width: 84px; scroll-snap-align: start; }
+  .site-side .site-side-nav > button { flex: 0 0 clamp(84px, 24vw, 120px); min-width: 84px; scroll-snap-align: start; }
   .site-side .db-nav a, .site-side .db-nav button, .site-side .site-side-nav a, .site-side .site-side-nav button {
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-    width: 100%; min-width: 0; min-height: 58px; padding: 5px 4px; border-radius: 11px;
-    font-size: 11.5px; font-weight: 600; line-height: 1.25; text-align: center;
-    white-space: normal; overflow-wrap: break-word; word-break: keep-all;
+    width: 100%; min-width: 84px; min-height: 64px; padding: 6px 5px;
+    border-radius: 11px; font-size: 11.5px; font-weight: 600; line-height: 1.25;
+    text-align: center; white-space: normal; overflow-wrap: break-word; word-break: keep-all;
   }
   .site-side .db-nav a i, .site-side .db-nav button i, .site-side .site-side-nav button i { font-size: 19px; }
   .site-side .db-nav .count { display: none; }
