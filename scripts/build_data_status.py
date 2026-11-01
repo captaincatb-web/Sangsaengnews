@@ -14,10 +14,11 @@ DATA = ROOT / "site" / "data"
 
 
 def assignment(path: Path, name: str, default):
+    """Read a JSON-compatible window.NAME assignment from a generated JS file."""
     if not path.exists():
         return default
     source = path.read_text(encoding="utf-8")
-    match = re.search(rf"window\\.{re.escape(name)}\\s*=\\s*", source)
+    match = re.search(rf"window\.{re.escape(name)}\s*=\s*", source)
     if not match:
         return default
     try:
