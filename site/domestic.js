@@ -208,6 +208,7 @@
       <li><b>시장 전체</b> 코스피 ${won(D.marketTotal.KOSPI)} · 코스닥 ${won(D.marketTotal.KOSDAQ)}(같은 출처의 시장 목록 전 종목 합계, 우선주·ETF·리츠 등 모든 증권유형 포함). 보통주만 센 소부장 비중은 그만큼 다소 낮게 나옵니다.</li>
       <li><b>출처 차이</b> 한국거래소 공식 시장 합계와는 출처·시점 차이로 1~2% 다를 수 있습니다(같은 날 비교: 코스피 -1.6%, 코스닥 -1.0%).</li>
       <li><b>명단·분류</b> 검토 중인 123개사의 소재·부품·장비 구분이며 확정 전입니다. 대형 겸업 기업(고려아연·LG화학·두산 등)의 포함 여부에 따라 업종 시가총액이 크게 달라집니다.</li>
+      <li><b>집계 검산</b> 업종별 시가총액 합계(2,823,320억 원)는 전체 합계(2,823,321억 원)보다 1억 원 작습니다. 원자료 확인 전까지 차이를 그대로 공개합니다.</li>
       <li><b>범위</b> 상단 실적 필터와 무관합니다. 코넥스 ${D.konexN}곳은 상장주식 수를 확인하지 못해 시가총액·비중에서 빠지고 종목 수에만 들어갑니다.</li></ul></details>`;
     root.innerHTML = `${main}<section class="db-card" aria-labelledby="ms-t2"><div class="db-card-head"><h2 id="ms-t2">코스피·코스닥별 상세</h2></div><div class="ms-mks">${mkCard("KOSPI")}${mkCard("KOSDAQ")}</div></section>${notes}`;
   }
