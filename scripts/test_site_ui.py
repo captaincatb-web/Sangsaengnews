@@ -8,7 +8,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
-PAGES = ["index.html", "analysis2.html", "dashboard.html", "domestic.html", "compare.html", "guide.html", "profile.html", "analysis.html"]
+# These are the six primary pages that expose the shared sidebar navigation.
+PAGES = ["index.html", "analysis2.html", "dashboard.html", "domestic.html", "compare.html", "guide.html"]
+AUXILIARY_PAGES = ["profile.html", "analysis.html"]
 EXPECTED_LABELS = ["프로필", "성장 분석", "소부장 경영 정보", "국내 소부장", "해외 비교", "이용 안내"]
 REQUIRED_ASSETS = ["navigation.shared.css", "data-status.css", "data/status.js", "data-status.js"]
 
@@ -49,7 +51,7 @@ class PageParser(HTMLParser):
             self.anchor_text.append(data)
 
 
-for page in PAGES:
+def inspect_page(page: str, *, require_sidebar: bool):
     path = SITE / page
     assert path.exists(), f"Missing page: {page}"
     html = path.read_text(encoding="utf-8")
@@ -58,9 +60,18 @@ for page in PAGES:
     assert parser.body_open == 1 and parser.body_close == 1, f"{page}: expected exactly one body pair"
     labels = [label for _, label in parser.gnb_links]
     assert labels == EXPECTED_LABELS, f"{page}: GNB labels/order mismatch: {labels}"
-    for asset in REQUIRED_ASSETS:
-        assert asset in html, f"{page}: missing {asset}"
-    assert "sidebar.shared.css" in html, f"{page}: missing shared sidebar stylesheet"
+    assert "navigation.shared.css" in html, f"{page}: shared GNB stylesheet missing"
+    if require_sidebar:
+        assert "sidebar.shared.css" in html, f"{page}: missing shared sidebar stylesheet"
+        for asset in REQUIRED_ASSETS[1:]:
+            assert asset in html, f"{page}: missing {asset}"
+
+
+for page in PAGES:
+    inspect_page(page, require_sidebar=True)
+
+for page in AUXILIARY_PAGES:
+    inspect_page(page, require_sidebar=False)
 
 utility_html = (SITE / "internal-tool.html").read_text(encoding="utf-8")
 utility_parser = PageParser()
@@ -71,18 +82,25 @@ assert "navigation.shared.css" in utility_html, "internal-tool.html: shared GNB 
 
 compare = (SITE / "compare.html").read_text(encoding="utf-8")
 assert compare.count("<body") == 1, "compare.html: duplicate body tag remains"
+
 analysis_html = (SITE / "analysis2.html").read_text(encoding="utf-8")
 analysis_js = (SITE / "analysis.js").read_text(encoding="utf-8")
 tab_ids = re.findall(r'data-tab="([^"]+)"', analysis_html)
 assert len(tab_ids) == 4 and all(f'id="{tab_id}"' in analysis_html for tab_id in tab_ids), "Growth analysis tab/panel mapping is incomplete"
-for feature in ["ArrowRight", "ArrowLeft", "hashchange", "aria-controls"]:
+for feature in ["ArrowRight", "ArrowLeft", "Home", "End", "hashchange", "aria-controls", "scrollIntoView"]:
     assert feature in analysis_js, f"analysis.js: missing accessible tab behavior {feature}"
+
 nav_css = (SITE / "navigation.shared.css").read_text(encoding="utf-8")
 side_css = (SITE / "sidebar.shared.css").read_text(encoding="utf-8")
-assert "font-size: 15px" in nav_css and "scroll-snap-type" in nav_css, "GNB common styles are incomplete"
+assert "font-size: 15px !important" in nav_css and "scroll-snap-type" in nav_css, "GNB common styles are incomplete"
 assert "overflow-x: auto" in side_css and "scroll-snap-type: x proximity" in side_css, "Mobile sidebar horizontal scrolling is missing"
+assert "min-height: 64px" in side_css and "min-width: 84px" in side_css, "Mobile sidebar touch targets are too small"
+
+status_builder = (ROOT / "scripts" / "build_data_status.py").read_text(encoding="utf-8")
+assert r'window\.' in status_builder, "Data status builder must match JavaScript window.NAME assignments"
 status_script = (SITE / "data-status.js").read_text(encoding="utf-8")
 assert "SITE_DATA_STATUS" in status_script and "insertAdjacentElement" in status_script, "Shared data-status renderer is incomplete"
 status_manifest = (SITE / "data" / "status.js").read_text(encoding="utf-8")
 assert "SITE_DATA_STATUS" in status_manifest, "Data-status manifest is missing"
-print("PASS: six pages, GNB, HTML body structure, growth tabs, mobile scrolling and data status")
+
+print("PASS: six primary pages, auxiliary GNB, HTML body structure, growth tabs, mobile scrolling and data status")
