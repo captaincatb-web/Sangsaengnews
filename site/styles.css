@@ -701,11 +701,7 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 .brand-mark { background: transparent; border: 2px solid var(--accent); color: var(--accent); border-radius: 10px; font-size: 20px; }
 .krds-header .btn-navi { color: var(--side-text); }
 .krds-header .btn-navi:hover, .krds-header .btn-navi:active { background: var(--side-2); color: #fff; }
-.krds-header .gnb { background: var(--side); border-top: 1px solid var(--side-2); }
-.krds-header .gnb a { color: var(--side-text); font-size: 17px; height: 52px; }
-.krds-header .gnb a:hover, .krds-header .gnb a:active { background: var(--side-2); color: #fff; }
-.krds-header .gnb a[aria-current="page"], .krds-header .gnb a.on { color: #fff; }
-.krds-header .gnb a[aria-current="page"]::after, .krds-header .gnb a.on::after { background: var(--accent); height: 3px; bottom: 0; }
+
 .krds-header :focus-visible { outline-color: var(--accent); }
 .f-logo .brand-mark { color: var(--primary); border-color: var(--primary); }
 .krds-tabs button[aria-checked="true"] { background: var(--side); color: #fff; }
@@ -716,10 +712,7 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 }
 :root[data-theme="dark"] .krds-tabs button[aria-checked="true"], :root[data-theme="dark"] .pf-nav a[aria-current] { background: var(--accent); color: #1d2433; }
 @media (max-width: 767px) {
-  .krds-header .gnb ul { gap: 0; overflow-x: auto; scrollbar-width: none; }
-  .krds-header .gnb ul::-webkit-scrollbar { display: none; }
-  .krds-header .gnb li { flex: none; }
-  .krds-header .gnb a { font-size: 15px; height: 46px; padding: 0 10px; white-space: nowrap; }
+
   .brand-mark { font-size: 17px; }
 }
 /* 차트 색: 대시보드 계열(파랑·초록·주황·회색·청록) */
@@ -727,17 +720,3 @@ h2 { font-size: 32px; letter-spacing: 1px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --c0: #7aa2ff; --c1: #4fd394; --c2: #f5a524; --c3: #a4adba; --c4: #4fc6d6; --c5: #7aa2ff; --c6: #4fd394; } }
 :root[data-theme="dark"] { --c0: #7aa2ff; --c1: #4fd394; --c2: #f5a524; --c3: #a4adba; --c4: #4fc6d6; --c5: #7aa2ff; --c6: #4fd394; }
 
-
-/* Shared GNB typography: consistent across all top-level pages. */
-header.krds-header nav.gnb ul li a {
-  font-family: "Pretendard GOV", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.4;
-}
-@media (max-width: 767px) {
-  header.krds-header nav.gnb ul li a {
-    font-size: 15px;
-  }
-}
