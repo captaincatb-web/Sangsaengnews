@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.page.css?v=202611011400">
+  <link rel="stylesheet" href="sidebar.shared.css?v=202611011900">
   <script src="theme.page.js?v=202611011400"></script>
 </head>
 <body>
@@ -45,24 +46,23 @@
     </section>
 
     <div class="an2-layout">
-      <aside class="an2-side pg-side" aria-label="보기와 분석 대상 선택">
+      <aside class="an2-side pg-side db-side site-side" aria-label="성장 분석 메뉴">
         <div class="pg-sticky">
-        <p class="pg-side-title">보기</p>
-          <div class="krds-tabs an2-tabs pg-menu" role="tablist" id="tabs">
+        <div class="db-nav site-side-nav" role="tablist" aria-label="성장 분석 보기" id="tabs">
             <button type="button" role="tab" aria-selected="true" data-tab="p-seg">구분별</button>
             <button type="button" role="tab" aria-selected="false" data-tab="p-list">상장·비상장</button>
             <button type="button" role="tab" aria-selected="false" data-tab="p-sc">성장과 수익성</button>
             <button type="button" role="tab" aria-selected="false" data-tab="p-region">지역별</button>
           </div>
-          <details class="an2-details" open>
+                  </div>
+      </aside>
+
+      <div class="an2-body">
+        <details class="an2-details" open>
           <summary>분석 대상 <span class="an-count" id="count" aria-live="polite"></span></summary>
           <div class="an-filter-grid" id="filters"></div>
           <button class="btn btn-tertiary btn-sm" type="button" id="reset"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>초기화</button>
         </details>
-        </div>
-      </aside>
-
-      <div class="an2-body">
         <section class="an-kpis" id="kpis" aria-label="핵심 지표"></section>
 
         <div class="an2-hero">

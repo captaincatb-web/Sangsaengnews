@@ -12,6 +12,7 @@
   <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
   <link rel="stylesheet" href="dashboard.css?v=202610300900">
   <link rel="stylesheet" href="dashboard.theme.css?v=202610300900">
+  <link rel="stylesheet" href="sidebar.shared.css?v=202611011900">
   <link rel="stylesheet" href="market_share.css?v=202611011600">
 </head>
 <body class="db cm-page">
@@ -35,7 +36,7 @@
     </nav>
   </header>
 
-  <aside class="db-side" aria-label="국내 소부장 메뉴">
+  <aside class="db-side site-side aria-label="국내 소부장 메뉴">
     <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-table"></i></span><span>국내 소부장<br>실적</span></a>
     <nav>
       <ul class="db-nav" id="views-nav">

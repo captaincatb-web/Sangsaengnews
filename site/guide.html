@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.page.css?v=202611011400">
+  <link rel="stylesheet" href="sidebar.shared.css?v=202611011900">
   <link rel="stylesheet" href="guide.css?v=202611011500">
   <script src="theme.page.js?v=202611011400"></script>
 </head>
@@ -38,7 +39,16 @@
     </nav>
   </header>
 
-  <main id="content" class="inner">
+  <main id="content" class="inner pg-page guide-page">
+    <aside class="db-side pg-side site-side" aria-label="이용 안내 메뉴">
+      <nav aria-label="이용 안내 구역"><ul class="db-nav">
+        <li><a href="#use"><i class="ph ph-compass" aria-hidden="true"></i>이용 방법</a></li>
+        <li><a href="#process"><i class="ph ph-flow-arrow" aria-hidden="true"></i>만드는 과정</a></li>
+        <li><a href="#sources"><i class="ph ph-database" aria-hidden="true"></i>사용하는 데이터</a></li>
+        <li><a href="#cycle"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>갱신 주기</a></li>
+        <li><a href="#notice"><i class="ph ph-warning-circle" aria-hidden="true"></i>중요 안내사항</a></li>
+      </ul></nav>
+    </aside>
     <nav class="breadcrumb" aria-label="현재 위치">
       <ol>
         <li><a href="./"><i class="ph ph-house" aria-hidden="true"></i>홈</a></li>
@@ -50,10 +60,6 @@
       <h1 id="title">이용 안내</h1>
       <p class="lead gd-lead">자료가 어디서 오는지, 어떻게 만들어지는지, 얼마나 자주 바뀌는지, 이용 전에 꼭 알아야 할 점을 모았습니다.</p>
     </section>
-
-    <nav class="gd-nav" aria-label="이 페이지의 구역">
-      <a href="#use">이용 방법</a><a href="#process">만드는 과정</a><a href="#sources">사용하는 데이터</a><a href="#cycle">갱신 주기</a><a href="#notice">중요 안내사항</a>
-    </nav>
 
     <section class="gd-sec" id="use" aria-labelledby="h-use">
       <h2 id="h-use">이용 방법</h2>
@@ -123,6 +129,30 @@
       </div>
     </div>
   </footer>
+
+
+  <script>
+    (() => {
+      const nav = document.querySelector(".guide-page .site-side .db-nav");
+      if (!nav) return;
+      const links = [...nav.querySelectorAll('a[href^="#"]')];
+      const sections = links.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+      const activate = (id) => links.forEach((a) => {
+        if (a.getAttribute("href") === "#" + id) a.setAttribute("aria-current", "true");
+        else a.removeAttribute("aria-current");
+      });
+      links.forEach((a) => a.addEventListener("click", () => activate(a.hash.slice(1))));
+      if ("IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          const visible = entries.filter((e) => e.isIntersecting).sort((a,b) => b.intersectionRatio-a.intersectionRatio)[0];
+          if (visible) activate(visible.target.id);
+        }, { rootMargin: "-18% 0px -68% 0px", threshold: [0, .15, .4, .7] });
+        sections.forEach((section) => observer.observe(section));
+      }
+      const initial = location.hash.slice(1);
+      activate(sections.some((s) => s.id === initial) ? initial : (sections[0] && sections[0].id));
+    })();
+  </script>
 
 </body>
 </html>

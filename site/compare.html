@@ -12,6 +12,7 @@
   <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
   <link rel="stylesheet" href="dashboard.css?v=202610300930">
   <link rel="stylesheet" href="dashboard.theme.css?v=202610300930">
+  <link rel="stylesheet" href="sidebar.shared.css?v=202611011900">
 </head>
 <body class="db cm-page">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -37,7 +38,7 @@
     </nav>
   </header>
 
-  <aside class="db-side" aria-label="해외 비교 메뉴">
+  <aside class="db-side site-side aria-label="해외 비교 메뉴">
     <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-globe-hemisphere-west"></i></span><span>해외 기업<br>비교</span></a>
     <nav>
       <ul class="db-nav" id="views-nav">
