@@ -174,10 +174,54 @@
     ].map((t) => `<li>${esc(t)}</li>`).join("");
   }
 
+  // ---------- 시장 비중(업종별 시가총액·시장 비중·종목 수·주요 종목) ----------
+  // 검토 중인 소부장 123개사를 기준으로 집계해 둔 값(data/semi_share.js)을 보여 준다. 상단 실적 필터와 무관하다.
+  // 시장 비중 = 소부장 시가총액 ÷ 코스피·코스닥 전체 시가총액(같은 출처·같은 시점). 코넥스는 종목 수만 센다.
+  const MKN = { KOSPI: "코스피", KOSDAQ: "코스닥" };
+  const KCOL = { 소재: "var(--blue)", 부품: "var(--teal, var(--green))", 장비: "var(--orange)" };
+  const pc2 = (v) => (v == null || !isFinite(v) ? "-" : `${nf(v * 100, 2)}%`);
+  function drawShare() {
+    const root = $("c-share"); if (!root) return;
+    const D = window.SEMI_SHARE;
+    if (!D || !D.groups) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>시가총액·시장 비중 자료가 아직 없습니다.</p></section>`; return; }
+    const G = D.groups, maxSh = Math.max(0, ...Object.values(G).map((g) => g.share || 0));
+    const tops = (g) => (g.top && g.top.length ? g.top.map((f) => `<span class="ms-co">${esc(f.n)}<small>${won(f.cap)}</small></span>`).join("") : '<span class="ms-na">-</span>');
+    const row = (k, nm, cls, col) => {
+      const g = G[k]; if (!g) return "";
+      const w = maxSh && g.share != null ? Math.max(2, (g.share / maxSh) * 100) : 0;
+      return `<tr class="${cls}"><th scope="row">${col ? `<i class="sq" style="background:${col}"></i>` : ""}${nm}</th><td class="r">${g.nCap ? won(g.cap) : "-"}${g.nCap && g.nCap < g.n ? `<small class="ms-sub">${g.nCap}곳 합산</small>` : ""}</td>`
+        + `<td class="r ms-sh">${g.share != null ? `<span class="ms-bar" aria-hidden="true"><i style="width:${w}%;${col ? `background:${col}` : ""}"></i></span><b>${pc2(g.share)}</b>` : "-"}</td><td class="r">${nf(g.n)}</td><td><div class="ms-tops">${tops(g)}</div></td></tr>`;
+    };
+    const kinds = ["소재", "부품", "장비"];
+    const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${esc(D.asOf)} 종가 기준 · 검토용</small></h2></div>
+      <div class="ms-scroll"><table class="ms-tbl"><caption class="sr-only">업종별 시가총액, 시장 비중, 종목 수, 주요 종목</caption><thead><tr><th scope="col">업종</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">시장 비중</th><th scope="col" class="r">종목 수</th><th scope="col">주요 종목 <small>(시가총액 상위)</small></th></tr></thead><tbody>`
+      + row("전체", "반도체 국내 소부장", "ms-total") + kinds.map((k) => row(k, k, "ms-kind", KCOL[k])).join("") + `</tbody></table></div>
+      <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.basis)}입니다. 시장 비중은 소부장 상장 기업(코스피·코스닥) 시가총액을 코스피·코스닥 전체 시가총액으로 나눈 값이며, 코넥스 ${D.konexN}곳은 종목 수에만 포함합니다.</span></p></section>`;
+    const mkCard = (m) => {
+      const g = D.markets[m]; if (!g) return "";
+      const rows = kinds.filter((k) => g.kinds && g.kinds[k]).map((k) => { const x = g.kinds[k]; return `<tr><th scope="row"><i class="sq" style="background:${KCOL[k]}"></i>${k}</th><td class="r">${nf(x.n)}</td><td class="r">${x.nCap ? won(x.cap) : "-"}</td><td class="r">${pc2(x.share)}</td><td><div class="ms-tops">${tops(x)}</div></td></tr>`; }).join("");
+      return `<article class="ms-mk"><header><h3>${MKN[m]}</h3><p><b>${g.nCap ? won(g.cap) : "-"}</b> · 시장 비중 <b>${pc2(g.share)}</b> · ${nf(g.n)}개 종목</p><p class="ms-mut">${MKN[m]} 전체 시가총액 ${won(g.mcap)} 중 소부장 비중</p></header>`
+        + `<div class="ms-scroll"><table class="ms-tbl"><thead><tr><th scope="col">구분</th><th scope="col" class="r">종목 수</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">${MKN[m]} 내 비중</th><th scope="col">주요 종목</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
+    };
+    const notes = `<details class="db-card ms-notes"><summary><i class="ph ph-scales" aria-hidden="true"></i> 산출 기준과 한계</summary><ul>
+      <li><b>기준일·출처</b> ${esc(D.asOf)} ${esc(D.source)}. 위 표는 이 시점에 집계해 둔 값이며 자동으로 바뀌지 않습니다(다시 계산하면 갱신).</li>
+      <li><b>시장 전체</b> 코스피 ${won(D.marketTotal.KOSPI)} · 코스닥 ${won(D.marketTotal.KOSDAQ)}(같은 출처의 시장 목록 전 종목 합계, 우선주·ETF·리츠 등 모든 증권유형 포함). 보통주만 센 소부장 비중은 그만큼 다소 낮게 나옵니다.</li>
+      <li><b>출처 차이</b> 한국거래소 공식 시장 합계와는 출처·시점 차이로 1~2% 다를 수 있습니다(같은 날 비교: 코스피 -1.6%, 코스닥 -1.0%).</li>
+      <li><b>명단·분류</b> 검토 중인 123개사의 소재·부품·장비 구분이며 확정 전입니다. 대형 겸업 기업(고려아연·LG화학·두산 등)의 포함 여부에 따라 업종 시가총액이 크게 달라집니다.</li>
+      <li><b>집계 검산</b> 업종별 시가총액 합계(2,823,320억 원)는 전체 합계(2,823,321억 원)보다 1억 원 작습니다. 원자료 확인 전까지 차이를 그대로 공개합니다.</li>
+      <li><b>범위</b> 상단 실적 필터와 무관합니다. 코넥스 ${D.konexN}곳은 상장주식 수를 확인하지 못해 시가총액·비중에서 빠지고 종목 수에만 들어갑니다.</li></ul></details>`;
+    root.innerHTML = `${main}<section class="db-card" aria-labelledby="ms-t2"><div class="db-card-head"><h2 id="ms-t2">코스피·코스닥별 상세</h2></div><div class="ms-mks">${mkCard("KOSPI")}${mkCard("KOSDAQ")}</div></section>${notes}`;
+  }
+
   // ---------- 화면 전환 ----------
-  const VIEWS = ["summary", "group", "list"];
+  const VIEWS = ["share", "summary", "group", "list"];
+  const SHARE_SUB = "상장 소부장 기업의 시가총액과 시장 비중";
+  let subText = "";
+  const curView = () => (VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "share");
   function show(v) {
-    if (!VIEWS.includes(v)) v = "summary";
+    if (!VIEWS.includes(v)) v = "share";
+    document.body.dataset.view = v;
+    $("sub").textContent = v === "share" ? SHARE_SUB : subText;
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
     pill();
@@ -198,12 +242,18 @@
     curRows = rows;
     const q = SB.toQuery(st);
     history.replaceState(null, "", `${location.pathname}${q ? `?${q}` : ""}${location.hash}`);
-    $("sub").textContent = `${SB.describe(st)} · 개별 기준 · ${rows.length}곳`;
+    subText = `${SB.describe(st)} · 개별 기준 · ${rows.length}곳`;
+    $("sub").textContent = curView() === "share" ? SHARE_SUB : subText;
     document.querySelector(".cm-basis-slot").innerHTML = basis(rows, st.fy);
+    drawShare();
     if (!rows.length) {
-      $("empty-panel").hidden = false;
+      const onShare = curView() === "share"; // 시장 비중 보기는 실적 필터와 무관하므로 실적이 비어도 보여 준다
+      document.body.dataset.view = curView();
+      $("empty-panel").hidden = onShare;
       $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>${SB.recs.length ? "조건에 맞는 기업이 없습니다." : "실적 데이터를 아직 받지 못했습니다."}</b><p>${SB.recs.length ? "조건을 풀어 보세요." : "매일 아침 자동으로 다시 수집합니다."}</p></div>`;
-      document.querySelectorAll(".db-view").forEach((el) => (el.hidden = true));
+      document.querySelectorAll(".db-view").forEach((el) => (el.hidden = !(onShare && el.dataset.view === "share")));
+      document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === curView()));
+      pill();
       return;
     }
     $("empty-panel").hidden = true;
