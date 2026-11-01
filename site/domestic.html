@@ -12,11 +12,9 @@
   <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
   <link rel="stylesheet" href="dashboard.css?v=202610300900">
   <link rel="stylesheet" href="dashboard.theme.css?v=202610300900">
+  <link rel="stylesheet" href="market_share.css?v=202611011600">
 </head>
 <body class="db cm-page">
-  <a class="db-skip" href="#main">본문 바로가기</a>
-
-  <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
 
   <header class="krds-header">
@@ -41,6 +39,7 @@
     <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-table"></i></span><span>국내 소부장<br>실적</span></a>
     <nav>
       <ul class="db-nav" id="views-nav">
+        <li><a href="#share" data-view="share"><i class="ph ph-chart-pie-slice" aria-hidden="true"></i><span class="l">시장 비중</span><span class="s" aria-hidden="true">비중</span></a></li>
         <li><a href="#summary" data-view="summary"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">실적 요약</span><span class="s" aria-hidden="true">요약</span></a></li>
         <li><a href="#group" data-view="group"><i class="ph ph-stack" aria-hidden="true"></i><span class="l">업종·규모별</span><span class="s" aria-hidden="true">업종·규모</span></a></li>
         <li><a href="#list" data-view="list"><i class="ph ph-table" aria-hidden="true"></i><span class="l">기업별 실적표</span><span class="s" aria-hidden="true">기업별</span></a></li>
@@ -53,7 +52,7 @@
     <header class="db-top">
       <div>
         <h1>국내 소부장</h1>
-        <p id="sub">반도체 소재·부품·장비 기업의 매출·영업이익·영업이익률</p>
+        <p id="sub">상장 소부장 기업의 시가총액과 시장 비중</p>
       </div>
       <div class="th-tools th-only"><button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button></div>
       <button class="db-filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters"><i class="ph ph-sliders-horizontal" aria-hidden="true"></i>필터</button>
@@ -69,6 +68,8 @@
 
     <div class="db-empty-panel" id="empty-panel" role="status" hidden></div>
     <div class="cm-basis-slot"></div>
+
+    <div class="db-view" id="v-share" data-view="share"><div id="c-share"></div></div>
 
     <div class="db-view" id="v-summary" data-view="summary">
       <p class="db-headline" id="headline" aria-live="polite"></p>
@@ -108,8 +109,9 @@
   <script src="data/universe.js?v=202610300900"></script>
   <script src="data/attrs.js?v=202610300900"></script>
   <script src="data/financials.js?v=202610300900"></script>
+  <script src="data/semi_share.js?v=202611011700"></script>
   <script src="data/classify.js?v=202610300900"></script>
   <script src="metrics.js?v=202610300900"></script>
-  <script src="domestic.js?v=202610300900"></script>
+  <script src="domestic.js?v=202611011930"></script>
 </body>
 </html>
