@@ -1,0 +1,35 @@
+/* Single source of truth for the global navigation across all six pages. */
+:root { --site-nav-font: "Pretendard GOV", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+header.krds-header nav.gnb {
+  box-sizing: border-box; border-top: 1px solid var(--side-2, var(--line, #e5e7eb));
+  border-bottom: 1px solid var(--line, transparent); background: var(--surface, var(--bg, #fff));
+  padding-inline: clamp(8px, 2vw, 24px);
+}
+header.krds-header nav.gnb ul {
+  display: flex; align-items: stretch; gap: 4px; width: 100%; margin: 0; padding: 0;
+  list-style: none; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+}
+header.krds-header nav.gnb ul::-webkit-scrollbar { display: none; }
+header.krds-header nav.gnb li { flex: 0 0 auto; }
+header.krds-header nav.gnb a {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  min-height: 52px; padding: 0 16px; color: var(--side-text, var(--text-2, #344054));
+  font-family: var(--site-nav-font); font-size: 16px; font-weight: 700; line-height: 1.35;
+  letter-spacing: -0.02em; text-decoration: none; white-space: nowrap; transition: background-color .18s ease, color .18s ease;
+}
+header.krds-header nav.gnb a:hover, header.krds-header nav.gnb a:focus-visible {
+  background: var(--side-2, var(--nav-hover, #f2f4f7)); color: var(--side-text, var(--text, #101828));
+}
+header.krds-header nav.gnb a:focus-visible { outline: 2px solid var(--accent, var(--selected, #258477)); outline-offset: -2px; }
+header.krds-header nav.gnb a[aria-current="page"], header.krds-header nav.gnb a.on { color: var(--side-text, var(--text, #101828)); }
+header.krds-header nav.gnb a[aria-current="page"]::after, header.krds-header nav.gnb a.on::after {
+  content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 3px;
+  border-radius: 3px 3px 0 0; background: var(--accent, var(--selected, #258477));
+}
+@media (max-width: 860px) {
+  header.krds-header nav.gnb { padding-inline: 6px; }
+  header.krds-header nav.gnb ul { gap: 0; scroll-snap-type: x proximity; }
+  header.krds-header nav.gnb li { scroll-snap-align: start; }
+  header.krds-header nav.gnb a { min-height: 46px; padding-inline: 11px; font-size: 15px !important; }
+}
+@media (prefers-reduced-motion: reduce) { header.krds-header nav.gnb a { transition: none; } }
