@@ -29,6 +29,13 @@ def last_trading_day(now=None):
     return d.isoformat()
 
 
+def session_open(now=None):
+    """평일 08:00~20:00(KST)은 정규장·시간외·대체거래소가 열려 있어 현재가가 종가가 아닐 수 있다."""
+    if os.environ.get("SEMI_CAPS_NOW"): now = dt.datetime.fromisoformat(os.environ["SEMI_CAPS_NOW"]).replace(tzinfo=dt.timezone.utc)
+    kst = (now or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=9)
+    return kst.weekday() < 5 and 8 <= kst.hour < 20
+
+
 def items_of(j):
     if isinstance(j, list):
         if j and isinstance(j[0], dict) and ("itemCode" in j[0] or "itemcode" in j[0]): return j
@@ -63,7 +70,7 @@ def collect(market):
         return None if j is None else items_of(j)
     def take(its):
         new = [x for x in its if code_of(x) not in seen]
-        for x in new: seen[code_of(x)] = 1; rows.append({"code": code_of(x), "nowPrice": x.get("nowPrice"), "listedStockCnt": x.get("listedStockCnt") or x.get("listedStockCount")})
+        for x in new: seen[code_of(x)] = 1; rows.append({"code": code_of(x), "nowPrice": x.get("nowPrice"), "listedStockCnt": x.get("listedStockCnt") or x.get("listedStockCount"), "marketStatus": x.get("marketStatus")})
         return len(new)
     r0 = fetch(0)
     if not r0: return rows
@@ -94,7 +101,8 @@ def krx_rows(market, bas):
     r = requests.get(f"{KRX_BASE}/{KRX_EP[market]}", params={"basDd": bas}, headers={"AUTH_KEY": os.environ["KRX_API_KEY"], "Accept": "application/json", "User-Agent": H["User-Agent"]}, timeout=30, allow_redirects=False)
     time.sleep(0.5)
     if r.status_code != 200:
-        print(f"[KRX] {KRX_EP[market]} {bas} HTTP {r.status_code} — 우회하지 않고 중단"); return None
+        body = (r.text or "")[:200].replace(os.environ["KRX_API_KEY"], "***")  # 원인 구분용(응답 메시지만, 키는 가림)
+        print(f"[KRX] {KRX_EP[market]} {bas} HTTP {r.status_code} {body} — 우회하지 않고 중단"); return None
     try: j = r.json()
     except Exception: print(f"[KRX] {KRX_EP[market]} {bas} JSON 아님"); return None
     if "OutBlock_1" not in j: print(f"[KRX] {KRX_EP[market]} {bas} 응답 키: {list(j)[:6]}"); return None
@@ -168,6 +176,7 @@ def main():
         asof, live, mcap, prev, pq = krx
         live = {c: (v[0], v[1]) for c, v in live.items()}; src = "krx"
     else:
+        if session_open(): print("[SKIP] 거래 시간대(평일 08~20시 KST)라 네이버 현재가는 종가가 아님 — 갱신하지 않고 이전 값을 유지"); return 3
         lists = fetch_all(); live, mcap = {}, {}
         for m, rows in lists.items():
             tot = 0
@@ -176,6 +185,12 @@ def main():
                     p, s = int(r["nowPrice"]), int(r["listedStockCnt"]); live[r["code"]] = (p, s); tot += p * s
             mcap[m] = round(tot / 1e8)
         asof = os.environ.get("SEMI_CAPS_ASOF") or last_trading_day(); src = "naver"
+        # 네이버 현재가는 장중에는 실시간 값이라 종가가 아니다. 명단 종목 대부분이 장 마감(CLOSE) 상태일 때만 쓴다.
+        roster = {r["c"] for r in caps["rows"] if r["m"] in ("KOSPI", "KOSDAQ")}
+        st = [x.get("marketStatus") for rows in lists.values() for x in rows if x["code"] in roster]
+        closed = sum(1 for v in st if v == "CLOSE")
+        if not st or closed < len(roster) * 0.95:
+            print(f"[SKIP] 장 마감 상태가 아님(CLOSE {closed}/{len(roster)}) — 장중 가격은 종가가 아니므로 갱신하지 않고 이전 값을 유지"); return 3
     prev_total = share.get("marketTotal", {})
     for m in ("KOSPI", "KOSDAQ"):
         if not mcap.get(m) or (prev_total.get(m) and abs(mcap[m] / prev_total[m] - 1) > 0.3):
