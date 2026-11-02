@@ -35,13 +35,15 @@
     const box=canvas.getBoundingClientRect();
     if(box.width<120||box.height<90)return;
     const priority=Object.keys(groups).sort((a,b)=>
-      (a===chosen?-1:b===chosen?1:0)||U.value(groups[b],metric)-U.value(groups[a],metric));
+      (a===chosen?-1:b===chosen?1:0)||(U.value(groups[b],metric)??-Infinity)-(U.value(groups[a],metric)??-Infinity));
+    // Keep geography visible on small screens; every country remains in the list.
+    const visiblePriority=box.width<540?priority.slice(0,4):priority;
     const candidates=[];
     const probe=document.createElement("div");
     probe.className="cm-world-layer-probe";
     pinLayer.appendChild(probe);
     const ctm=svg.getScreenCTM();
-    for(const code of priority){
+    for(const code of visiblePriority){
       const el=svg.querySelector('path[data-iso="'+code+'"]');
       if(!el||!ctm||!el.hasAttribute("data-x"))continue;
       const nativeX=Number(el.dataset.x),nativeY=Number(el.dataset.y);
@@ -55,6 +57,8 @@
     }
     probe.remove();
     const pins=U.layoutPins(candidates,box.width,box.height);
+    coverage.textContent=(coverage.dataset.summary||coverage.textContent)+
+      (pins.length<priority.length?" · 지도 핀 "+pins.length+"개 표시, 나머지는 국가 목록에서 선택 가능":"");
     const wires=makeWires(box.width,box.height);
     for(const p of pins)if(Math.hypot(p.x-p.anchorX,p.y-p.anchorY)>9){
       const line=document.createElementNS(svgNs,"line");
@@ -82,8 +86,9 @@
     const ordered=Object.keys(groups).sort((a,b)=>groups[b].n-groups[a].n||a.localeCompare(b));
     const upper=Math.max(.1,...ordered.map(c=>Math.abs(U.value(groups[c],metric)||0)));
     const n=ordered.reduce((sum,c)=>sum+groups[c].n,0);
-    coverage.textContent="현재 업종 필터 기준 해외 "+n.toLocaleString("ko-KR")+"개사 · "+ordered.length+
+    coverage.dataset.summary="현재 업종 필터 기준 해외 "+n.toLocaleString("ko-KR")+"개사 · "+ordered.length+
       "개국 · 국가별 본사 소재국 분류";
+    coverage.textContent=coverage.dataset.summary;
     legend.textContent=metric==="growth"?
       "청록: 증가 · 붉은색: 감소 · 회색: 값 미확인 또는 대상 없음 · 비교 가능한 기업만 합산":
       "진할수록 "+NAMES[metric]+"가 큼 · 값 범위 0~"+U.label(upper,metric)+
@@ -169,7 +174,15 @@
     const el=e.target.closest("[data-world-country],[data-world-pin],path.is-covered");
     if(!el)return;
     const code=el.dataset.worldCountry||el.dataset.worldPin||el.dataset.iso;
-    if(code)select(code===chosen?"all":code);
+    if(code){
+      const next=code===chosen?"all":code;
+      const fromList=Boolean(el.dataset.worldCountry);
+      select(next);
+      if(fromList){
+        const current=[...list.querySelectorAll("button[data-world-country]")].find(b=>b.dataset.worldCountry===next);
+        if(current)current.focus({preventScroll:true});
+      }
+    }
   });
   root.addEventListener("keydown",e=>{
     const path=e.target.closest("path.is-covered");
