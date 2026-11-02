@@ -22,7 +22,7 @@ test("legacy names, abbreviations and postal codes are matched conservatively", 
     "세종시 조치원읍": "세종특별자치시"
   };
   for (const [address, expected] of Object.entries(cases)) assert.equal(U.provinceOf(address), expected);
-  for (const address of ["", "소재지 불명", "경기도광주시 퇴촌면", "대전 대덕구 공장", null, undefined]) {
+  for (const address of ["", "소재지 불명", "경기도광주시 퇴촌면", "광주시 태전동", "대전 대덕구 공장", null, undefined]) {
     // '대전 대덕구 공장' is explicit province prefix and is intentionally accepted.
     if (address === "대전 대덕구 공장") assert.equal(U.provinceOf(address), "대전광역시");
     else assert.equal(U.provinceOf(address), null);
