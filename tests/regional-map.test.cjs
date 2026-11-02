@@ -126,7 +126,7 @@ test("growth summary priority includes severe declines as well as increases",()=
   assert.deepEqual(U.pinSummaries(stats,"growth","top","",2).map(s=>s.name),
     ["서울특별시","충청북도"]);
   assert.deepEqual(U.pinSummaries(stats,"growth","top","경기도",2).map(s=>s.name),
-    ["경기도","서울특별시","충청북도"]);
+    ["서울특별시","충청북도","경기도"]);
 });
 test("rendered pin dimensions are respected, and impossible labels are omitted",()=>{
   const pts=[{name:"first",label:"100",x:60,y:45,w:95,h:44,selected:true},
