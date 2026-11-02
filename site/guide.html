@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="vendor/phosphor/style.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="theme.page.css?v=202611011400">
-  <link rel="stylesheet" href="sidebar.shared.css?v=202611021900">
+  <link rel="stylesheet" href="sidebar.shared.css?v=202611031300">
   <link rel="stylesheet" href="guide.css?v=202611011500">
   <script src="theme.page.js?v=202611011400"></script>
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
@@ -72,14 +72,14 @@
     <section class="gd-sec" id="process" hidden aria-labelledby="h-process">
       <h2 id="h-process">내용은 이렇게 만들어집니다</h2>
       <p class="gd-intro">화면의 숫자와 문장은 공시·시세를 자동으로 받아 정해진 규칙으로 계산해 만듭니다. 사람이 직접 입력하거나 문장을 새로 지어내지 않습니다.</p>
-      <ol class="gd-steps"><li><h3>수집</h3><p>월~금 오후 11시(한국시간)에 DART 공시, 주가, 시장 지표, 해외 비교 자료를 자동으로 받아 옵니다. 주가는 평일 장이 마감해 종가가 나온 뒤 같은 날 밤에 반영합니다.</p></li><li><h3>정리</h3><p>명단의 회사를 DART 고유번호로 찾고, 개별(별도) 재무 기준으로 연간과 최근 8개 분기 실적을 맞춥니다. 분기는 누적 금액을 빼서 3개월 값으로 바꿉니다.</p></li><li><h3>분류</h3><p>소재·부품·장비 구분은 직접 분류한 기업은 확정, 나머지는 DART 업종코드로 추정합니다. 추정한 값에는 '추정' 표시가 붙습니다.</p></li><li><h3>표시</h3><p>계산한 값을 그대로 화면에 보여 줍니다. 값을 찾지 못하면 0으로 채우지 않고 '-'로 둡니다.</p></li></ol>
+      <ol class="gd-steps"><li><h3>수집</h3><p>월~금 오후 11시(한국시간)에 DART 공시, 주가, 시장 지표, 해외 비교 자료를 자동으로 받아 옵니다. 주가는 평일 장이 마감해 종가가 나온 뒤 같은 날 밤에 반영하고, 거래소 자료가 늦어지면 다음 날 오전 7시 30분에 시세만 한 번 더 갱신합니다.</p></li><li><h3>정리</h3><p>명단의 회사를 DART 고유번호로 찾고, 개별(별도) 재무 기준으로 연간과 최근 8개 분기 실적을 맞춥니다. 분기는 누적 금액을 빼서 3개월 값으로 바꿉니다.</p></li><li><h3>분류</h3><p>소재·부품·장비 구분은 직접 분류한 기업은 확정, 나머지는 DART 업종코드로 추정합니다. 추정한 값에는 '추정' 표시가 붙습니다.</p></li><li><h3>표시</h3><p>계산한 값을 그대로 화면에 보여 줍니다. 값을 찾지 못하면 0으로 채우지 않고 '-'로 둡니다.</p></li></ol>
       <div class="gd-callout"><i class="ph ph-robot" aria-hidden="true"></i><div>
         <p><strong>생성형 AI가 분석 글이나 리포트를 쓰지 않습니다.</strong> 기업 프로필의 '알아야 할 사항'도 최근 공시 제목과 뉴스 제목을 정해진 규칙으로 골라 보여 줍니다.</p>
         <p>사이트의 코드와 분류 검토 과정에서는 AI 코딩 도구(Claude)의 도움을 받았습니다. 그래도 화면에 나오는 값은 위 출처에서 받은 자료로만 계산하며, 확인할 수 없는 값은 만들지 않고 '-' 또는 '확인필요'로 둡니다.</p></div></div>
       <div class="gd-card" style="margin-top:16px"><h3>시장 비중은 이렇게 계산합니다</h3>
-        <p><b>시가총액</b> 검토 중인 상장 소부장 기업의 네이버증권 시가총액(기준일 종가 × 보통주 상장주식 수)을 소재·부품·장비별로 더합니다.<br>
-        <b>시장 전체</b> 네이버증권 시장 목록의 모든 종목(우선주·ETF·리츠 포함)의 현재가 × 상장주식 수를 코스피와 코스닥 각각 더한 값입니다.<br>
-        <b>시장 비중</b> 소부장 상장 기업(코스피·코스닥)의 시가총액 ÷ 코스피·코스닥 전체 시가총액입니다. 코넥스는 종목 수에만 넣습니다.<br>
+        <p><b>시가총액</b> 핵심 소부장 모집단 기업의 시가총액(기준일 종가 × 보통주 상장주식 수)을 소재·부품·장비별로 더합니다. 한국거래소(KRX) 시세 자료를 우선 쓰고, 받지 못하면 네이버증권 시장 목록으로 대신합니다. 시가총액을 확인하지 못한 기업은 합계에서 빠지며 0으로 처리하지 않습니다.<br>
+        <b>시장 전체</b> 한국거래소 자료는 시장별 전 종목 시가총액 합계이고, 네이버로 대신할 때는 시장 목록의 모든 종목(우선주·ETF·리츠 포함) 현재가 × 상장주식 수를 시장별로 더한 값입니다.<br>
+        <b>시장 비중</b> 소부장 기업의 시가총액 ÷ 시장 전체 시가총액입니다. 한국거래소 자료를 쓰면 코넥스를 포함한 전체가 기준이고, 코스피·코스닥 소부장만 코스피·코스닥 전체로 나눈 비중도 함께 계산합니다(국내 소부장 화면 하단의 산출 기준 참고).<br>
         <b>한계</b> 한국거래소 공식 시장 합계와는 출처·시점 차이로 1~2% 다를 수 있고, 분모에 우선주 등이 들어가 비중이 다소 낮게 나옵니다. 기업 모집단과 소재·부품·장비 구분이 확정되지 않았고, 대형 겸업 기업의 포함 여부에 따라 업종 시가총액이 크게 달라집니다. 표의 값은 기준일에 한 번 계산해 둔 것이라 자동으로 바뀌지 않습니다.</p></div>
     </section>
 
@@ -87,7 +87,7 @@
       <h2 id="h-sources">사용하는 데이터</h2>
       <p class="gd-intro">이 사이트는 시장 데이터를 직접 만들지 않고 아래 출처에서 받아 사용합니다. 출처마다 갱신 주기와 쓰는 범위가 다릅니다.</p>
       <ul class="gd-grid"><li class="gd-card"><h3>DART 전자공시<span class="tag">재무 · 공시</span></h3><p>금융감독원 전자공시시스템입니다. 사업·감사·분기보고서의 재무제표(매출액·영업이익·당기순이익), 상장주식수, 연혁·사업장·회계기준, 최근 공시 제목을 받아 옵니다. 이 사이트 재무의 원천입니다.</p><a class="gd-link" href="https://dart.fss.or.kr" target="_blank" rel="noopener">dart.fss.or.kr<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li><li class="gd-card"><h3>Yahoo Finance<span class="tag">주가 · 해외 재무</span></h3><p>국내 종목의 종가와 해외 기업(일본·유럽 등)의 연간·분기 재무제표를 받아 옵니다. 시가총액은 종가에 DART의 상장주식수를 곱해 계산합니다. 공식 API가 아니어서 형식이 바뀌거나 비는 날이 있을 수 있습니다.</p><a class="gd-link" href="https://finance.yahoo.com" target="_blank" rel="noopener">finance.yahoo.com<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li><li class="gd-card"><h3>네이버증권<span class="tag">시장·밸류에이션</span></h3><p>상장 기업의 시세, 투자지표(PER·PBR·ROE), 컨센서스(시장 추정치)를 네이버증권 화면이 쓰는 공개 데이터에서 읽습니다. 시장 비중 표의 시가총액과 코스피·코스닥 전체 시가총액도 네이버증권 데이터로 계산합니다. 공식 API가 아니어서 실패한 회사는 건너뛰고 나머지만 보여 줍니다.</p><a class="gd-link" href="https://finance.naver.com" target="_blank" rel="noopener">finance.naver.com<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li><li class="gd-card"><h3>SEC EDGAR<span class="tag">미국 기업 재무</span></h3><p>미국 증권거래위원회의 공시입니다. 해외 비교의 미국 기업은 10-K(연간)와 10-Q(분기) 재무를 읽습니다. 4분기 값은 연간에서 1~3분기를 뺀 계산값입니다.</p><a class="gd-link" href="https://www.sec.gov/edgar" target="_blank" rel="noopener">sec.gov<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li><li class="gd-card"><h3>ECB 환율(Frankfurter)<span class="tag">원화 환산</span></h3><p>해외 기업의 재무를 원화로 바꿀 때 유럽중앙은행 기준 환율을 씁니다. 손익은 회계연도 평균, 재무상태표는 결산일 환율입니다. 원래 통화 값도 함께 보관합니다.</p><a class="gd-link" href="https://frankfurter.dev" target="_blank" rel="noopener">frankfurter.dev<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li><li class="gd-card"><h3>Google 뉴스 · 네이버 뉴스<span class="tag">주요 특징의 단서</span></h3><p>기업 프로필의 '알아야 할 사항'을 고를 때 기사 제목만 봅니다. 회사 이름이 제목에 든 기사만 쓰고 본문은 수집하지 않습니다. 네이버 뉴스는 연결 설정이 있을 때만 씁니다.</p><a class="gd-link" href="https://news.google.com" target="_blank" rel="noopener">news.google.com<i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></li></ul>
-      <p class="gd-note">실시간 시세는 제공하지 않으며, 주가는 전 거래일 종가 기준입니다. 글꼴은 Pretendard GOV(SIL OFL 1.1), 아이콘은 Phosphor Icons(MIT)를 씁니다.</p>
+      <p class="gd-note">실시간 시세는 제공하지 않으며, 주가는 전 거래일 종가 기준입니다. 시가총액·종가는 한국거래소(KRX) 시세 정보(또는 네이버증권)를 가공한 참고 자료이며, 원천 데이터의 이용 조건은 확인 중입니다. 글꼴은 Pretendard GOV(SIL OFL 1.1), 아이콘은 Phosphor Icons(MIT)를 씁니다.</p>
     </section>
 
     <section class="gd-sec" id="cycle" hidden aria-labelledby="h-cycle">
