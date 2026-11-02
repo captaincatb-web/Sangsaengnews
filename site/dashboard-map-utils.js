@@ -112,13 +112,9 @@
     const priority = s => mode === "growth" ? Math.abs(s.v) : s.v;
     populated.sort((a, b) => priority(b)-priority(a) || a.name.localeCompare(b.name,"ko"));
     const arr = displayMode === "all" ? populated : populated.slice(0,Math.max(1,topN));
-    if (selected) {
-      const index=arr.findIndex(s=>s.name===selected);
-      if(index>=0) arr.unshift(...arr.splice(index,1));
-      else {
-        const chosen=stats.find(s=>s.name===selected);
-        if(chosen)arr.unshift(chosen);
-      }
+    if (selected && !arr.some(s => s.name === selected)) {
+      const chosen=stats.find(s=>s.name===selected);
+      if(chosen)arr.unshift(chosen);
     }
     return arr.map(s => ({name:s.name,label:pinLabel(s.v,mode),
       value:s.v,n:s.rows.length,selected:s.name === selected}));
