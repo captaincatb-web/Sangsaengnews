@@ -213,7 +213,13 @@ def main():
     def agg(fs, d):
         have = sorted([f for f in fs if f["cap"]], key=lambda f: -f["cap"]); cap = sum(f["cap"] for f in have)
         return {"n": len(fs), "nCap": len(have), "cap": cap, "share": round(cap / d, 6) if d else None, "top": [{"n": f["n"], "cap": f["cap"]} for f in have[:3]]}
+    core = [f for f in firms if f.get("g", "E") in ("E", "N")]  # 핵심 모집단만(별도 관리 종목은 managed 에 있어 rows 에 없음)
+    firms = core; U = caps.get("universe") or {}
+    if U: share["basis"] = f"국내 상장 소부장 핵심 모집단 {U['core']}개사(기존 {U['existing']} + 신규 {U['new']}). 시가총액은 확인된 종목만 합산"
+    share["universe"] = U
     share["groups"] = {"전체": agg(firms, den), **{k: agg([f for f in firms if f["k"] == k], den) for k in KINDS}}
+    old = [f for f in firms if f.get("g", "E") == "E"]  # 기존 123 기준 값(연속성 비교용)
+    share["legacy123"] = {"전체": agg(old, den), **{k: agg([f for f in old if f["k"] == k], den) for k in KINDS}}
     for m in ("KOSPI", "KOSDAQ"):
         fs = [f for f in firms if f["m"] == m]
         share["markets"][m] = {**agg(fs, mcap[m]), "mcap": mcap[m], "kinds": {k: agg([f for f in fs if f["k"] == k], mcap[m]) for k in KINDS}}
