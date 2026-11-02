@@ -17,10 +17,15 @@ on:
       - "scripts/company_highlights.py"
       - "scripts/build_data_status.py"
       - "scripts/test_site_ui.py"
+      - "scripts/update_semi_caps.py"
+      - "scripts/build_master.py"
+      - "scripts/test_universe_160.py"
       - ".github/workflows/pages.yml"
   schedule:
     # 월~금 23:00 KST = 14:00 UTC: 장 마감 후 그날 종가를 최대한 빨리 반영한다(주가는 평일에만 바뀜).
     - cron: "0 14 * * 1-5"
+    # 아침 보조 실행: KRX 당일 자료가 밤 11시에 아직 없었을 때를 대비한 시세 전용 갱신(07:30 KST, 화~토). DART·해외 수집은 하지 않고 저장해 둔 값을 쓴다.
+    - cron: "30 22 * * 1-5"
   workflow_dispatch:
     inputs:
       refresh:
@@ -32,6 +37,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  issues: write   # 시세 갱신이 계속 실패하면 이슈를 만들고, 회복되면 닫는다
 
 concurrency:
   group: pages
@@ -58,8 +64,10 @@ jobs:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
           REFRESH: ${{ github.event.inputs.refresh }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           collect=true
+          if [ "$SCHEDULE" = "30 22 * * 1-5" ]; then collect=false; fi  # 아침 보조 실행은 시세만
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
             # 해외 비교·시장 정보 수집기는 매번 따로 돌리므로 바뀌어도 DART 전체 수집을 다시 하지 않는다
             changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
@@ -168,8 +176,10 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
+          SCHEDULE: ${{ github.event.schedule }}
         run: |
           run=true
+          if [ "$SCHEDULE" = "30 22 * * 1-5" ]; then run=false; fi  # 아침 보조 실행은 시세만
           if [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && ! echo "$BEFORE" | grep -q '^0*$' && git cat-file -e "$BEFORE" 2>/dev/null; then
             changed=$(git diff --name-only "$BEFORE" "$GITHUB_SHA")
             # Only peer/market collectors and their source lists require a refresh.
@@ -228,24 +238,60 @@ jobs:
             site/data/market.js
           key: extra-data-${{ github.run_id }}
 
-      # 국내 소부장 기업별 시가총액·주가·시장 비중: 배포 때마다 네이버증권 시장 목록으로 다시 계산한다(요청 약 20회, 1분 이내).
-      # 실패하면 저장소에 있는 이전 값으로 배포한다(스크립트가 검증에 실패하면 파일을 바꾸지 않는다).
+      # 국내 소부장 기업별 시가총액·주가·시장 비중: KRX(키가 있을 때) 또는 네이버로 다시 계산한다.
+      # 사이트 배포와 데이터 수집 성공은 다르다: 수집이 실패해도 이전 값으로 배포하지만(continue-on-error) 상태 패널에 '갱신 지연'을 표시하고 이슈로 알린다.
+      # 종료 코드 0=성공, 3=거래 시간대라 종가가 아니어서 건너뜀(실패 아님), 그 밖=실패(검증 실패·접속 오류 등, 파일은 바뀌지 않음)
       - name: Update semi caps and market share
         id: caps
         continue-on-error: true
         timeout-minutes: 10
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
-        run: python scripts/update_semi_caps.py
+        run: |
+          set +e
+          python scripts/update_semi_caps.py; rc=$?
+          if [ $rc -eq 0 ]; then echo "state=success" >> "$GITHUB_OUTPUT"
+          elif [ $rc -eq 3 ]; then echo "state=skipped" >> "$GITHUB_OUTPUT"; echo "::notice::시세 갱신을 건너뜀: 거래 시간대라 종가가 아닙니다(이전 값 유지)"; exit 0
+          else echo "state=failure" >> "$GITHUB_OUTPUT"; echo "::warning::시세 갱신 실패(종료 코드 $rc): 이전 값으로 배포합니다"; fi
+          exit $rc
 
       - name: Build data freshness manifest
         env:
-          CAPS_OUTCOME: ${{ steps.caps.outcome }}
+          CAPS_OUTCOME: ${{ steps.caps.outputs.state || steps.caps.outcome }}
           PROFILE_OUTCOME: ${{ steps.profiles.outcome }}
           FINANCIALS_OUTCOME: ${{ steps.financials.outcome }}
           PEERS_OUTCOME: ${{ steps.extra.outputs.peers }}
           MARKET_OUTCOME: ${{ steps.extra.outputs.market }}
         run: python scripts/build_data_status.py
+
+      # 모집단·집계 무결성 검증: 실패하면 배포를 막는다(가격 값 자체는 검사하지 않고 관계만 확인)
+      - name: Validate universe and aggregates
+        run: python scripts/test_universe_160.py
+
+      - name: Report price refresh failure (issue)
+        if: ${{ steps.caps.outcome == 'failure' && github.event_name != 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "[자동] 소부장 시세 갱신 실패";
+            const body = `시세 갱신 단계가 실패해 이전 수집 값으로 배포했습니다.\n\n- 실행: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n- 확인: 'Update semi caps and market share' 단계 로그의 [KRX]/[ABORT] 줄\n- 상태 패널에는 '최신 데이터 갱신 지연'으로 표시됩니다.\n\n회복되면 이 이슈는 자동으로 닫힙니다.`;
+            const { data: open } = await github.rest.issues.listForRepo({ ...context.repo, state: "open", per_page: 50 });
+            const found = open.find((i) => i.title === title && !i.pull_request);
+            if (found) { await github.rest.issues.createComment({ ...context.repo, issue_number: found.number, body: `다시 실패했습니다: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` }); }
+            else { await github.rest.issues.create({ ...context.repo, title, body }); }
+
+      - name: Close price refresh issue after recovery
+        if: ${{ steps.caps.outputs.state == 'success' && github.event_name != 'pull_request' }}
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "[자동] 소부장 시세 갱신 실패";
+            const { data: open } = await github.rest.issues.listForRepo({ ...context.repo, state: "open", per_page: 50 });
+            for (const i of open.filter((x) => x.title === title && !x.pull_request)) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: i.number, body: "시세 갱신이 회복되어 닫습니다." });
+              await github.rest.issues.update({ ...context.repo, issue_number: i.number, state: "closed", state_reason: "completed" });
+            }
 
       - uses: actions/setup-node@v4
         with:
