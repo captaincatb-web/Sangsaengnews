@@ -15,21 +15,21 @@
     market: { label: "국내 시세", updated: (window.MARKET || {}).updated || "" },
     caps: { label: "소부장 시총", updated: (window.SEMI_CAPS || {}).asOf || "" }
   };
-  const stateText = { fresh: "이번 배포 갱신", cached: "저장 데이터 사용", missing: "자료 미확인", unknown: "상태 확인 중" };
-  const stateClass = { fresh: "is-fresh", cached: "is-cached", missing: "is-missing", unknown: "" };
+  const stateText = { fresh: "최근 수집 완료", cached: "이전 수집 데이터 표시 중", stale: "최신 데이터 갱신 지연", missing: "데이터 기준일을 확인할 수 없습니다", unknown: "상태 확인 중" };
+  const stateClass = { fresh: "is-fresh", cached: "is-cached", stale: "is-missing", missing: "is-missing", unknown: "" };
   const keys = ["profiles", "financials", "peers", "market", "caps"];
   const items = keys.map((key) => {
     const item = sources[key] || fallback[key] || {};
     const state = item.status || (item.updated ? "unknown" : "missing");
     const count = item.count != null && Number.isFinite(Number(item.count)) ? ` · ${Number(item.count).toLocaleString("ko-KR")}곳` : "";
-    const date = item.updated ? `${esc(item.updated)} 기준${count}` : "기준일 확인 불가";
+    const date = item.updated ? `${esc(item.updated)} 기준${count}${item.collectedAt ? ` · 수집 ${esc(item.collectedAt)}` : ""}` : "기준일 확인 불가";
     const note = item.note || stateText[state] || stateText.unknown;
     return `<li class="site-data-status__item"><span class="site-data-status__name">${esc(item.label || fallback[key].label)}</span><span class="site-data-status__date">${date}</span><span class="site-data-status__state ${stateClass[state] || ""}">${esc(note)}</span></li>`;
   }).join("");
   const panel = document.createElement("section");
   panel.className = "site-data-status";
   panel.setAttribute("aria-label", "데이터 기준일 및 수집 상태");
-  panel.innerHTML = `<div class="site-data-status__head"><strong>데이터 기준일 · 수집 상태</strong><small>${manifest.generatedAt ? `배포 빌드 ${esc(manifest.generatedAt)}` : "수집 상태 정보가 없으면 기준일만 표시합니다."}</small></div><ul class="site-data-status__list">${items}</ul>`;
+  panel.innerHTML = `<div class="site-data-status__head"><strong>데이터 기준일 · 수집 상태</strong><small>${manifest.generatedAt ? `페이지 생성 ${esc(manifest.generatedAt)} (데이터 기준일과 다를 수 있음)` : "수집 상태 정보가 없으면 기준일만 표시합니다."}</small></div><ul class="site-data-status__list">${items}</ul>`;
   // 본문의 가장 아래에 둔다(내용보다 먼저 보이지 않게).
   const main = host.closest("main");
   if (main) main.appendChild(panel); else host.insertAdjacentElement("afterend", panel);

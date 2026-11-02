@@ -37,17 +37,25 @@ market = assignment(DATA / "market.js", "MARKET", {})
 caps = assignment(DATA / "semi_caps.js", "SEMI_CAPS", {})
 
 
-def source(label: str, updated, count, outcome: str):
+def _kst(utc: str) -> str:
+    """'2026-11-02T22:30:04Z' → '2026-11-03 07:30 KST' (없으면 빈 값)"""
+    try: return datetime.strptime(utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=ZoneInfo("UTC")).astimezone(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M KST")
+    except Exception: return ""
+
+
+def source(label: str, updated, count, outcome: str, collected: str = ""):
     updated = str(updated or "")
     if not updated:
-        status, note = "missing", "기준일 확인 불가"
+        status, note = "missing", "데이터 기준일을 확인할 수 없습니다"
     elif outcome == "success":
-        status, note = "fresh", "이번 배포에서 수집 성공"
+        status, note = "fresh", "최근 수집 완료"
     elif outcome == "failure":
-        status, note = "cached", "이번 수집 실패 · 이전 데이터 유지"
+        status, note = "stale", "최신 데이터 갱신 지연 · 이전 수집 데이터 표시 중"  # 수집은 실패했지만 사이트는 이전 값으로 배포됨
     else:
-        status, note = "cached", "저장된 수집 데이터 사용"
-    return {"label": label, "updated": updated, "count": count if isinstance(count, int) else None, "status": status, "note": note}
+        status, note = "cached", "이전 수집 데이터 표시 중"
+    out = {"label": label, "updated": updated, "count": count if isinstance(count, int) else None, "status": status, "note": note}
+    if collected: out["collectedAt"] = collected  # 기준일(데이터가 가리키는 날)과 수집 실행 시각은 다르다
+    return out
 
 
 manifest = {
@@ -57,7 +65,7 @@ manifest = {
         "financials": source("DART 재무", financials_meta.get("updated") if isinstance(financials_meta, dict) else "", len(financials) if isinstance(financials, list) else None, os.getenv("FINANCIALS_OUTCOME", "")),
         "peers": source("해외 기업", peers.get("updated") if isinstance(peers, dict) else "", len(peers.get("list", [])) if isinstance(peers, dict) and isinstance(peers.get("list"), list) else None, os.getenv("PEERS_OUTCOME", "")),
         "market": source("국내 시세", market.get("updated") if isinstance(market, dict) else "", len(market.get("list", [])) if isinstance(market, dict) and isinstance(market.get("list"), list) else None, os.getenv("MARKET_OUTCOME", "")),
-        "caps": source("소부장 시총", caps.get("asOf") if isinstance(caps, dict) else "", len(caps.get("rows", [])) if isinstance(caps, dict) and isinstance(caps.get("rows"), list) else None, os.getenv("CAPS_OUTCOME", "")),
+        "caps": source("소부장 시총", caps.get("asOf") if isinstance(caps, dict) else "", len(caps.get("rows", [])) if isinstance(caps, dict) and isinstance(caps.get("rows"), list) else None, os.getenv("CAPS_OUTCOME", ""), _kst(caps.get("updated") if isinstance(caps, dict) else "")),
     },
 }
 (DATA / "status.js").write_text(

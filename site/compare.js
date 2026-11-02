@@ -541,19 +541,33 @@
     const M = MASTER.filter((m) => m.ctry !== "KR"), byK = new Map(peers.map((p) => [p.k, p]));
     const n = M.length, got = M.filter((m) => m.st === "확보" || m.st === "일부 확보").length, full = M.filter((m) => m.st === "확보").length;
     const withUrl = M.filter((m) => byK.get(m.k) && byK.get(m.k).url).length, official = M.filter((m) => OFFICIAL.includes(m.src)).length;
+    const unofficial = M.filter((m) => (m.st === "확보" || m.st === "일부 확보") && !OFFICIAL.includes(m.src)).length;
+    const failed = M.filter((m) => m.st === "접속 실패" || m.st === "파싱 실패").length, none = M.filter((m) => m.st === "미확보").length;
     const pc_ = (a) => (n ? `${nf((a / n) * 100, 0)}%` : "-");
     $("kpis-c").innerHTML = [
-      kpi("ph-database", "재무정보 확보율", pc_(got), `${got} / ${n}곳 · 매출 등 일부라도 확보`),
-      kpi("ph-check-square", "핵심 항목 완전성", pc_(full), `매출·영업이익·순이익 모두 확보 ${full}곳`),
-      kpi("ph-link", "원문 추적률", pc_(withUrl), `출처 URL 연결 ${withUrl}곳 · 공식 공시(SEC·DART) ${official}곳`),
-      kpi("ph-warning", "미확보·실패", `${n - got}곳`, P.sec === "blocked" ? "SEC는 클라우드 접속 차단 → 야후로 대체" : "상태 열의 이유 참고"),
+      kpi("ph-buildings", "대상 기업", `${n}곳`, "해외 수집 대상(국내 기업 제외) · 아래 비율의 분모"),
+      kpi("ph-database", "일부 이상 확보", `${got}곳 · ${pc_(got)}`, `분모 ${n}곳 · 매출·영업이익·순이익 중 하나라도 확보`),
+      kpi("ph-check-square", "핵심 재무 완전 확보", `${full}곳 · ${pc_(full)}`, `분모 ${n}곳 · 매출·영업이익·순이익 모두 확보`),
+      kpi("ph-seal-check", "공식 원문 확인", `${official}곳 · ${pc_(official)}`, `분모 ${n}곳 · SEC·DART 공식 공시 · 출처 링크 연결 ${withUrl}곳`),
+      kpi("ph-warning-diamond", "비공식 출처 의존", `${unofficial}곳`, `확보 기업 중 야후 등 비공식 경로 · ${P.sec === "blocked" ? "SEC가 클라우드 접속을 막아 대체 중" : "공식 경로 확대 예정"}`),
+      kpi("ph-warning", "최신 수집 실패·미확보", `${failed + none}곳`, `접속·파싱 실패 ${failed}곳 + 미확보 ${none}곳 · 상태를 눌러 이유 확인`),
     ].join("");
     $("cov-sub").textContent = `${n}곳 · 수집 ${P.at ? P.at.replace("T", " ").replace("Z", " UTC") : P.updated || "-"}`;
     $("st-legend").innerHTML = Object.keys(ST).map((k) => `<li>${stBadge(k, "")}</li>`).join("") + `<li class="rule">값이 없으면 0이 아니라 '-'로 둡니다. 상태에 올리면 이유가 보입니다.</li>`;
-    $("c-cov").innerHTML = `<table class="db-tbl cm-tbl"><thead><tr><th class="l">기업</th><th class="l">국가</th><th class="l">구분</th><th class="l">티커</th><th class="l">출처</th><th class="l">결산일</th><th class="l">상태</th></tr></thead><tbody>${M.map((m) => {
-      const p = byK.get(m.k);
-      return `<tr><th scope="row" class="l">${esc(m.n)}</th><td class="l">${CTRY[m.ctry] || m.ctry}</td><td class="l">${esc(p ? p.cat : SOBU.includes(m.kind) ? m.kind : m.cat)}<small>${esc(m.seg1 || "")}</small></td><td class="l">${esc(m.tk || "-")}</td><td class="l">${p ? srcLink(p) : esc(m.src || "-")}</td><td class="l">${p && p.pe ? esc(p.pe[p.pe.length - 1]) : "-"}</td><td class="l">${stBadge(m.st, m.why)}</td></tr>`;
+    const FLD = [["s", "매출"], ["o", "영업이익"], ["ni", "순이익"]];
+    const lastOf = (a) => (Array.isArray(a) && a.length ? a[a.length - 1] : null);
+    const scope = (p) => (p ? FLD.map(([k, nm]) => `<span class="cm-fld ${lastOf(p[k]) == null ? "no" : "ok"}">${nm}</span>`).join("") : `<span class="cm-fld no">없음</span>`);
+    const when = (p) => (p && p.at ? String(p.at).replace("T", " ").replace("Z", " UTC") : P.at ? `${String(P.at).replace("T", " ").replace("Z", " UTC")}(전체 수집 시각)` : "-");
+    $("c-cov").innerHTML = `<table class="db-tbl cm-tbl cm-covtbl"><thead><tr><th class="l">기업</th><th class="l">국가</th><th class="l">구분</th><th class="l">티커</th><th class="l">출처</th><th class="l">결산일</th><th class="l">재무 확보 범위</th><th class="l">상태</th><th class="l"><span class="sr-only">상세</span></th></tr></thead><tbody>${M.map((m, i) => {
+      const p = byK.get(m.k), miss = p ? FLD.filter(([k]) => lastOf(p[k]) == null).map(([, nm]) => nm) : FLD.map(([, nm]) => nm);
+      return `<tr class="cm-covrow"><th scope="row" class="l">${esc(m.n)}</th><td class="l">${CTRY[m.ctry] || m.ctry}</td><td class="l">${esc(p ? p.cat : SOBU.includes(m.kind) ? m.kind : m.cat)}<small>${esc(m.seg1 || "")}</small></td><td class="l">${esc(m.tk || "-")}</td><td class="l">${p ? srcLink(p) : esc(m.src || "-")}</td><td class="l">${p && p.pe ? esc(p.pe[p.pe.length - 1]) : "-"}</td><td class="l">${scope(p)}</td><td class="l">${stBadge(m.st, m.why)}</td>`
+        + `<td class="l"><button type="button" class="cm-more" aria-expanded="false" aria-controls="cov-d${i}" data-d="cov-d${i}">상세</button></td></tr>`
+        + `<tr class="cm-det" id="cov-d${i}" hidden><td colspan="9"><dl class="cm-dl"><div><dt>마지막 수집</dt><dd>${esc(when(p))}</dd></div><div><dt>수집 원천</dt><dd>${esc(m.src || "-")}${OFFICIAL.includes(m.src) ? " (공식 공시)" : " (비공식)"}</dd></div><div><dt>상태</dt><dd>${esc(m.st || "-")}</dd></div><div><dt>결측 항목</dt><dd>${miss.length ? esc(miss.join("·")) : "없음"}</dd></div><div><dt>실패·참고 사유</dt><dd>${esc(m.why || "-")}</dd></div><div><dt>공식 원문</dt><dd>${p && p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">원문 열기</a>` : "연결된 원문 없음"}</dd></div></dl></td></tr>`;
     }).join("")}</tbody></table>`;
+    $("c-cov").onclick = (e) => { const b = e.target.closest(".cm-more"); if (!b) return; const d = document.getElementById(b.dataset.d), open = d.hidden; d.hidden = !open; b.setAttribute("aria-expanded", String(open)); b.textContent = open ? "닫기" : "상세"; };
+    // 국내 소부장 모집단 현황(해외 수집 현황과 별개의 모집단이라 숫자를 맞추지 않는다)
+    const MS = window.SEMI_MASTER, SH = window.SEMI_SHARE, dm = $("c-domcov");
+    if (dm) dm.innerHTML = MS ? `<ul class="cm-popu"><li><b>${nf(MS.populations.core.n)}곳</b><span>핵심 소부장 모집단(분류·시가총액)</span></li><li><b>${SH && SH.counts ? nf(SH.counts.withCap) : "-"}곳</b><span>시가총액 확인(미확보 ${SH && SH.counts ? nf(SH.counts.noCap) : "-"}곳)</span></li><li><b>${nf(MS.populations.managed.n)}곳</b><span>별도 관리(보류·OSAT·유통)</span></li><li><b>${nf(MS.populations.fin134.n)}곳</b><span>재무 분석 명단(이름 기준)</span></li><li><b>${nf(MS.populations.profile.n)}곳</b><span>DART 프로필 명단(상장사)</span></li></ul><p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>이 숫자들은 해외 수집 현황(${n}곳)과 목적이 달라 맞추지 않습니다. 자세한 기업별 현황은 <a href="domestic.html#caps">국내 소부장 · 기업별 시총·주가</a>에서 확인하세요.</span></p>` : `<p class="db-note">국내 모집단 정보를 불러오지 못했습니다.</p>`;
     const routes = [["미국", P.sec === "blocked" ? "야후 파이낸스(비공식, 대체)" : "SEC EDGAR XBRL(공식)", P.sec === "blocked" ? "SEC가 클라우드 접속을 막아(403) 대체 중 · 사내 서버에서 실행하면 공식 경로 가능" : "공식 공시"], ["일본", "야후 파이낸스(비공식)", "EDINET 공식 API는 인증키 필요 → 다음 단계"], ["유럽", "야후 파이낸스(비공식)", "ESEF(filings.xbrl.org) 연동은 다음 단계"], ["이스라엘·중국", "야후 파이낸스(비공식)", "현지 공시(CNINFO 등)는 다음 단계"], ["한국 대형사(참고)", "DART 연결재무제표(공식)", "국내 비교 화면에서는 제외"]];
     $("c-route").innerHTML = `<table class="db-tbl cm-tbl"><thead><tr><th class="l">국가·지역</th><th class="l">현재 수집 경로</th><th class="l">상태·다음 단계</th></tr></thead><tbody>${routes.map((r) => `<tr><th scope="row" class="l">${r[0]}</th><td class="l">${r[1]}</td><td class="l">${r[2]}</td></tr>`).join("")}</tbody></table>`;
   }

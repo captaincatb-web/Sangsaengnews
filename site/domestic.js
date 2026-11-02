@@ -197,6 +197,7 @@
     const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${esc(D.asOf)} 종가 기준 · 검토용</small></h2></div>
       <div class="ms-scroll"><table class="ms-tbl"><caption class="sr-only">업종별 시가총액, 시장 비중, 종목 수, 주요 종목</caption><thead><tr><th scope="col">업종</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">시장 비중</th><th scope="col" class="r">종목 수</th><th scope="col">주요 종목 <small>(시가총액 상위)</small></th></tr></thead><tbody>`
       + row("전체", "반도체 국내 소부장", "ms-total") + kinds.map((k) => row(k, k, "ms-kind", KCOL[k])).join("") + `</tbody></table></div>
+      <p class="ms-hint" aria-hidden="true"><i class="ph ph-arrows-horizontal"></i> 표를 좌우로 밀어 더 볼 수 있습니다</p>
       <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.basis)}입니다. ${D.konexIncluded ? `시장 비중은 소부장 상장 기업 시가총액을 코스피·코스닥·코넥스 전체 시가총액으로 나눈 값입니다.` : `시장 비중은 소부장 상장 기업(코스피·코스닥) 시가총액을 코스피·코스닥 전체 시가총액으로 나눈 값이며, 코넥스 ${D.konexN}곳은 종목 수에만 포함합니다.`}</span></p></section>`;
     const CP = window.SEMI_CAPS, bigs = (m) => (CP && CP.rows ? CP.rows.filter((r) => r.d && r.m === m) : []);
     const agg = (fs, den) => { const have = fs.filter((f) => f.cap).sort((a, b) => b.cap - a.cap), cap = have.reduce((t, f) => t + f.cap, 0); return { n: fs.length, nCap: have.length, cap, share: den ? cap / den : null, top: have.slice(0, 3).map((f) => ({ n: f.n, cap: f.cap })) }; };
@@ -207,11 +208,12 @@
       const tg = `<label class="ms-tg${bg.length ? "" : " off"}"><input type="checkbox" data-big="${m}"${inc ? " checked" : ""}${bg.length ? "" : " disabled"}><span>대형 겸업 기업 포함<small>${bg.length ? `(${bg.map((r) => esc(r.n)).join("·")})` : "(해당 기업 없음)"}</small></span></label>`;
       const rows = kinds.filter((k) => g.kinds && g.kinds[k]).map((k) => { const x = g.kinds[k]; return `<tr><th scope="row"><i class="sq" style="background:${KCOL[k]}"></i>${k}</th><td class="r">${nf(x.n)}</td><td class="r">${x.nCap ? won(x.cap) : "-"}</td><td class="r">${pc2(x.share)}</td><td><div class="ms-tops">${tops(x)}</div></td></tr>`; }).join("");
       return `<article class="ms-mk"><header><div class="ms-mk-h"><h3>${MKN[m]}</h3>${tg}</div><p><b>${g.nCap ? won(g.cap) : "-"}</b> · 시장 비중 <b>${pc2(g.share)}</b> · ${nf(g.n)}개 종목</p><p class="ms-mut">${MKN[m]} 전체 시가총액 ${won(g.mcap)} 중 소부장 비중</p></header>`
-        + `<div class="ms-scroll"><table class="ms-tbl"><thead><tr><th scope="col">구분</th><th scope="col" class="r">종목 수</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">${MKN[m]} 내 비중</th><th scope="col">주요 종목</th></tr></thead><tbody>${rows}</tbody></table></div></article>`;
+        + `<div class="ms-scroll"><table class="ms-tbl"><thead><tr><th scope="col">구분</th><th scope="col" class="r">종목 수</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">${MKN[m]} 내 비중</th><th scope="col">주요 종목</th></tr></thead><tbody>${rows}</tbody></table></div><p class="ms-hint" aria-hidden="true"><i class="ph ph-arrows-horizontal"></i> 표를 좌우로 밀어 더 볼 수 있습니다</p></article>`;
     };
     const notes = `<details class="db-card ms-notes"><summary><i class="ph ph-scales" aria-hidden="true"></i> 산출 기준과 한계</summary><ul>
       <li><b>기준일·출처</b> ${esc(D.asOf)} ${esc(D.source)}. 위 표는 이 시점에 집계해 둔 값이며 자동으로 바뀌지 않습니다(다시 계산하면 갱신).</li>
       <li><b>시장 전체</b> 코스피 ${won(D.marketTotal.KOSPI)} · 코스닥 ${won(D.marketTotal.KOSDAQ)}(${D.konexIncluded ? `한국거래소 일별매매정보의 시장별 전 종목 합계${D.marketTotal.KONEX ? `, 코넥스 ${won(D.marketTotal.KONEX)} 포함` : ""}` : "같은 출처의 시장 목록 전 종목 합계, 우선주·ETF·리츠 등 모든 증권유형 포함"}). 보통주만 센 소부장 비중은 그만큼 다소 낮게 나옵니다.</li>
+      ${G["전체"] && G["전체"].shareKK != null ? `<li><b>비중 기준 두 가지</b> 표의 시장 비중은 ${esc((D.denominator && D.denominator.share) || "코스피·코스닥")} 대비입니다. 코스피·코스닥 소부장만 코스피·코스닥 전체로 나눈 비중은 <b>${pc2(G["전체"].shareKK)}</b>입니다(분모와 분자에서 코넥스 제외). 소재 ${pc2(G["소재"] && G["소재"].shareKK)} · 부품 ${pc2(G["부품"] && G["부품"].shareKK)} · 장비 ${pc2(G["장비"] && G["장비"].shareKK)}.</li>` : ""}
       ${D.konexIncluded ? "" : `<li><b>출처 차이</b> 한국거래소 공식 시장 합계와는 출처·시점 차이로 1~2% 다를 수 있습니다(2026-10-30 비교: 코스피 -1.6%, 코스닥 -1.0%).</li>`}
       <li><b>명단·분류</b> ${D.universe ? `핵심 모집단 ${nf(D.universe.core)}개사(기존 ${nf(D.universe.existing)} + 신규 ${nf(D.universe.new)})의 소재·부품·장비 구분이며 확정 전입니다. 보류 ${nf(D.universe.hold)}·OSAT ${nf(D.universe.osat)}·유통 ${nf(D.universe.distribution)}곳은 별도 관리로 핵심 통계에서 제외했습니다.` : "검토 중인 소부장의 소재·부품·장비 구분이며 확정 전입니다."} 대형 겸업 기업(고려아연·LG화학·두산 등)의 포함 여부에 따라 업종 시가총액이 크게 달라집니다.</li>
       ${(() => { const d = G["전체"].cap - kinds.reduce((t, k) => t + (G[k] ? G[k].cap : 0), 0); return d ? `<li><b>집계 검산</b> 업종별 시가총액 합계가 전체 합계보다 ${nf(Math.abs(d))}억 원 ${d > 0 ? "작" : "큽"}니다. 원자료 확인 전까지 차이를 그대로 공개합니다.</li>` : ""; })()}
@@ -221,49 +223,79 @@
   }
 
   // ---------- 기업별 시가총액·주가 상세 ----------
-  // data/semi_caps.js(시장 비중 표와 같은 기준·시점). 검색·시장·업종 필터, 열 머리글 클릭으로 정렬. 상단 실적 필터와 무관하다.
-  const cst = { q: "", m: "", k: "", sort: "cap", dir: -1 };
+  // data/semi_caps.js(시장 비중 표와 같은 기준·시점). 검색·시장·업종·구분·속성·공정 필터, 정렬. 상단 실적 필터와 무관하다.
+  // 모바일(860px 이하)은 카드 목록, PC는 표. 두 보기는 같은 rows 를 쓰며 계산을 따로 하지 않는다.
+  const cst = { q: "", m: "", k: "", g: "", at: "", pa: "", sort: "cap", dir: -1 };
   const pcs = (v) => (v == null || !isFinite(v) ? "-" : `<span class="${v > 0 ? "ms-up" : v < 0 ? "ms-dn" : ""}">${v > 0 ? "▲" : v < 0 ? "▼" : ""}${nf(Math.abs(v) * 100, 1)}%</span>`);
   const CCOL = [
     ["rank", "순위", 0], ["n", "기업", 1], ["m", "시장", 1], ["k", "업종", 1], ["p", "종가(원)", 0], ["d1", "분기말 대비", 0], ["d2", "반기말 대비", 0],
     ["s", "상장주식 수", 0], ["cap", "시가총액", 0], ["inK", "업종 내 비중", 0], ["inM", "시장 비중", 0],
   ];
+  const SORTS = [["cap", -1, "시가총액 큰 순"], ["cap", 1, "시가총액 작은 순"], ["d1", -1, "분기말 대비 높은 순"], ["d1", 1, "분기말 대비 낮은 순"], ["n", 1, "기업명 순"]];
+  const isInfra = (r) => /인프라/.test(r.x || ""), isBig = (r) => !!r.d;
+  const tagsOf = (r) => [r.g === "N" ? ["new", "신규"] : null, r.k2 ? ["k2", `보조 ${r.k2}`] : null, isInfra(r) ? ["infra", "인프라"] : null, isBig(r) ? ["big", "대형 겸업"] : null, r.rv ? ["rv", "재검토"] : null].filter(Boolean)
+    .map(([c, t]) => `<span class="cp-tag cp-tag-${c}">${t}</span>`).join("");
   function capsRows(D) {
-    const MT = (window.SEMI_SHARE && window.SEMI_SHARE.marketTotal) || {}, kindCap = {}, allCap = {};
-    D.rows.forEach((r) => { if (r.cap) { kindCap[r.k] = (kindCap[r.k] || 0) + r.cap; allCap.t = (allCap.t || 0) + r.cap; } });
+    const MT = (window.SEMI_SHARE && window.SEMI_SHARE.marketTotal) || {}, kindCap = {};
+    D.rows.forEach((r) => { if (r.cap) kindCap[r.k] = (kindCap[r.k] || 0) + r.cap; });
     const rk = [...D.rows].filter((r) => r.cap).sort((a, b) => b.cap - a.cap).map((r) => r.c);
-    return D.rows.map((r) => ({ ...r, rank: r.cap ? rk.indexOf(r.c) + 1 : null, d1: r.p && r.q1 ? r.p / r.q1 - 1 : null, d2: r.p && r.q2 ? r.p / r.q2 - 1 : null,
-      inK: r.cap ? r.cap / kindCap[r.k] : null, inM: r.cap && MT[r.m] ? r.cap / (MT[r.m] / 1) : null }));
+    const M = window.SEMI_MASTER, corp = {}; if (M) M.rows.forEach((x) => { if (x.corp) corp[x.c] = x.corp; });
+    return D.rows.map((r) => ({ ...r, corp: corp[r.c] || "", rank: r.cap ? rk.indexOf(r.c) + 1 : null, d1: r.p && r.q1 ? r.p / r.q1 - 1 : null, d2: r.p && r.q2 ? r.p / r.q2 - 1 : null,
+      inK: r.cap ? r.cap / kindCap[r.k] : null, inM: r.cap && MT[r.m] ? r.cap / MT[r.m] : null }));
   }
+  // 같은 기업임을 종목코드로 확인할 수 있을 때만 상세 화면으로 연결한다(이름이 비슷해도 연결하지 않음)
+  const linksOf = (r) => (r.corp ? `<a href="profile.html#${r.corp}">기업 프로필</a><a href="dashboard.html?co=${r.corp}#company">재무 분석</a>` : "");
+  const managedHtml = (D) => {
+    if (!D.managed || !D.managed.length) return "";
+    const G = { H: ["보류", "사업 적합성 추가 확인 중 · 확정 전까지 핵심 통계에서 제외", "필요"], O: ["OSAT(후공정 서비스)", "후공정 서비스 사업으로 소재·부품·장비와 별도 관리", "분류 정책 변경 시"], D: ["유통", "유통 사업으로 소재·부품·장비와 별도 관리", "분류 정책 변경 시"] };
+    const sec = ["H", "O", "D"].map((g) => { const L = D.managed.filter((m) => m.g === g); return L.length ? `<h4>${G[g][0]} ${L.length}개사</h4><p class="ms-mut">${G[g][1]}</p><ul class="cp-mg">${L.map((m) => `<li><b>${esc(m.n)}</b><small>${esc(m.c)} · ${esc(m.k)}${m.pa ? ` · ${esc(m.pa)}` : ""} · 재검토 ${G[g][2]}</small></li>`).join("")}</ul>` : ""; }).join("");
+    return `<details class="db-card cp-managed"><summary><i class="ph ph-archive" aria-hidden="true"></i> 별도 관리 기업 ${nf(D.managed.length)}곳 <small>핵심 모집단(${nf(D.universe ? D.universe.core : D.rows.length)}곳) 통계에는 포함하지 않습니다</small></summary>${sec}</details>`;
+  };
   function drawCaps() {
     const root = $("c-caps"); if (!root) return;
     const D = window.SEMI_CAPS;
     if (!D || !D.rows) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>기업별 시가총액 자료가 아직 없습니다.</p></section>`; return; }
     const all = capsRows(D), q = cst.q.trim().toLowerCase();
-    let rows = all.filter((r) => (!cst.m || r.m === cst.m) && (!cst.k || r.k === cst.k) && (!q || r.n.toLowerCase().includes(q) || r.c.includes(q)));
+    let rows = all.filter((r) => (!cst.m || r.m === cst.m) && (!cst.k || r.k === cst.k) && (!cst.g || r.g === cst.g) && (!q || r.n.toLowerCase().includes(q) || r.c.includes(q))
+      && (!cst.at || (cst.at === "k2" ? !!r.k2 : cst.at === "infra" ? isInfra(r) : cst.at === "big" ? isBig(r) : cst.at === "rv" ? !!r.rv : true)) && (!cst.pa || (r.pa || "").startsWith(cst.pa)));
     const key = cst.sort, dir = cst.dir;
     rows.sort((a, b) => { const x = a[key], y = b[key]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === "string" ? x.localeCompare(y, "ko") : x - y) * dir; });
-    const sumCap = rows.reduce((t, r) => t + (r.cap || 0), 0);
+    const sumCap = rows.reduce((t, r) => t + (r.cap || 0), 0), nCap = rows.filter((r) => r.cap).length;
     const th = CCOL.map(([k, l, left]) => `<th scope="col" class="${left ? "" : "r"}" aria-sort="${cst.sort === k ? (cst.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${k}">${l}${cst.sort === k ? `<i class="ph ph-caret-${cst.dir > 0 ? "up" : "down"}" aria-hidden="true"></i>` : ""}</button></th>`).join("");
-    const body = rows.map((r) => `<tr><td class="r">${r.rank ?? "-"}</td><th scope="row"><b>${esc(r.n)}</b><small>${esc(r.c)}</small></th><td>${MKN[r.m] || "코넥스"}</td><td><i class="sq" style="background:${KCOL[r.k]}"></i>${r.k}</td>`
+    const body = rows.map((r) => `<tr><td class="r">${r.rank ?? "-"}</td><th scope="row"><b>${esc(r.n)}</b><small>${esc(r.c)}</small>${tagsOf(r) ? `<span class="cp-tags">${tagsOf(r)}</span>` : ""}</th><td>${MKN[r.m] || "코넥스"}</td><td><i class="sq" style="background:${KCOL[r.k]}"></i>${r.k}</td>`
       + `<td class="r">${r.p ? nf(r.p) : "-"}</td><td class="r">${pcs(r.d1)}</td><td class="r">${pcs(r.d2)}</td><td class="r">${r.s ? nf(r.s) : "-"}</td><td class="r"><b>${r.cap ? won(r.cap) : "-"}</b></td><td class="r">${pc2(r.inK)}</td><td class="r">${r.m === "KONEX" ? "-" : pc2(r.inM)}</td></tr>`).join("");
+    const cards = rows.map((r) => `<li><details class="cp-card"><summary><span class="cp-c1"><b>${esc(r.n)}</b><small>${esc(r.c)} · ${MKN[r.m] || "코넥스"} · <i class="sq" style="background:${KCOL[r.k]}"></i>${r.k}</small>${tagsOf(r) ? `<span class="cp-tags">${tagsOf(r)}</span>` : ""}</span>`
+      + `<span class="cp-c2"><b>${r.cap ? won(r.cap) : "시총 미확보"}</b><small>${pcs(r.d1)}<em>분기말 대비</em></small></span></summary>`
+      + `<dl class="cp-dl"><div><dt>순위</dt><dd>${r.rank ?? "-"}</dd></div><div><dt>종가</dt><dd>${r.p ? nf(r.p) + "원" : "-"}</dd></div><div><dt>반기말 대비</dt><dd>${pcs(r.d2)}</dd></div><div><dt>상장주식 수</dt><dd>${r.s ? nf(r.s) : "-"}</dd></div><div><dt>업종 내 비중</dt><dd>${pc2(r.inK)}</dd></div><div><dt>시장 비중</dt><dd>${r.m === "KONEX" ? "-" : pc2(r.inM)}</dd></div>${r.pa ? `<div><dt>적용 공정</dt><dd>${esc(r.pa)}</dd></div>` : ""}${r.k2 ? `<div><dt>보조분류</dt><dd>${esc(r.k2)}</dd></div>` : ""}</dl>`
+      + (linksOf(r) ? `<p class="cp-links">${linksOf(r)}</p>` : "") + `</details></li>`).join("");
     const opt = (v, l, cur) => `<option value="${v}"${cur === v ? " selected" : ""}>${l}</option>`;
+    const pas = [...new Set(D.rows.map((r) => r.pa).filter(Boolean))].sort(), fabs = pas.filter((x) => x.startsWith("FAB")), pts = pas.filter((x) => x.startsWith("P&T"));
     const keep = document.activeElement && document.activeElement.id === "cp-q";
+    const U = D.universe || {}, SH = window.SEMI_SHARE || {};
     root.innerHTML = `<section class="db-card" aria-labelledby="cp-t"><div class="db-card-head"><h2 id="cp-t">기업별 시가총액·주가<small>${esc(D.asOf)} 종가 기준 · 검토용</small></h2></div>
+      <p class="cp-def"><b>모집단</b> 핵심 소부장 ${nf(U.core || D.rows.length)}곳(기존 ${nf(U.existing || 0)} + 신규 ${nf(U.new || 0)}) · 시가총액 확인 <b>${nf((SH.counts && SH.counts.withCap) ?? D.rows.filter((r) => r.cap).length)}</b>곳, 미확보 <b>${nf((SH.counts && SH.counts.noCap) ?? D.rows.filter((r) => !r.cap).length)}</b>곳 · 재무 분석 화면의 명단(134곳)과는 목적이 달라 기업 수가 다릅니다</p>
       <div class="cp-tools"><label class="db-sel cp-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr-only">기업명·종목코드 검색</span><input id="cp-q" type="search" placeholder="기업명·종목코드 검색" value="${esc(cst.q)}" autocomplete="off"></label>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>시장</span><select id="cp-m">${opt("", "전체", cst.m)}${opt("KOSPI", "코스피", cst.m)}${opt("KOSDAQ", "코스닥", cst.m)}${opt("KONEX", "코넥스", cst.m)}</select></label>
         <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="cp-k">${opt("", "전체", cst.k)}${["소재", "부품", "장비"].map((k) => opt(k, k, cst.k)).join("")}</select></label>
+        <label class="db-sel"><i class="ph ph-sparkle" aria-hidden="true"></i><span>구분</span><select id="cp-g">${opt("", "전체", cst.g)}${opt("E", "기존 123", cst.g)}${opt("N", "신규 37", cst.g)}</select></label>
+        <label class="db-sel"><i class="ph ph-tag" aria-hidden="true"></i><span>속성</span><select id="cp-at">${opt("", "전체", cst.at)}${opt("k2", "보조분류 있음", cst.at)}${opt("infra", "인프라", cst.at)}${opt("big", "대형 겸업", cst.at)}${opt("rv", "재검토 표시", cst.at)}</select></label>
+        <label class="db-sel"><i class="ph ph-flow-arrow" aria-hidden="true"></i><span>적용 공정</span><select id="cp-pa">${opt("", "전체", cst.pa)}${opt("FAB", "FAB 전체", cst.pa)}${fabs.map((x) => opt(x, x, cst.pa)).join("")}${opt("P&T", "P&T 전체", cst.pa)}${pts.map((x) => opt(x, x, cst.pa)).join("")}</select></label>
+        <label class="db-sel cp-sortsel"><i class="ph ph-sort-descending" aria-hidden="true"></i><span>정렬</span><select id="cp-sort">${SORTS.map(([k, d, l]) => opt(`${k}|${d}`, l, `${cst.sort}|${cst.dir}`)).join("")}</select></label>
         <button type="button" class="db-btn cp-csv" id="cp-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button>
-        <p class="cp-sum" aria-live="polite"><b>${nf(rows.length)}</b>개 기업 · 시가총액 합계 <b>${won(sumCap) || "-"}</b></p></div>
-      <div class="ms-scroll"><table class="ms-tbl cp-tbl"><caption class="sr-only">기업별 시가총액과 주가</caption><thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="11" class="ms-na">조건에 맞는 기업이 없습니다.</td></tr>`}</tbody></table></div>
-      <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.source)}. 분기말 대비는 ${esc(D.prev[0])}, 반기말 대비는 ${esc(D.prev[1])} 종가와 비교한 값이며 액면분할·무상증자 등은 반영하지 않았습니다. 업종 내 비중은 표에 있는 기업 합계 기준, 시장 비중은 해당 시장 전체 시가총액 기준입니다. 코넥스는 상장주식 수를 확인하지 못해 시가총액을 구하지 못했습니다. 투자 권유가 아닙니다.</span></p></section>`;
+        <p class="cp-sum" aria-live="polite"><b>${nf(rows.length)}</b>개 기업 · 시총 확인 ${nf(nCap)}곳 합계 <b>${won(sumCap) || "-"}</b></p></div>
+      <div class="ms-scroll cp-tblwrap" tabindex="0" role="region" aria-label="기업별 시가총액 표(좌우로 스크롤)"><table class="ms-tbl cp-tbl"><caption class="sr-only">기업별 시가총액과 주가</caption><thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="11" class="ms-na">조건에 맞는 기업이 없습니다.</td></tr>`}</tbody></table></div>
+      <p class="cp-hint" aria-hidden="true"><i class="ph ph-arrows-horizontal"></i> 표를 좌우로 밀어 더 볼 수 있습니다</p>
+      <ul class="cp-cards" aria-label="기업 카드 목록">${cards || `<li class="ms-na">조건에 맞는 기업이 없습니다.</li>`}</ul>
+      <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.source)}. 분기말 대비는 ${esc(D.prev[0])}, 반기말 대비는 ${esc(D.prev[1])} 종가와 비교한 값이며 액면분할·무상증자 등은 반영하지 않았습니다. 업종 내 비중은 표에 있는 기업 합계 기준, 시장 비중은 해당 시장 전체 시가총액 기준입니다. 시가총액이 비어 있는 기업은 데이터를 확보하지 못한 것이며 0이 아닙니다. 기업 프로필·재무 분석 링크는 종목코드로 같은 기업임을 확인한 경우에만 표시합니다. 투자 권유가 아닙니다.</span></p>
+      <p class="cp-xlink"><a href="compare.html">해외 기업 비교 보기 <i class="ph ph-arrow-right" aria-hidden="true"></i></a></p></section>${managedHtml(D)}`;
     root.querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.sort; if (cst.sort === k) cst.dir = -cst.dir; else { cst.sort = k; cst.dir = ["n", "m", "k"].includes(k) ? 1 : -1; } drawCaps(); }));
-    $("cp-m").addEventListener("change", (e) => { cst.m = e.target.value; drawCaps(); });
-    $("cp-k").addEventListener("change", (e) => { cst.k = e.target.value; drawCaps(); });
+    [["cp-m", "m"], ["cp-k", "k"], ["cp-g", "g"], ["cp-at", "at"], ["cp-pa", "pa"]].forEach(([id, k]) => $(id).addEventListener("change", (e) => { cst[k] = e.target.value; drawCaps(); }));
+    $("cp-sort").addEventListener("change", (e) => { const [k, d] = e.target.value.split("|"); cst.sort = k; cst.dir = Number(d); drawCaps(); });
     $("cp-csv").addEventListener("click", () => {
       const pr = (v) => (v == null || !isFinite(v) ? "" : +(v * 100).toFixed(2)), mk = { KOSPI: "코스피", KOSDAQ: "코스닥", KONEX: "코넥스" };
-      const head = ["순위", "기업명", "종목코드", "시장", "업종", "종가(원)", `${D.prev[0]} 종가(원)`, `${D.prev[1]} 종가(원)`, "분기말 대비(%)", "반기말 대비(%)", "상장주식 수(주)", "시가총액(억 원)", "업종 내 비중(%)", "시장 비중(%)"];
-      const lines = rows.map((r) => [r.rank ?? "", r.n, r.c, mk[r.m] || r.m, r.k, r.p ?? "", r.q1 ?? "", r.q2 ?? "", pr(r.d1), pr(r.d2), r.s ?? "", r.cap ?? "", pr(r.inK), r.m === "KONEX" ? "" : pr(r.inM)]);
+      const head = ["순위", "기업명", "종목코드", "시장", "업종", "종가(원)", `${D.prev[0]} 종가(원)`, `${D.prev[1]} 종가(원)`, "분기말 대비(%)", "반기말 대비(%)", "상장주식 수(주)", "시가총액(억 원)", "업종 내 비중(%)", "시장 비중(%)", "기준일(종가)", "모집단 구분", "보조분류", "데이터 출처·산출 기준(비고)"];
+      const note = `${D.source}. 시가총액=종가×상장주식 수(보통주). 분기말·반기말 대비는 수정주가 미반영. 빈 칸은 데이터 미확보이며 0이 아님. 핵심 소부장 모집단(기존 123+신규 37) 기준이며 투자 권유가 아닌 참고 자료`;
+      const lines = rows.map((r) => [r.rank ?? "", r.n, r.c, mk[r.m] || r.m, r.k, r.p ?? "", r.q1 ?? "", r.q2 ?? "", pr(r.d1), pr(r.d2), r.s ?? "", r.cap ?? "", pr(r.inK), r.m === "KONEX" ? "" : pr(r.inM), D.asOf, r.g === "N" ? "신규" : "기존", r.k2 || "", note]);
       const q = (c) => `"${String(c).replace(/"/g, '""')}"`;
       const csv = "\ufeff" + [head.map(q).join(","), ...lines.map((a) => a.map((c) => (typeof c === "number" ? c : q(c))).join(","))].join("\r\n");
       const a = document.createElement("a");

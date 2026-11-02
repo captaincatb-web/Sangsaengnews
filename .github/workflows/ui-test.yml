@@ -1,0 +1,41 @@
+name: UI and data checks
+
+# 화면(Playwright)·모집단 검증을 PR과 푸시마다 실행한다. 배포 워크플로(pages.yml)와 별개라 배포 속도에 영향을 주지 않는다.
+on:
+  pull_request:
+    paths: ["site/**", "scripts/**", "tests/**", ".github/workflows/ui-test.yml"]
+  push:
+    paths: ["site/**", "scripts/**", "tests/**", ".github/workflows/ui-test.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Population and aggregate checks
+        run: |
+          python scripts/test_universe_160.py
+          python scripts/test_site_ui.py
+      - name: Node unit tests
+        run: node --test tests/regional-map.test.cjs
+      - name: Install Playwright
+        run: |
+          npm i --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Browser checks (360/390/768/1440px, dark mode)
+        run: node --test tests/mobile-ui.test.cjs
