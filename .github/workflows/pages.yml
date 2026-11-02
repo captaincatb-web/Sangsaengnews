@@ -238,9 +238,19 @@ jobs:
             site/data/market.js
           key: extra-data-${{ github.run_id }}
 
-      # 국내 소부장 기업별 시가총액·주가·시장 비중: KRX(키가 있을 때) 또는 네이버로 다시 계산한다.
-      # 사이트 배포와 데이터 수집 성공은 다르다: 수집이 실패해도 이전 값으로 배포하지만(continue-on-error) 상태 패널에 '갱신 지연'을 표시하고 이슈로 알린다.
-      # 종료 코드 0=성공, 3=거래 시간대라 종가가 아니어서 건너뜀(실패 아님), 그 밖=실패(검증 실패·접속 오류 등, 파일은 바뀌지 않음)
+      # 국내 소부장 시세: KRX(키가 있을 때) 또는 네이버로 다시 계산한다.
+      # 배포 성공과 데이터 수집 성공은 다르다. 직전에 성공한 값을 캐시에 두었다가(저장소에 커밋된 값이 아니라) 갱신이 실패하면 그 값으로 배포한다.
+      - name: Restore last good price data
+        uses: actions/cache/restore@v4
+        with:
+          path: .lastgood
+          key: semi-caps-none
+          restore-keys: semi-caps-
+      - name: Apply last good price data
+        run: python scripts/restore_lastgood.py .lastgood
+
+      # 종료 코드: 0 최신, 3 거래 시간대라 건너뜀(네이버 대체 시), 4 기준일이 기대 거래일보다 1거래일 오래됨(휴장일 또는 KRX 게시 지연), 5 2거래일 이상 오래됨,
+      #           6 새 응답이 기존 값보다 오래되어 기존 값 유지, 그 밖 실패(파일은 바뀌지 않음). 상태(state)와 지연(lag)은 단계 출력으로 남긴다.
       - name: Update semi caps and market share
         id: caps
         continue-on-error: true
@@ -250,10 +260,30 @@ jobs:
         run: |
           set +e
           python scripts/update_semi_caps.py; rc=$?
-          if [ $rc -eq 0 ]; then echo "state=success" >> "$GITHUB_OUTPUT"
-          elif [ $rc -eq 3 ]; then echo "state=skipped" >> "$GITHUB_OUTPUT"; echo "::notice::시세 갱신을 건너뜀: 거래 시간대라 종가가 아닙니다(이전 값 유지)"; exit 0
-          else echo "state=failure" >> "$GITHUB_OUTPUT"; echo "::warning::시세 갱신 실패(종료 코드 $rc): 이전 값으로 배포합니다"; fi
-          exit $rc
+          lag=$(grep '^lag=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2); lag=${lag:-0}
+          case $rc in
+            0) state=success ;;
+            3) state=skipped; echo "::notice::시세 갱신을 건너뜀: 거래 시간대라 종가가 아닙니다(이전 값 유지)" ;;
+            4) state=lagging ;;
+            5) state=stale ;;
+            6) if [ "$lag" -ge 2 ]; then state=stale; elif [ "$lag" -ge 1 ]; then state=lagging; else state=success; fi ;;
+            *) state=failure; echo "::warning::시세 갱신 실패(종료 코드 $rc): 직전 정상 값으로 배포합니다" ;;
+          esac
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+          echo "::notice::[시세 갱신] 상태=$state 종료코드=$rc 지연=${lag}거래일"
+          [ "$state" = "success" ] || [ "$state" = "skipped" ] || [ "$state" = "lagging" ] && exit 0
+          exit 1
+
+      - name: Save last good price data
+        if: ${{ steps.caps.outputs.state == 'success' || steps.caps.outputs.state == 'lagging' }}
+        run: |
+          mkdir -p .lastgood && cp site/data/semi_caps.js site/data/semi_share.js .lastgood/
+      - name: Cache last good price data
+        if: ${{ steps.caps.outputs.state == 'success' || steps.caps.outputs.state == 'lagging' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .lastgood
+          key: semi-caps-${{ github.run_id }}
 
       - name: Build data freshness manifest
         env:
@@ -266,30 +296,42 @@ jobs:
 
       # 모집단·집계 무결성 검증: 실패하면 배포를 막는다(가격 값 자체는 검사하지 않고 관계만 확인)
       - name: Validate universe and aggregates
-        run: python scripts/test_universe_160.py
+        run: |
+          python scripts/test_universe_160.py
+          python tests/test_caps_logic.py
 
-      - name: Report price refresh failure (issue)
-        if: ${{ steps.caps.outcome == 'failure' && github.event_name != 'pull_request' }}
+      # 이슈: 실패 또는 2거래일 이상 오래됨일 때만 만들고(이미 열린 같은 이슈가 있으면 댓글만), 기준일이 기대 거래일과 일치(지연 0·KRX 확인)하면 닫는다
+      - name: Report price refresh problem (issue)
+        if: ${{ (steps.caps.outputs.state == 'failure' || steps.caps.outputs.state == 'stale' || steps.caps.outcome == 'failure') && github.event_name != 'pull_request' }}
         uses: actions/github-script@v7
+        env:
+          CAPS_STATE: ${{ steps.caps.outputs.state || 'failure' }}
+          CAPS_ASOF: ${{ steps.caps.outputs.asof }}
+          CAPS_EXPECTED: ${{ steps.caps.outputs.expected }}
         with:
           script: |
-            const title = "[자동] 소부장 시세 갱신 실패";
-            const body = `시세 갱신 단계가 실패해 이전 수집 값으로 배포했습니다.\n\n- 실행: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n- 확인: 'Update semi caps and market share' 단계 로그의 [KRX]/[ABORT] 줄\n- 상태 패널에는 '최신 데이터 갱신 지연'으로 표시됩니다.\n\n회복되면 이 이슈는 자동으로 닫힙니다.`;
+            const title = "[자동] 소부장 시세 갱신 문제";
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const st = process.env.CAPS_STATE, why = st === "stale" ? `시세 기준일 ${process.env.CAPS_ASOF}이 기대 거래일 ${process.env.CAPS_EXPECTED}보다 2거래일 이상 오래되었습니다.` : "시세 갱신 단계가 실패했습니다.";
+            const body = `${why} 직전에 성공한 값(없으면 저장소 값)으로 배포했습니다.\n\n- 실행: ${run}\n- 확인: 'Update semi caps and market share' 단계 로그의 [KRX]/[ABORT]/[KEEP] 줄\n- 상태 패널에는 '최신 데이터 갱신 지연'으로 표시됩니다.\n\n기준일이 기대 거래일과 일치하는 정상 갱신이 확인되면 자동으로 닫힙니다.`;
             const { data: open } = await github.rest.issues.listForRepo({ ...context.repo, state: "open", per_page: 50 });
             const found = open.find((i) => i.title === title && !i.pull_request);
-            if (found) { await github.rest.issues.createComment({ ...context.repo, issue_number: found.number, body: `다시 실패했습니다: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}` }); }
-            else { await github.rest.issues.create({ ...context.repo, title, body }); }
+            if (found) await github.rest.issues.createComment({ ...context.repo, issue_number: found.number, body: `계속됨(${st}): ${run}` });
+            else await github.rest.issues.create({ ...context.repo, title, body });
 
-      - name: Close price refresh issue after recovery
-        if: ${{ steps.caps.outputs.state == 'success' && github.event_name != 'pull_request' }}
+      - name: Close price refresh issue after verified recovery
+        if: ${{ steps.caps.outputs.state == 'success' && steps.caps.outputs.verified == 'true' && steps.caps.outputs.lag == '0' && github.event_name != 'pull_request' }}
         continue-on-error: true
         uses: actions/github-script@v7
+        env:
+          CAPS_ASOF: ${{ steps.caps.outputs.asof }}
+          CAPS_EXPECTED: ${{ steps.caps.outputs.expected }}
         with:
           script: |
-            const title = "[자동] 소부장 시세 갱신 실패";
+            const title = "[자동] 소부장 시세 갱신 문제";
             const { data: open } = await github.rest.issues.listForRepo({ ...context.repo, state: "open", per_page: 50 });
             for (const i of open.filter((x) => x.title === title && !x.pull_request)) {
-              await github.rest.issues.createComment({ ...context.repo, issue_number: i.number, body: "시세 갱신이 회복되어 닫습니다." });
+              await github.rest.issues.createComment({ ...context.repo, issue_number: i.number, body: `회복 확인: 기준일 ${process.env.CAPS_ASOF} = 기대 거래일 ${process.env.CAPS_EXPECTED}(KRX 확인). 닫습니다.` });
               await github.rest.issues.update({ ...context.repo, issue_number: i.number, state: "closed", state_reason: "completed" });
             }
 
@@ -306,14 +348,61 @@ jobs:
       - name: Validate site structure and navigation
         run: python scripts/test_site_ui.py
 
+      # 배포 산출물에 커밋 SHA·빌드 정보를 찍고 모든 로컬 JS/CSS 주소의 캐시 버전을 하나로 맞춘다(소스 파일은 그대로)
+      - name: Stamp build info
+        run: python scripts/stamp_build.py "$GITHUB_SHA"
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
-  deploy:
+  # 배포 전 검증: build 가 만든 '배포 산출물 그대로'를 내려받아 실제 데이터로 브라우저(Playwright)·데이터 정합성을 검사한다.
+  # 실패하면 deploy 가 실행되지 않아 이전 배포가 유지된다. 시세 수집 지연은 경고만 하고(정상 데이터까지 중단시키지 않음) 무결성·화면·스크립트 오류만 막는다.
+  verify:
     needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}   # build 와 같은 커밋의 테스트·검증 코드
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          path: artifact
+      - name: Unpack deployment artifact
+        run: |
+          mkdir site_built
+          tar -xf artifact/artifact.tar -C site_built
+          ls site_built | head -5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Data integrity of the built artifact
+        env:
+          EXPECT_SHA: ${{ github.sha }}
+          DATA_DIR: site_built/data
+        run: |
+          python scripts/check_deployed_data.py site_built
+          python scripts/test_universe_160.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Playwright
+        run: |
+          npm i --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Browser checks on the built artifact (real data)
+        env:
+          SITE_DIR: site_built
+          REAL_DATA: "1"
+          EXPECT_SHA: ${{ github.sha }}
+        run: node --test tests/mobile-ui.test.cjs
+
+  deploy:
+    needs: [build, verify]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

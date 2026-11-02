@@ -29,6 +29,34 @@ def last_trading_day(now=None):
     return d.isoformat()
 
 
+def _now():
+    if os.environ.get("SEMI_CAPS_NOW"): return dt.datetime.fromisoformat(os.environ["SEMI_CAPS_NOW"]).replace(tzinfo=dt.timezone.utc)
+    return dt.datetime.now(dt.timezone.utc)
+
+
+def expected_trading_day(now=None):
+    """지금(KST) 기준으로 시세 자료가 이미 있어야 하는 가장 최근 평일 = 오늘 이전의 마지막 평일. 공휴일은 알 수 없어 평일로만 센다(그래서 1일 차이는 '지연', 2일 이상은 '오래됨'으로 구분)."""
+    d = ((now or _now()) + dt.timedelta(hours=9)).date() - dt.timedelta(days=1)
+    while d.weekday() >= 5: d -= dt.timedelta(days=1)
+    return d.isoformat()
+
+
+def weekday_lag(asof, expected):
+    """기준일 이후 expected 까지 지난 평일 수(0이면 최신)."""
+    a, e = dt.date.fromisoformat(asof), dt.date.fromisoformat(expected); n = 0
+    while a < e:
+        a += dt.timedelta(days=1); n += 1 if a.weekday() < 5 else 0
+    return n
+
+
+def gh_out(**kv):
+    """GitHub Actions 단계 출력(있을 때만)과 주석을 남긴다."""
+    f = os.environ.get("GITHUB_OUTPUT")
+    if f:
+        with open(f, "a", encoding="utf-8") as fh:
+            for k, v in kv.items(): fh.write(f"{k}={v}\n")
+
+
 def session_open(now=None):
     """평일 08:00~20:00(KST)은 정규장·시간외·대체거래소가 열려 있어 현재가가 종가가 아닐 수 있다."""
     if os.environ.get("SEMI_CAPS_NOW"): now = dt.datetime.fromisoformat(os.environ["SEMI_CAPS_NOW"]).replace(tzinfo=dt.timezone.utc)
@@ -148,7 +176,7 @@ def krx_on_or_before(cal, limit=7):
 
 
 def run_krx(caps, share):
-    start = os.environ.get("SEMI_CAPS_ASOF") or (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)).date().isoformat()  # 오늘부터 거슬러 올라가며 자료가 있는 마지막 거래일을 찾는다
+    start = os.environ.get("SEMI_CAPS_ASOF") or (_now() + dt.timedelta(hours=9)).date().isoformat()  # 오늘부터 거슬러 올라가며 자료가 있는 마지막 거래일을 찾는다
     asof, day = krx_on_or_before(start)
     if not day: print("[KRX] 최근 7일 자료 없음"); return None
     live = {c: v for m in day for c, v in day[m].items()}; mcap = {m: round(sum(v[2] for v in day[m].values()) / 1e8) for m in day}
@@ -177,20 +205,28 @@ def main():
         live = {c: (v[0], v[1]) for c, v in live.items()}; src = "krx"
     else:
         if session_open(): print("[SKIP] 거래 시간대(평일 08~20시 KST)라 네이버 현재가는 종가가 아님 — 갱신하지 않고 이전 값을 유지"); return 3
-        lists = fetch_all(); live, mcap = {}, {}
+        try: lists = fetch_all()
+        except Exception as e: print(f"[ABORT] 네이버 접속 실패({type(e).__name__}) — 파일을 바꾸지 않음(이전 값 유지)"); return 1
+        live, mcap = {}, {}
         for m, rows in lists.items():
             tot = 0
             for r in rows:
                 if str(r.get("nowPrice") or "").isdigit() and str(r.get("listedStockCnt") or "").isdigit():
                     p, s = int(r["nowPrice"]), int(r["listedStockCnt"]); live[r["code"]] = (p, s); tot += p * s
             mcap[m] = round(tot / 1e8)
-        asof = os.environ.get("SEMI_CAPS_ASOF") or last_trading_day(); src = "naver"
+        asof = os.environ.get("SEMI_CAPS_ASOF") or last_trading_day(_now()); src = "naver"
         # 네이버 현재가는 장중에는 실시간 값이라 종가가 아니다. 명단 종목 대부분이 장 마감(CLOSE) 상태일 때만 쓴다.
         roster = {r["c"] for r in caps["rows"] if r["m"] in ("KOSPI", "KOSDAQ")}
         st = [x.get("marketStatus") for rows in lists.values() for x in rows if x["code"] in roster]
         closed = sum(1 for v in st if v == "CLOSE")
         if not st or closed < len(roster) * 0.95:
             print(f"[SKIP] 장 마감 상태가 아님(CLOSE {closed}/{len(roster)}) — 장중 가격은 종가가 아니므로 갱신하지 않고 이전 값을 유지"); return 3
+    exp = expected_trading_day(); lag = weekday_lag(asof, exp) if src == "krx" else 0  # 네이버 대체는 거래일을 확인할 수 없어 지연을 판단하지 않는다
+    prev_asof = caps.get("asOf") or ""
+    if prev_asof and asof < prev_asof:
+        lag0 = weekday_lag(prev_asof, exp)
+        gh_out(lag=lag0, asof=prev_asof, src=caps.get("src", ""), expected=exp, verified=str((caps.get("fresh") or {}).get("verified", False)).lower())
+        print(f"[KEEP] 새 기준일 {asof} 이 기존 {prev_asof} 보다 오래됨 — 기존 값 유지(마지막 정상 거래일 기대 {exp}, 지연 {lag0}거래일)"); return 6
     prev_total = share.get("marketTotal", {})
     for m in ("KOSPI", "KOSDAQ"):
         if not mcap.get(m) or (prev_total.get(m) and abs(mcap[m] / prev_total[m] - 1) > 0.3):
@@ -240,8 +276,14 @@ def main():
     CAPS.write_text("// 기업별 시가총액·주가(검토용 집계). scripts/update_semi_caps.py 가 매일 갱신합니다. 직접 수정하지 마세요.\nwindow.SEMI_CAPS = " + j(caps) + ";\n", encoding="utf-8")
     head = SHARE.read_text(encoding="utf-8").split("\n", 1)[0]
     SHARE.write_text(head + "\nwindow.SEMI_SHARE = " + j(share) + ";\n", encoding="utf-8")
+    caps["fresh"] = {"expected": exp, "lag": lag, "verified": src == "krx"}; share["run"] = {**share.get("run", {}), **caps["fresh"]}
+    SHARE.write_text(SHARE.read_text(encoding="utf-8").split("\n", 1)[0] + "\nwindow.SEMI_SHARE = " + j(share) + ";\n", encoding="utf-8")
+    CAPS.write_text("// 기업별 시가총액·주가(검토용 집계). scripts/update_semi_caps.py 가 매일 갱신합니다. 직접 수정하지 마세요.\nwindow.SEMI_CAPS = " + j(caps) + ";\n", encoding="utf-8")
+    gh_out(lag=lag, asof=asof, src=src, expected=exp, verified=str(src == "krx").lower())
+    if lag >= 2: print(f"::warning::시세 기준일 {asof} 이 기대 거래일 {exp} 보다 {lag}거래일 오래됨(KRX 게시 지연 또는 갱신 문제)")
+    elif lag == 1: print(f"::notice::시세 기준일 {asof} 이 기대 거래일 {exp} 보다 1거래일 오래됨(휴장일이거나 KRX 게시 지연 — 보조 실행에서 재확인)")
     print(f"[semi-caps:{src}] asOf {asof} 적중 {len(hit)}/{len(want)} 소부장 {share['groups']['전체']['cap']:,}억 비중 {share['groups']['전체']['share'] * 100:.2f}% 코스피 {mcap['KOSPI']:,}억 코스닥 {mcap['KOSDAQ']:,}억")
-    return 0
+    return 5 if lag >= 2 else 4 if lag == 1 else 0
 
 
 if __name__ == "__main__": sys.exit(main())
