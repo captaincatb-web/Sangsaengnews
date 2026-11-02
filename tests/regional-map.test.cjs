@@ -79,6 +79,45 @@ test("growth choropleth distinguishes negative, positive, zero and missing", () 
   assert.equal(U.color(null,"growth",30,true),"#dce5df");
   assert.equal(U.color(100,"sales",100,true),"rgba(31,111,102,0.92)");
 });
+test("summary pins use province aggregates and show metric-aware labels", () => {
+  const stats=[
+    {name:"경기도", rows:[{},{}], v:15320},
+    {name:"서울특별시",rows:[{}],v:5000},
+    {name:"인천광역시",rows:[{}],v:null}
+  ];
+  assert.equal(U.pinLabel(62,"count"),"62");
+  assert.equal(U.pinLabel(15320,"cap"),"1.5조");
+  assert.equal(U.pinLabel(-3.54,"growth"),"-3.5%");
+  assert.equal(U.pinLabel(null,"cap"),"—");
+  assert.equal(U.pinSummaries(stats,"cap","none","경기도").length,0);
+  assert.deepEqual(U.pinSummaries(stats,"cap","top","",1).map(x=>x.name),["경기도"]);
+  assert.deepEqual(U.pinSummaries(stats,"cap","top","서울특별시",1).map(x=>x.name),["경기도","서울특별시"]);
+  assert.equal(U.pinSummaries(stats,"cap","all","").length,2);
+  // A region without cap data is still pinnable if explicitly selected.
+  assert.equal(U.pinSummaries(stats,"cap","top","인천광역시",1).at(-1).label,"—");
+});
+test("pin layout avoids collision and stays in bounds on mobile and desktop", () => {
+  const candidates=[
+    {name:"경기도",label:"67",x:100,y:90},{name:"서울특별시",label:"13",x:105,y:95},
+    {name:"인천광역시",label:"3",x:100,y:99},{name:"충청남도",label:"14",x:115,y:155},
+    {name:"충청북도",label:"7",x:168,y:148},{name:"경상북도",label:"6",x:215,y:130}
+  ];
+  for(const [w,h] of [[320,340],[570,560]]) {
+    const layout=U.layoutPins(candidates,w,h);
+    assert.equal(layout.length,candidates.length);
+    for (const q of layout) {
+      assert.ok(q.x>=q.w/2 && q.x<=w-q.w/2);
+      assert.ok(q.y>=q.h/2 && q.y<=h-q.h/2);
+      assert.ok(q.name && q.label);
+    }
+    for (let i=0;i<layout.length;i++) for(let j=i+1;j<layout.length;j++){
+      const a=layout[i],b=layout[j];
+      const ox=(a.w+b.w)/2-Math.abs(a.x-b.x);
+      const oy=(a.h+b.h)/2-Math.abs(a.y-b.y);
+      assert.ok(ox<=0 || oy<=0, a.name+" overlaps "+b.name+" on "+w+"px");
+    }
+  }
+});
 test("source SVG has exactly 17 allowed, unique province paths", () => {
   const src=fs.readFileSync(path.join(__dirname,"../site/data/geo/korea-sido.svg"),"utf8");
   const ids=[...src.matchAll(/<path\b[^>]*\bid="([^"]+)"/g)].map(m=>m[1]);
@@ -92,10 +131,16 @@ test("dashboard integration is additive and preserves original filters", () => {
   assert.ok(html.includes('id="v-industry"'));
   assert.ok(html.includes('id="sb-map"'));
   assert.ok(html.includes('<option value="cap">시가총액</option>'));
+  assert.ok(html.includes('id="sb-map-pins"'));
+  assert.ok(html.includes('시·도별 집계값'));
+  assert.ok(html.includes('<option value="none">숨기기</option>'));
   assert.ok(html.includes('data/market.js'));
   const map = fs.readFileSync(path.join(__dirname,"../site/dashboard-map.js"),"utf8");
   assert.ok(map.includes("window.MARKET"));
   assert.ok(map.includes("U.capCoverage"));
+  assert.ok(map.includes('data-sb-pin'));
+  assert.ok(map.includes('U.layoutPins'));
+  assert.ok(map.includes('anchorOnProvince'));
   assert.ok(html.indexOf('dashboard-map-utils.js')<html.indexOf('dashboard-map.js'));
   assert.ok(html.indexOf('dashboard-map.js')<html.indexOf('dashboard.js'));
   assert.ok(html.includes('id="f-area"'));
