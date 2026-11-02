@@ -24,7 +24,7 @@ chk("인프라 4곳 장비+보조속성", all(byc[c]["k"] == "장비" and "인�
 chk("더코디 핵심 미편입·위지트 기존 유지(재검토 표시)", "224060" not in byc and byc["036090"].get("rv") == 1 and byc["036090"]["g"] == "E")
 if old: chk("기존 123 구성(종목코드·기업명·시장·분류) 불변 — 가격은 매일 바뀌므로 제외", all(all(byc[r["c"]].get(k) == r.get(k) for k in ("n", "m", "k")) for r in old["rows"] if r.get("g") == "E" and r["c"] in byc) and sum(1 for r in old["rows"] if r.get("g") == "E") in (0, 123))
 G = share["groups"]; chk("집계 종목 수 160 / 소재37 부품47 장비76", (G["전체"]["n"], G["소재"]["n"], G["부품"]["n"], G["장비"]["n"]) == (160, 37, 47, 76))
-chk("시총 확인 종목 수 별도(nCap ≤ n, 실제 값과 일치)", all(G[k]["nCap"] == sum(1 for r in rows if r["cap"] and (k == "전체" or r["k"] == k)) for k in G) and G["전체"]["nCap"] < G["전체"]["n"], f'nCap={G["전체"]["nCap"]}')
+chk("시총 확인 종목 수 별도(nCap ≤ n, 실제 값과 일치)", all(G[k]["nCap"] == sum(1 for r in rows if r["cap"] and (k == "전체" or r["k"] == k)) for k in G) and G["전체"]["nCap"] <= G["전체"]["n"], f'nCap={G["전체"]["nCap"]}')
 chk("신규 중 시총 없는 종목은 null(임의 수치 없음)", all(r["cap"] is None or r["p"] for r in nw.values()))
 chk("기존 123 기준 집계 보존(legacy123)", share["legacy123"]["전체"]["n"] == 123)
 # --- 시장·집계 정합성(가격은 매일 바뀌므로 값 자체가 아니라 관계만 확인) ---

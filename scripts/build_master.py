@@ -16,6 +16,7 @@ for r in caps["rows"]:
     p = prof.get(r["c"]); rows.append({"c": r["c"], "n": r["n"], "m": r["m"], "g": r.get("g", "E"), "k": r["k"], "corp": p[1] if p else ""})
 for m in caps.get("managed", []):
     p = prof.get(m["c"]); rows.append({"c": m["c"], "n": m["n"], "m": "", "g": m["g"], "k": m["k"], "corp": p[1] if p else ""})
+rows.sort(key=lambda r: (r["g"], r["c"]))  # 가격 순서에 따라 파일이 바뀌지 않게 고정 정렬
 assert len({r["c"] for r in rows}) == len(rows), "종목코드 중복"
 out = {"key": "종목코드(6자리 문자열)", "populations": {
     "core": {"label": "핵심 소부장 모집단(분류·시가총액 분석)", "n": sum(1 for r in rows if r["g"] in "EN")},
