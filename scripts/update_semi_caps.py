@@ -29,6 +29,13 @@ def last_trading_day(now=None):
     return d.isoformat()
 
 
+def session_open(now=None):
+    """평일 08:00~20:00(KST)은 정규장·시간외·대체거래소가 열려 있어 현재가가 종가가 아닐 수 있다."""
+    if os.environ.get("SEMI_CAPS_NOW"): now = dt.datetime.fromisoformat(os.environ["SEMI_CAPS_NOW"]).replace(tzinfo=dt.timezone.utc)
+    kst = (now or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=9)
+    return kst.weekday() < 5 and 8 <= kst.hour < 20
+
+
 def items_of(j):
     if isinstance(j, list):
         if j and isinstance(j[0], dict) and ("itemCode" in j[0] or "itemcode" in j[0]): return j
@@ -169,6 +176,7 @@ def main():
         asof, live, mcap, prev, pq = krx
         live = {c: (v[0], v[1]) for c, v in live.items()}; src = "krx"
     else:
+        if session_open(): print("[SKIP] 거래 시간대(평일 08~20시 KST)라 네이버 현재가는 종가가 아님 — 갱신하지 않고 이전 값을 유지"); return 3
         lists = fetch_all(); live, mcap = {}, {}
         for m, rows in lists.items():
             tot = 0
