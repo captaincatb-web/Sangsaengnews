@@ -10,7 +10,7 @@
   const coLink = (r) => `<a href="#company" data-co="${r.c}">${esc(r.n)}</a>`;
 
   // ---------- 필터 상태(모든 화면 공유) ----------
-  const state = { ...SB.fromQuery(location.search), sig: "전체", sigMore: false, sigSort: "sig", sigDir: 1, q: "", chip: "전체", sort: "g", dir: -1, more: false, co: new URLSearchParams(location.search).get("co") };
+  const state = { ...SB.fromQuery(location.search), co: new URLSearchParams(location.search).get("co") || undefined, sig: "전체", sigMore: false, sigSort: "sig", sigDir: 1, q: "", chip: "전체", sort: "g", dir: -1, more: false, co: new URLSearchParams(location.search).get("co") };
   // 지금 조건(과 선택 기업)을 주소에 남겨 링크로 공유할 수 있게 한다
   function syncUrl() {
     const qs = [SB.toQuery(state), state.co && location.hash === "#company" ? `co=${state.co}` : ""].filter(Boolean).join("&");
