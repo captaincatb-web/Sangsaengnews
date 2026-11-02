@@ -56,30 +56,49 @@
     }
     return best || target;
   }
+  const pinStatus = document.getElementById("sb-map-pin-status");
+  const announcement = document.getElementById("sb-map-announcement");
+  const announce = message => { if (announcement) announcement.textContent = message; };
   function renderPins() {
     if (!loaded || !svg || !pinMode || !mapEl.isConnected) return;
+    const focused = document.activeElement && document.activeElement.dataset.sbPin;
     pinLayer.replaceChildren();
-    if (pinMode.value === "none" || !pinStats.length) return;
+    if (pinMode.value === "none") {
+      if (pinStatus) pinStatus.textContent = "지역 집계핀 숨김 · 지도 영역 및 지역 선택 목록으로 탐색 가능";
+      return;
+    }
+    if (!pinStats.length) return;
     const box = mapEl.getBoundingClientRect();
     if (box.width < 150 || box.height < 150) return;
-    const summaries = U.pinSummaries(pinStats, metric, pinMode.value, selected, box.width < 470 ? 6 : 8);
-    const candidates = [];
-    for (const item of summaries) {
-      const p = [...svg.querySelectorAll("path[data-region]")].find(el=>el.dataset.region===item.name);
-      if (!p || !p.getScreenCTM()) continue;
-      const anchor = anchorOnProvince(p,item.name);
-      if (!anchor) continue;
-      const point = new DOMPoint(anchor.x,anchor.y).matrixTransform(p.getScreenCTM());
-      candidates.push({...item,x:point.x-box.left,y:point.y-box.top});
+    const summaries=U.pinSummaries(pinStats,metric,pinMode.value,selected,box.width<470?6:8);
+    // Render real buttons offscreen first to measure DOM size (fonts/zoom/localization).
+    const probe=document.createElement("div");
+    probe.className="sb-map-pin-probe";
+    pinLayer.appendChild(probe);
+    const candidates=[];
+    const svgPaths=[...svg.querySelectorAll("path[data-region]")];
+    for(const item of summaries) {
+      const p=svgPaths.find(el=>el.dataset.region===item.name);
+      if(!p || !p.getScreenCTM())continue;
+      const anchor=anchorOnProvince(p,item.name);
+      if(!anchor)continue;
+      const point=new DOMPoint(anchor.x,anchor.y).matrixTransform(p.getScreenCTM());
+      const badge=document.createElement("button");
+      badge.className="sb-map-pin";
+      badge.textContent=item.label;
+      probe.appendChild(badge);
+      const b=badge.getBoundingClientRect();
+      candidates.push({...item,x:point.x-box.left,y:point.y-box.top,w:b.width,h:b.height});
     }
-    const placed = U.layoutPins(candidates,box.width,box.height);
-    const ns = "http://www.w3.org/2000/svg";
-    const wires = document.createElementNS(ns,"svg");
+    probe.remove();
+    const placed=U.layoutPins(candidates,box.width,box.height);
+    const ns="http://www.w3.org/2000/svg";
+    const wires=document.createElementNS(ns,"svg");
     wires.classList.add("sb-map-pin-wires");
     wires.setAttribute("viewBox","0 0 "+box.width+" "+box.height);
     wires.setAttribute("aria-hidden","true");
-    for (const pin of placed) {
-      if (pin.displaced) {
+    for(const pin of placed) {
+      if(pin.displaced) {
         const line=document.createElementNS(ns,"line");
         line.setAttribute("x1",String(pin.anchorX));line.setAttribute("y1",String(pin.anchorY));
         line.setAttribute("x2",String(pin.x));line.setAttribute("y2",String(pin.y));
@@ -87,19 +106,26 @@
       }
     }
     pinLayer.appendChild(wires);
-    for(const pin of placed) {
-      const button = document.createElement("button");
+    for(const pin of placed){
+      const button=document.createElement("button");
       button.type="button";
       button.className="sb-map-pin";
       button.dataset.sbPin=pin.name;
-      button.style.left=pin.x+"px";
-      button.style.top=pin.y+"px";
+      button.style.left=pin.x+"px";button.style.top=pin.y+"px";
       button.setAttribute("aria-pressed",String(pin.selected));
-      const detail = pin.name + " · " + metricNames[metric] + " " + valueText(pin.value) + " · 분석 기업 " + fmtNum(pin.n) + "곳";
-      button.title=detail+" (지역 집계 핀; 기업 위치 아님)";
+      const detail=pin.name+" · "+metricNames[metric]+" "+valueText(pin.value)+
+        " · 분석 기업 "+fmtNum(pin.n)+"곳";
+      button.title=detail+" (시·도 집계; 기업 위치 아님)";
       button.setAttribute("aria-label",detail+" · 지역 상세 보기");
       button.textContent=pin.label;
       pinLayer.appendChild(button);
+      if(focused===pin.name)button.focus({preventScroll:true});
+    }
+    if(pinStatus){
+      const skipped=Math.max(0,candidates.length-placed.length);
+      pinStatus.textContent="집계핀 "+fmtNum(placed.length)+"개 표시"+
+        (skipped?" · 겹침 방지를 위해 "+fmtNum(skipped)+"개 생략 (지역 선택 목록에서 확인)":"")+
+        " · 총 17개 시·도는 지역 선택 목록에서 탐색 가능";
     }
   }
   function schedulePins() {
