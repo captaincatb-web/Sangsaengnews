@@ -1,0 +1,44 @@
+name: Overseas world map regression tests
+on:
+  pull_request:
+    paths:
+      - "site/compare.html"
+      - "site/compare.js"
+      - "site/compare-world-map*"
+      - "site/data/geo/world-110m.svg"
+      - "tests/world-map.test.cjs"
+      - ".github/workflows/world-map-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-world-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: JavaScript syntax verification
+        run: |
+          node --check site/compare.js
+          node --check site/compare-world-map.js
+          node --check site/compare-world-map-utils.js
+      - name: Country map aggregation and integration tests
+        run: node --test tests/world-map.test.cjs
+      - name: World-map PR preview assets
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: overseas-world-map-preview
+          path: |
+            site/compare.html
+            site/compare.js
+            site/compare-world-map.js
+            site/compare-world-map-utils.js
+            site/compare-world-map.css
+            site/data/geo/world-110m.svg
+            tests/world-map.test.cjs
+          retention-days: 7
