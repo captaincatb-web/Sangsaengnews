@@ -50,6 +50,28 @@ test("financial aggregation uses sums, not mean of company growth rates", () => 
   assert.equal(U.metric([],"growth"),null);
   assert.equal(U.metric([],"count"),0);
 });
+test("market-cap metric matches DART codes, excludes unlisted/missing and preserves 억원 units", () => {
+  const rows = [
+    {c:"corp1", l:1, s1:130, s0:120},
+    {c:"corp2", l:1, s1:200, s0:180},
+    {c:"corp3", l:0, s1:75, s0:70},
+    {c:"corp4", l:1, s1:80, s0:75},
+    {c:"corp5", l:1, s1:90, s0:80}
+  ];
+  const market = {corp1:{cap:12000}, corp2:{cap:3500}, corp3:{cap:99999},
+    corp4:{cap:0}, corp5:{cap:null}};
+  assert.equal(U.capOf(rows[0], market),12000);
+  assert.equal(U.capOf(rows[2], market),null);
+  assert.equal(U.capOf(rows[3], market),null);
+  assert.equal(U.metric(rows,"cap",market),15500);
+  assert.equal(U.metric(rows,"count",market),5);
+  assert.equal(U.metric([rows[2],rows[3]],"cap",market),null);
+  assert.deepEqual(U.capCoverage(rows,market),{listed:4,known:2,missing:2,unlisted:1});
+  assert.equal(U.metric(rows,"cap",{}),null);
+  assert.equal(U.metric([], "cap",market),null);
+  assert.equal(U.color(null,"cap",100,true),"#dce5df");
+  assert.equal(U.color(100,"cap",100,true),"rgba(31,111,102,0.92)");
+});
 test("growth choropleth distinguishes negative, positive, zero and missing", () => {
   assert.match(U.color(-15,"growth",30,true), /^rgba\(187,75,67,/);
   assert.match(U.color(15,"growth",30,true), /^rgba\(31,111,102,/);
@@ -69,6 +91,11 @@ test("dashboard integration is additive and preserves original filters", () => {
   const js=fs.readFileSync(path.join(__dirname,"../site/dashboard.js"),"utf8");
   assert.ok(html.includes('id="v-industry"'));
   assert.ok(html.includes('id="sb-map"'));
+  assert.ok(html.includes('<option value="cap">시가총액</option>'));
+  assert.ok(html.includes('data/market.js'));
+  const map = fs.readFileSync(path.join(__dirname,"../site/dashboard-map.js"),"utf8");
+  assert.ok(map.includes("window.MARKET"));
+  assert.ok(map.includes("U.capCoverage"));
   assert.ok(html.indexOf('dashboard-map-utils.js')<html.indexOf('dashboard-map.js'));
   assert.ok(html.indexOf('dashboard-map.js')<html.indexOf('dashboard.js'));
   assert.ok(html.includes('id="f-area"'));
