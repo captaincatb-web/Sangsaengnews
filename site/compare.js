@@ -591,13 +591,13 @@
   });
 
   const VIEWS = ["overview", "perf", "company", "stock", "coverage", "domestic"];
-  function show(v) {
+  function show(v, preserveScroll = false) {
     if (!VIEWS.includes(v)) v = "overview";
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
     document.body.dataset.view = v; // 기업 상세는 상단 필터와 무관하므로 필터 막대를 숨긴다
     if (v === "company") drawCompany();
-    window.scrollTo({ top: 0 });
+    if (!preserveScroll) window.scrollTo({ top: 0 });
     pill();
   }
   function pill() {
@@ -608,7 +608,7 @@
     ul.style.setProperty("--px", `${r.left - u.left}px`); ul.style.setProperty("--pw", `${r.width}px`);
     ul.classList.add("th-ready");
   }
-  function render() {
+  function render(preserveScroll = false) {
     rows = all.filter((r) => (state.kind === "all" || (state.kind === "sobu" ? SOBU.includes(r.p.cat) : r.p.cat === state.kind)) && (state.ctry === "all" || r.p.ctry === state.ctry));
     document.querySelectorAll(".cm-basis-slot").forEach((el) => (el.innerHTML = basis()));
     $("sub").textContent = `해외 ${rows.length}곳 · 원화 환산 · 국내 소부장(${FY}년 개별 기준)과 비교`;
@@ -619,7 +619,12 @@
       return;
     }
     $("empty-panel").hidden = true;
-    show(location.hash.slice(1));
+    if (window.CompareWorldMap) {
+      const kindRows = all.filter(r => state.kind === "all" ||
+        (state.kind === "sobu" ? SOBU.includes(r.p.cat) : r.p.cat === state.kind));
+      window.CompareWorldMap.render(kindRows, state.ctry);
+    }
+    show(location.hash.slice(1), preserveScroll);
     drawOverview(); drawPerf(); drawStock(); drawCoverage(); drawDomestic(); limits();
   }
 
@@ -726,6 +731,11 @@
     paint();
   }
 
+  if (window.CompareWorldMap) window.CompareWorldMap.onSelect = code => {
+    state.ctry = code;
+    $("f-ctry").value = code;
+    render(true);
+  };
   $("updated").textContent = P.updated || "-";
   drawFilters();
   render();
