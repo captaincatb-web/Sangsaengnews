@@ -30,5 +30,7 @@
   panel.className = "site-data-status";
   panel.setAttribute("aria-label", "데이터 기준일 및 수집 상태");
   panel.innerHTML = `<div class="site-data-status__head"><strong>데이터 기준일 · 수집 상태</strong><small>${manifest.generatedAt ? `배포 빌드 ${esc(manifest.generatedAt)}` : "수집 상태 정보가 없으면 기준일만 표시합니다."}</small></div><ul class="site-data-status__list">${items}</ul>`;
-  host.insertAdjacentElement("afterend", panel);
+  // 본문의 가장 아래에 둔다(내용보다 먼저 보이지 않게).
+  const main = host.closest("main");
+  if (main) main.appendChild(panel); else host.insertAdjacentElement("afterend", panel);
 })();

@@ -148,7 +148,7 @@ def krx_on_or_before(cal, limit=7):
 
 
 def run_krx(caps, share):
-    start = os.environ.get("SEMI_CAPS_ASOF") or (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9) - dt.timedelta(days=1)).date().isoformat()
+    start = os.environ.get("SEMI_CAPS_ASOF") or (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)).date().isoformat()  # 오늘부터 거슬러 올라가며 자료가 있는 마지막 거래일을 찾는다
     asof, day = krx_on_or_before(start)
     if not day: print("[KRX] 최근 7일 자료 없음"); return None
     live = {c: v for m in day for c, v in day[m].items()}; mcap = {m: round(sum(v[2] for v in day[m].values()) / 1e8) for m in day}

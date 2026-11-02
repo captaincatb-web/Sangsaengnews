@@ -11,3 +11,6 @@
 .site-data-status__state.is-cached { color: #8a5b13; }
 .site-data-status__state.is-missing { color: #b42318; }
 @media (max-width: 600px) { .site-data-status { margin-bottom: 12px; padding: 10px; } .site-data-status__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } .site-data-status__item { align-content: start; } }
+
+main > .site-data-status { margin: 28px 0 0; }
+main.pg-page > .site-data-status { margin-bottom: 40px; }
