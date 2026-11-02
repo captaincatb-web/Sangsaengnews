@@ -144,6 +144,13 @@
                 <option value="cap">시가총액</option>
               </select>
             </label>
+            <label for="sb-map-pins">지역 핀
+              <select id="sb-map-pins" aria-label="지역 집계 핀 표시 방식">
+                <option value="top">주요 지역</option>
+                <option value="all">전체 지역</option>
+                <option value="none">숨기기</option>
+              </select>
+            </label>
             <button type="button" id="sb-map-reset" disabled>지역 선택 해제</button>
           </div>
         </div>
@@ -151,6 +158,7 @@
           <div class="sb-map-visual">
             <div id="sb-map-svg" aria-label="대한민국 시도별 소부장 기업 지도" aria-live="polite">행정구역 지도를 불러오는 중…</div>
             <div id="sb-map-legend" class="sb-map-legend">지역별 분석값을 지도 색상으로 표시합니다.</div>
+            <p class="sb-map-pin-hint"><i class="ph ph-map-pin" aria-hidden="true"></i>핀은 <strong>시·도별 집계값</strong>을 표시합니다. 기업별 실제 주소·공장 위치가 아닙니다. 핀을 누르면 지역 상세를 볼 수 있습니다.</p>
             <div id="sb-map-coverage" class="sb-map-coverage">기업 주소를 확인하는 중…</div>
           </div>
           <div id="sb-map-details" class="sb-map-panel" aria-live="polite">
