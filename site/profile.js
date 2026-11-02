@@ -369,7 +369,7 @@
   // ---------- 맺음: 표시하지 않은 항목, 참고 ----------
   const missingNote = p.corp_name
     ? `<p class="pf-missing">공시로 확인할 수 없어 표시하지 않은 항목: ${[...missing].join(", ")}</p>`
-    : `<p class="pf-missing">아직 DART 데이터를 받지 못했습니다. 매일 오전 7시 30분에 갱신됩니다.</p>`;
+    : `<p class="pf-missing">아직 DART 데이터를 받지 못했습니다. 월~금 오후 11시에 갱신됩니다.</p>`;
 
   const ref = ratioTable ? `<details class="pf-ref"><summary><i class="ph ph-caret-right" aria-hidden="true"></i>재무비율 정의 보기</summary>
     <h3>[참고] 주요 재무비율 정의</h3>${table(["구분", "지표", "정의"], [

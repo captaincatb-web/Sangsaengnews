@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="guide.css?v=202611011500">
   <script src="theme.page.js?v=202611011400"></script>
   <link rel="stylesheet" href="navigation.shared.css?v=202611011230">
-  <link rel="stylesheet" href="data-status.css?v=202611011230">
+  <link rel="stylesheet" href="data-status.css?v=202611021500">
 </head>
 <body>
   <a class="skip" href="#content">본문 바로가기</a>
@@ -51,12 +51,6 @@
         <li><a href="#notice" data-view="notice"><i class="ph ph-warning-circle" aria-hidden="true"></i>중요 안내사항</a></li>
       </ul></nav>
     </aside>
-    <nav class="breadcrumb" aria-label="현재 위치">
-      <ol>
-        <li><a href="./"><i class="ph ph-house" aria-hidden="true"></i>홈</a></li>
-        <li aria-current="page">이용 안내</li>
-      </ol>
-    </nav>
 
     <section class="page-head" aria-labelledby="title">
       <h1 id="title">이용 안내</h1>
@@ -78,7 +72,7 @@
     <section class="gd-sec" id="process" hidden aria-labelledby="h-process">
       <h2 id="h-process">내용은 이렇게 만들어집니다</h2>
       <p class="gd-intro">화면의 숫자와 문장은 공시·시세를 자동으로 받아 정해진 규칙으로 계산해 만듭니다. 사람이 직접 입력하거나 문장을 새로 지어내지 않습니다.</p>
-      <ol class="gd-steps"><li><h3>수집</h3><p>매일 오전 7시 30분(한국시간)에 DART 공시, 주가, 시장 지표, 해외 비교 자료를 자동으로 받아 옵니다.</p></li><li><h3>정리</h3><p>명단의 회사를 DART 고유번호로 찾고, 개별(별도) 재무 기준으로 연간과 최근 8개 분기 실적을 맞춥니다. 분기는 누적 금액을 빼서 3개월 값으로 바꿉니다.</p></li><li><h3>분류</h3><p>소재·부품·장비 구분은 직접 분류한 기업은 확정, 나머지는 DART 업종코드로 추정합니다. 추정한 값에는 '추정' 표시가 붙습니다.</p></li><li><h3>표시</h3><p>계산한 값을 그대로 화면에 보여 줍니다. 값을 찾지 못하면 0으로 채우지 않고 '-'로 둡니다.</p></li></ol>
+      <ol class="gd-steps"><li><h3>수집</h3><p>월~금 오후 11시(한국시간)에 DART 공시, 주가, 시장 지표, 해외 비교 자료를 자동으로 받아 옵니다. 주가는 평일 장이 마감해 종가가 나온 뒤 같은 날 밤에 반영합니다.</p></li><li><h3>정리</h3><p>명단의 회사를 DART 고유번호로 찾고, 개별(별도) 재무 기준으로 연간과 최근 8개 분기 실적을 맞춥니다. 분기는 누적 금액을 빼서 3개월 값으로 바꿉니다.</p></li><li><h3>분류</h3><p>소재·부품·장비 구분은 직접 분류한 기업은 확정, 나머지는 DART 업종코드로 추정합니다. 추정한 값에는 '추정' 표시가 붙습니다.</p></li><li><h3>표시</h3><p>계산한 값을 그대로 화면에 보여 줍니다. 값을 찾지 못하면 0으로 채우지 않고 '-'로 둡니다.</p></li></ol>
       <div class="gd-callout"><i class="ph ph-robot" aria-hidden="true"></i><div>
         <p><strong>생성형 AI가 분석 글이나 리포트를 쓰지 않습니다.</strong> 기업 프로필의 '알아야 할 사항'도 최근 공시 제목과 뉴스 제목을 정해진 규칙으로 골라 보여 줍니다.</p>
         <p>사이트의 코드와 분류 검토 과정에서는 AI 코딩 도구(Claude)의 도움을 받았습니다. 그래도 화면에 나오는 값은 위 출처에서 받은 자료로만 계산하며, 확인할 수 없는 값은 만들지 않고 '-' 또는 '확인필요'로 둡니다.</p></div></div>
@@ -98,10 +92,10 @@
 
     <section class="gd-sec" id="cycle" hidden aria-labelledby="h-cycle">
       <h2 id="h-cycle">데이터는 얼마나 자주 갱신되나</h2>
-      <p class="gd-intro">자료 종류마다 주기가 다릅니다. 매일 오전 7시 30분(한국시간)에 자동 갱신하며, 화면에 보이는 값이 언제 기준인지는 각 화면의 안내 문구에서 확인할 수 있습니다.</p>
+      <p class="gd-intro">자료 종류마다 주기가 다릅니다. 월~금 오후 11시(한국시간)에 자동 갱신하며, 화면에 보이는 값이 언제 기준인지는 각 화면의 안내 문구에서 확인할 수 있습니다.</p>
       <div class="gd-box"><table class="gd-table"><caption class="sr-only">데이터 종류별 갱신 주기</caption>
         <thead><tr><th scope="col">데이터 종류</th><th scope="col">갱신 주기</th><th scope="col">다음 갱신</th><th scope="col">비고</th></tr></thead>
-        <tbody><tr><th scope="row">기업 재무(연간·분기)</th><td>매일</td><td>오전 7시 30분 전후</td><td>상장사는 사업·반기·분기보고서, 비상장사는 감사보고서(연 1회)에서 읽습니다. 새 공시가 없으면 직전 값이 그대로 유지됩니다.</td></tr><tr><th scope="row">주가·시가총액</th><td>매일</td><td>오전 7시 30분 전후</td><td>전 거래일 종가 기준입니다. 주말·공휴일에는 직전 거래일 값이 유지되고, 시가총액은 종가 × 상장주식수입니다. 실시간 시세는 제공하지 않습니다.</td></tr><tr><th scope="row">시장 지표(PER·PBR·컨센서스)</th><td>매일</td><td>오전 7시 30분 전후</td><td>네이버증권 공개 데이터를 다시 받아 옵니다. 받지 못한 회사는 건너뛰고, 새로 받지 못하면 직전 값이 유지됩니다.</td></tr><tr><th scope="row">시장 비중 표(국내 소부장)</th><td>수시(다시 계산할 때)</td><td>기준일을 표 위에 표시</td><td>검토 중인 소부장 핵심 모집단 160개사(기존 123 + 신규 37)의 시가총액과 코스피·코스닥 전체 대비 비중입니다. 자동 갱신 대상이 아니라 계산한 시점(기준 종가일)의 값이 유지됩니다.</td></tr><tr><th scope="row">해외 비교</th><td>매일</td><td>오전 7시 30분 전후</td><td>수집 상태(확보·일부 확보·미확보)와 이유를 회사별로 남기며, 값이 없으면 빈 값으로 둡니다.</td></tr><tr><th scope="row">기업 명단·분류</th><td>수시</td><td>명단이 바뀔 때</td><td>추가 요청은 GitHub 이슈로 접수하고 담당자가 확인한 뒤 반영합니다.</td></tr><tr><th scope="row">이 안내사항</th><td>수시</td><td>변경 시</td><td>사전 공지 후 바뀔 수 있으며, 바뀐 뒤의 이용에는 바뀐 내용이 적용됩니다.</td></tr></tbody></table></div>
+        <tbody><tr><th scope="row">기업 재무(연간·분기)</th><td>평일(월~금)</td><td>오후 11시 전후</td><td>상장사는 사업·반기·분기보고서, 비상장사는 감사보고서(연 1회)에서 읽습니다. 새 공시가 없으면 직전 값이 그대로 유지됩니다.</td></tr><tr><th scope="row">주가·시가총액</th><td>평일(월~금)</td><td>오후 11시 전후</td><td>당일 종가가 나온 뒤 반영합니다. 거래소 자료가 아직 없거나 주말·공휴일이면 직전 거래일 값이 유지되고, 시가총액은 종가 × 상장주식수입니다. 실시간 시세는 제공하지 않습니다.</td></tr><tr><th scope="row">시장 지표(PER·PBR·컨센서스)</th><td>평일(월~금)</td><td>오후 11시 전후</td><td>네이버증권 공개 데이터를 다시 받아 옵니다. 받지 못한 회사는 건너뛰고, 새로 받지 못하면 직전 값이 유지됩니다.</td></tr><tr><th scope="row">시장 비중 표·기업별 시총(국내 소부장)</th><td>평일(월~금)</td><td>오후 11시 전후</td><td>검토 중인 소부장 핵심 모집단 160개사(기존 123 + 신규 37)의 시가총액과 코스피·코스닥 전체 대비 비중입니다. 기준 종가일을 표 위에 표시하며, 갱신에 실패하면 직전 값이 유지됩니다.</td></tr><tr><th scope="row">해외 비교</th><td>평일(월~금)</td><td>오후 11시 전후</td><td>수집 상태(확보·일부 확보·미확보)와 이유를 회사별로 남기며, 값이 없으면 빈 값으로 둡니다.</td></tr><tr><th scope="row">기업 명단·분류</th><td>수시</td><td>명단이 바뀔 때</td><td>추가 요청은 GitHub 이슈로 접수하고 담당자가 확인한 뒤 반영합니다.</td></tr><tr><th scope="row">이 안내사항</th><td>수시</td><td>변경 시</td><td>사전 공지 후 바뀔 수 있으며, 바뀐 뒤의 이용에는 바뀐 내용이 적용됩니다.</td></tr></tbody></table></div>
     </section>
 
     <section class="gd-sec" id="notice" hidden aria-labelledby="h-notice">
@@ -118,7 +112,7 @@
       <div class="f-cnt">
         <div class="f-info">
           <p>자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 주가 Yahoo Finance</p>
-          <p><strong>매일 오전 7시 30분 자동 갱신</strong> · 공시 원문을 자동으로 정리한 참고 자료입니다.</p>
+          <p><strong>월~금 오후 11시 자동 갱신</strong> · 공시 원문을 자동으로 정리한 참고 자료입니다.</p>
         </div>
         <ul class="f-link">
           <li><a href="https://dart.fss.or.kr" target="_blank" rel="noopener">DART 전자공시<i class="ph ph-caret-right" aria-hidden="true"></i></a></li>
@@ -173,6 +167,6 @@
   </script>
 
   <script src="data/status.js?v=202611011230"></script>
-  <script src="data-status.js?v=202611011230"></script>
+  <script src="data-status.js?v=202611021500"></script>
 </body>
 </html>
