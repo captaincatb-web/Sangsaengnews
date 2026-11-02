@@ -12,11 +12,12 @@
     profiles: { label: "DART 기업정보", updated: window.COMPANY_PROFILES_UPDATED || "" },
     financials: { label: "DART 재무", updated: (window.COMPANY_FINANCIALS_META || {}).updated || "" },
     peers: { label: "해외 기업", updated: (window.PEERS || {}).updated || "" },
-    market: { label: "국내 시세", updated: (window.MARKET || {}).updated || "" }
+    market: { label: "국내 시세", updated: (window.MARKET || {}).updated || "" },
+    caps: { label: "소부장 시총", updated: (window.SEMI_CAPS || {}).asOf || "" }
   };
   const stateText = { fresh: "이번 배포 갱신", cached: "저장 데이터 사용", missing: "자료 미확인", unknown: "상태 확인 중" };
   const stateClass = { fresh: "is-fresh", cached: "is-cached", missing: "is-missing", unknown: "" };
-  const keys = ["profiles", "financials", "peers", "market"];
+  const keys = ["profiles", "financials", "peers", "market", "caps"];
   const items = keys.map((key) => {
     const item = sources[key] || fallback[key] || {};
     const state = item.status || (item.updated ? "unknown" : "missing");
