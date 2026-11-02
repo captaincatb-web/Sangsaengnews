@@ -151,7 +151,7 @@ test("regional breakdown preserves current financial cohort and missing cap",()=
   const d=U.regionBreakdown(rows.slice(0,3),rows,{A:{cap:5000},C:{cap:null}});
   assert.equal(d.count,3);assert.equal(d.share,75);
   assert.deepEqual(d.kinds,{소재:1,부품:1,장비:1});
-  assert.equal(d.sales,660);assert.equal(d.growth,10);assert.equal(d.cap,5000);
+  assert.equal(d.sales,660);assert.ok(Math.abs(d.growth-10)<1e-8);assert.equal(d.cap,5000);
   assert.equal(d.capCoverage.known,1);
   assert.equal(U.regionBreakdown([],rows,{}).cap,null);
 });
