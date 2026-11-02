@@ -247,6 +247,16 @@ jobs:
           MARKET_OUTCOME: ${{ steps.extra.outputs.market }}
         run: python scripts/build_data_status.py
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate regional map before publishing
+        run: |
+          node --check site/dashboard-map-utils.js
+          node --check site/dashboard-map.js
+          node --check site/dashboard.js
+          node --test tests/regional-map.test.cjs
+
       - name: Validate site structure and navigation
         run: python scripts/test_site_ui.py
 

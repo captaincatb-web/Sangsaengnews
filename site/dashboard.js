@@ -663,6 +663,7 @@
     }
     $("c-big").innerHTML = bigCard();
     sigRows = rows; window.DB = { rows: () => rows }; drawSignals(); needList();
+    if (window.SobujangMap) window.SobujangMap.render(rows, state.fy);
     listRows = rows; drawList();
     drawReport(S);
     if (!$("v-company").hidden) drawCompany();

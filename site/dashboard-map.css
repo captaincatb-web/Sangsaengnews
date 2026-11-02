@@ -1,0 +1,43 @@
+/* Regional map card - additive styles only; existing dashboard styles are untouched. */
+.sb-map-card{margin:16px 0;overflow:hidden}
+.sb-map-card .db-card-head{flex-wrap:wrap;gap:10px}
+.sb-map-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sb-map-tools label{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--text-2)}
+.sb-map-tools select{appearance:auto;border:1px solid var(--line);color:var(--text);background:var(--card);border-radius:9px;padding:7px 9px;font:inherit}
+.sb-map-tools button{border:1px solid var(--line);color:var(--text-2);background:var(--card);border-radius:9px;padding:7px 11px;font:inherit;cursor:pointer}
+.sb-map-tools button:hover:not(:disabled){background:var(--grid);color:var(--text)}
+.sb-map-tools button:disabled{opacity:.4;cursor:default}
+.sb-map-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:20px;align-items:start}
+.sb-map-visual{min-width:0;display:flex;flex-direction:column;gap:8px}
+#sb-map-svg{width:100%;max-width:570px;min-height:310px;margin:0 auto;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--grid) 35%,var(--card));border-radius:14px;overflow:hidden;color:var(--text-3)}
+.sb-map-shape{display:block;width:100%;max-height:500px;aspect-ratio:800/759}
+.sb-map-shape path{stroke:var(--card);stroke-width:1.7;vector-effect:non-scaling-stroke;cursor:pointer;outline:none;transition:filter .15s,stroke-width .15s}
+.sb-map-shape path:hover,.sb-map-shape path:focus-visible{stroke:var(--text);stroke-width:2.8;filter:brightness(1.1)}
+.sb-map-shape path.is-selected{stroke:var(--text);stroke-width:3.4;filter:brightness(1.07)}
+.sb-map-legend{font-size:12px;color:var(--text-3);line-height:1.6}
+.sb-map-coverage{font-size:12px;color:var(--text-2)}
+.sb-map-panel{min-width:0;border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--card);min-height:340px}
+.sb-map-panel-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.sb-map-panel-title h3{margin:5px 0 0;font-size:18px;color:var(--text)}
+.sb-map-panel-title strong{font-size:12px;color:var(--brand,var(--blue));font-weight:700;line-height:1.8}
+.sb-map-eyebrow{font-size:11px;color:var(--text-3);letter-spacing:.04em}
+.sb-map-ranks{display:grid;margin-top:7px}
+.sb-map-ranks button{width:100%;background:none;border:0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 4px;color:var(--text);text-align:left;cursor:pointer;font:inherit}
+.sb-map-ranks button:hover,.sb-map-company-list a:hover{background:var(--grid)}
+.sb-map-ranks button span{font-size:13px}
+.sb-map-ranks button em{font-size:11px;color:var(--text-3);font-style:normal;margin-right:6px}
+.sb-map-ranks button strong{font-size:13px;white-space:nowrap}
+.sb-map-company-list{display:grid;margin-top:10px;max-height:425px;overflow:auto}
+.sb-map-company-list a{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;border-bottom:1px solid var(--line);padding:10px 6px}
+.sb-map-company-list a b{display:block;font-size:13px;word-break:keep-all}
+.sb-map-company-list a small{display:block;color:var(--text-3);font-size:11px}
+.sb-map-company-list a>span:last-child{font-size:12px;white-space:nowrap;font-weight:700}
+.sb-map-subinfo{padding-top:10px;color:var(--text-2);font-size:12px}
+.sb-map-fine,.sb-map-no-data{font-size:12px;color:var(--text-3);line-height:1.6}
+.sb-map-no-data{padding:30px 10px;text-align:center}
+.sb-map-method{margin:16px 0 0;font-size:12px;color:var(--text-3);line-height:1.7}
+.sb-map-method a{color:inherit;text-decoration:underline}
+.sb-map-error{padding:20px;text-align:center}
+@media(max-width:900px){.sb-map-grid{grid-template-columns:1fr}.sb-map-panel{min-height:0}#sb-map-svg{max-width:520px}}
+@media(max-width:520px){.sb-map-tools{width:100%}.sb-map-grid{gap:12px}.sb-map-panel{padding:12px}#sb-map-svg{min-height:240px}.sb-map-shape{max-height:420px}}
+@media(prefers-reduced-motion:reduce){.sb-map-shape path{transition:none}}
