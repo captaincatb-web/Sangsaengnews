@@ -34,6 +34,7 @@ financials = assignment(DATA / "financials.js", "COMPANY_FINANCIALS", [])
 financials_meta = assignment(DATA / "financials.js", "COMPANY_FINANCIALS_META", {})
 peers = assignment(DATA / "peers.js", "PEERS", {})
 market = assignment(DATA / "market.js", "MARKET", {})
+caps = assignment(DATA / "semi_caps.js", "SEMI_CAPS", {})
 
 
 def source(label: str, updated, count, outcome: str):
@@ -56,6 +57,7 @@ manifest = {
         "financials": source("DART 재무", financials_meta.get("updated") if isinstance(financials_meta, dict) else "", len(financials) if isinstance(financials, list) else None, os.getenv("FINANCIALS_OUTCOME", "")),
         "peers": source("해외 기업", peers.get("updated") if isinstance(peers, dict) else "", len(peers.get("list", [])) if isinstance(peers, dict) and isinstance(peers.get("list"), list) else None, os.getenv("PEERS_OUTCOME", "")),
         "market": source("국내 시세", market.get("updated") if isinstance(market, dict) else "", len(market.get("list", [])) if isinstance(market, dict) and isinstance(market.get("list"), list) else None, os.getenv("MARKET_OUTCOME", "")),
+        "caps": source("소부장 시총", caps.get("asOf") if isinstance(caps, dict) else "", len(caps.get("rows", [])) if isinstance(caps, dict) and isinstance(caps.get("rows"), list) else None, os.getenv("CAPS_OUTCOME", "")),
     },
 }
 (DATA / "status.js").write_text(
