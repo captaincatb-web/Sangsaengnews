@@ -867,11 +867,7 @@
     paint();
   }
 
-  // 좁은 화면: 사이트 메뉴는 접어 두고 '메뉴' 버튼으로 연다(소부장 경영 정보 메뉴는 아래 탭)
-  $("site-menu").addEventListener("click", () => {
-    const open = document.querySelector(".krds-header").classList.toggle("open");
-    $("site-menu").setAttribute("aria-expanded", open);
-  });
+  // 좁은 화면의 사이트 메뉴 버튼은 site-menu.js 가 처리한다(모든 화면 공통).
   $("updated").textContent = SB.meta.updated || "-";
   const offFy = recs.filter((r) => r.mt && r.mt !== "12").length;
   $("foot").textContent = "자료: 금융감독원 전자공시(DART) 사업보고서·감사보고서·분기보고서, 개별(별도) 기준. 분기 추이는 상장사만 포함합니다. "
