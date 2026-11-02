@@ -19,8 +19,9 @@ on:
       - "scripts/test_site_ui.py"
       - ".github/workflows/pages.yml"
   schedule:
-    # 매일 07:30 KST = 전날 22:30 UTC (DART 데이터·주가 갱신)
-    - cron: "30 22 * * *"
+    # 월~금 장 마감 후 자료를 다음 날 07:30 KST(= 22:30 UTC, 월~금)에 반영한다: 화~토 아침 실행이 월~금 종가를 담는다.
+    # 주가는 평일에만 바뀌므로 일·월 아침(직전 거래일 종가가 그대로인 날)은 정기 실행하지 않는다.
+    - cron: "30 22 * * 1-5"
   workflow_dispatch:
     inputs:
       refresh:
