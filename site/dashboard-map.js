@@ -6,83 +6,34 @@
   const root = document.getElementById("sb-map");
   if (!root || !window.SB) return;
   const SB = window.SB;
+  const U = window.SobujangMapUtils;
+  if (!U) return;
   const mapEl = document.getElementById("sb-map-svg");
   const details = document.getElementById("sb-map-details");
   const metricSel = document.getElementById("sb-map-metric");
   const resetBtn = document.getElementById("sb-map-reset");
   const coverage = document.getElementById("sb-map-coverage");
   const legend = document.getElementById("sb-map-legend");
-  const regionNames = [
-    "서울특별시","부산광역시","대구광역시","인천광역시","광주광역시",
-    "대전광역시","울산광역시","세종특별자치시","경기도","강원특별자치도",
-    "충청북도","충청남도","전북특별자치도","전라남도","경상북도","경상남도",
-    "제주특별자치도"
-  ];
-  const short = {
-    "서울특별시":"서울","부산광역시":"부산","대구광역시":"대구",
-    "인천광역시":"인천","광주광역시":"광주","대전광역시":"대전",
-    "울산광역시":"울산","세종특별자치시":"세종","경기도":"경기",
-    "강원특별자치도":"강원","충청북도":"충북","충청남도":"충남",
-    "전북특별자치도":"전북","전라남도":"전남","경상북도":"경북",
-    "경상남도":"경남","제주특별자치도":"제주"
-  };
-  const alias = {
-    "서울":"서울특별시","부산":"부산광역시","대구":"대구광역시",
-    "인천":"인천광역시","광주":"광주광역시","대전":"대전광역시",
-    "울산":"울산광역시","세종":"세종특별자치시",
-    "강원도":"강원특별자치도","강원특별자치도":"강원특별자치도",
-    "전라북도":"전북특별자치도","전북특별자치도":"전북특별자치도",
-    "제주도":"제주특별자치도","제주특별자치도":"제주특별자치도",
-    "경기도":"경기도","충청북도":"충청북도","충청남도":"충청남도",
-    "전라남도":"전라남도","경상북도":"경상북도","경상남도":"경상남도",
-    "서울특별시":"서울특별시","부산광역시":"부산광역시",
-    "대구광역시":"대구광역시","인천광역시":"인천광역시",
-    "광주광역시":"광주광역시","대전광역시":"대전광역시",
-    "울산광역시":"울산광역시","세종특별자치시":"세종특별자치시"
-  };
+  const regionNames = U.regions;
   const metricNames = { count:"기업 수", sales:"매출 합계", growth:"매출 성장률" };
   const fmtNum = n => Number(n || 0).toLocaleString("ko-KR");
   const esc = SB.fmt.esc;
   const money = SB.fmt.won;
   const pct = SB.fmt.sg;
-  const groupOf = (r) => {
-    // Only DART headquarters address is considered. Do not infer it from a 6-region bucket.
-    const ad = String(r.ad || "").trim().replace(/^\(?\d{5}\)?\s*/, "");
-    const p = ad.split(/\s+/)[0];
-    return alias[p] || null;
-  };
+  const groupOf = (r) => U.provinceOf(r.ad);
   let rows = [], fy = null, selected = "", metric = "count", svg = null, loaded = false;
   function grouped() {
-    const groups = Object.fromEntries(regionNames.map(n => [n, []]));
-    const missing = [];
-    rows.forEach(r => {
-      const p = groupOf(r);
-      if (p && groups[p]) groups[p].push(r);
-      else missing.push(r);
-    });
-    return { groups, missing };
+    const { byProvince, unknown } = U.group(rows);
+    return { groups: byProvince, missing: unknown };
   }
-  function metricValue(rs) {
-    if (metric === "count") return rs.length;
-    if (metric === "sales") return rs.reduce((s,r) => s+(Number(r.s1)||0),0);
-    const a=rs.reduce((s,r) => s+(Number(r.s1)||0),0), b=rs.reduce((s,r) => s+(Number(r.s0)||0),0);
-    return b>0 ? (a/b-1)*100 : null;
-  }
+  const metricValue = (list) => U.metric(list, metric);
   function valueText(v) {
     if (v==null) return "자료 없음";
     if (metric==="count") return fmtNum(v)+"곳";
     if (metric==="sales") return money(v);
     return pct(v);
   }
-  function fillFor(v, max) {
-    if (v==null) return "#dfe6e2";
-    if (metric==="growth") {
-      const alpha=Math.min(.84,.23 + Math.abs(v) / Math.max(max,.01)*.55);
-      return v<0 ? "rgba(201,74,66,"+alpha.toFixed(2)+")" : "rgba(31,111,102,"+alpha.toFixed(2)+")";
-    }
-    if (v<=0) return "#e3e9e5";
-    return "rgba(31,111,102,"+(.20+.72*Math.sqrt(v/Math.max(max,1))).toFixed(2)+")";
-  }
+  const fillFor = (value, max, hasRows) => U.color(value, metric, max, hasRows);
   function redraw() {
     if (!loaded) return;
     const { groups, missing } = grouped();
@@ -90,10 +41,10 @@
     const mx=Math.max(.01,...stats.map(r=>Math.abs(r.v||0)));
     svg.querySelectorAll("path[id]").forEach(p=>{
       const raw=p.id;
-      const name=alias[raw] || raw;
+      const name=U.canonical(raw);
       const st=stats.find(s=>s.name===name);
       if (!st) { p.style.fill="#dfe6e2"; return; }
-      p.style.fill=fillFor(st.v,mx);
+      p.style.fill=fillFor(st.v,mx,st.rows.length > 0);
       p.classList.toggle("is-selected",selected===name);
       p.setAttribute("role","button");
       p.setAttribute("tabindex","0");
@@ -127,7 +78,7 @@
   }
   function pick(name) { selected=selected===name?"":name; redraw(); }
   metricSel.addEventListener("change",()=>{
-    metric=metricSel.value; selected=""; redraw();
+    metric=metricSel.value; redraw();
   });
   resetBtn.addEventListener("click",()=>{selected="";redraw();});
   root.addEventListener("click",e=>{
@@ -138,20 +89,46 @@
   });
   root.addEventListener("keydown",e=>{
     const path=e.target.closest && e.target.closest("path[data-region]");
-    if (path && (e.key==="Enter" || e.key===" ")) {e.preventDefault();pick(path.dataset.region);}
+    if (!path) return;
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(path.dataset.region); return; }
+    const directions = {ArrowRight:1, ArrowDown:1, ArrowLeft:-1, ArrowUp:-1};
+    if (Object.prototype.hasOwnProperty.call(directions, e.key)) {
+      e.preventDefault();
+      const paths=[...svg.querySelectorAll("path[data-region]")];
+      const idx=paths.indexOf(path);
+      const next=paths[(idx+directions[e.key]+paths.length)%paths.length];
+      if (next) next.focus();
+    }
   });
   fetch("data/geo/korea-sido.svg").then(r=>{
     if(!r.ok) throw new Error("HTTP "+r.status);
     return r.text();
   }).then(t=>{
-    const doc=new DOMParser().parseFromString(t,"image/svg+xml");
-    const el=doc.documentElement;
-    if(el.tagName.toLowerCase()!=="svg" || el.querySelectorAll("path[id]").length!==17) throw new Error("17개 시도 경계 검증 실패");
-    svg=document.importNode(el,true);
-    svg.removeAttribute("width");svg.removeAttribute("height");
+    const doc = new DOMParser().parseFromString(t, "image/svg+xml");
+    const original = doc.documentElement;
+    const paths = [...original.querySelectorAll("path[id]")];
+    const mapped = paths.map(p => U.canonical(p.id));
+    if (original.localName !== "svg" || paths.length !== 17 ||
+        mapped.some(n => !n) || new Set(mapped).size !== 17 ||
+        paths.some(p => !p.getAttribute("d"))) {
+      throw new Error("17개 시·도 경계 검증 실패");
+    }
+    // Import only a viewBox and geometry paths. Never inject upstream XML into the DOM.
+    const ns = "http://www.w3.org/2000/svg";
+    svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", original.getAttribute("viewBox") || "0 0 800 759");
+    const g = document.createElementNS(ns, "g");
+    paths.forEach(p => {
+      const copy = document.createElementNS(ns, "path");
+      copy.setAttribute("id", p.id);
+      copy.setAttribute("d", p.getAttribute("d"));
+      if (p.hasAttribute("fill-rule")) copy.setAttribute("fill-rule", p.getAttribute("fill-rule"));
+      g.appendChild(copy);
+    });
+    svg.appendChild(g);
     svg.classList.add("sb-map-shape");
-    svg.setAttribute("aria-label","대한민국 시도별 기업 분포");
-    svg.setAttribute("role","group");
+    svg.setAttribute("aria-label", "대한민국 시·도별 기업 분포");
+    svg.setAttribute("role", "group");
     mapEl.replaceChildren(svg); loaded=true; redraw();
   }).catch(err=>{mapEl.textContent="지도를 불러오지 못했습니다: "+err.message;mapEl.classList.add("sb-map-error");});
   window.SobujangMap={
