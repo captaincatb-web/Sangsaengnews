@@ -206,10 +206,57 @@
           '<button type="button" data-sb-region="'+esc(s.name)+'"><span><em>'+String(i+1).padStart(2,"0")+'</em> '+esc(s.name)+'</span><strong>'+valueText(s.v)+'</strong></button>'
         ).join("")+'</div>'+(ranked.length===0?'<p class="sb-map-no-data">현재 조건에서 집계할 기업이 없습니다.</p>':'')
       );
+    const nav=document.createElement("label");
+    nav.className="sb-map-region-picker";
+    nav.textContent="지역 바로가기 ";
+    const sel=document.createElement("select");
+    sel.id="sb-map-region-picker";
+    sel.setAttribute("aria-label","지도 분석 지역 변경");
+    for(const name of ["",...regionNames]){
+      const opt=document.createElement("option");
+      opt.value=name;opt.textContent=name||"전국 17개 시·도";
+      opt.selected=selected===name;sel.appendChild(opt);
+    }
+    nav.appendChild(sel);
+    const title=details.querySelector(".sb-map-panel-title");
+    if(title)title.insertAdjacentElement("afterend",nav);
+    if(focus){
+      const info=U.regionBreakdown(focus.rows,rows,marketList());
+      const summary=document.createElement("div");
+      summary.className="sb-map-summary";
+      for(const [key,value] of [
+        ["기업 수",fmtNum(info.count)+"곳"],["전국 표본 비중",info.share==null?"자료 없음":info.share.toFixed(1)+"%"],
+        ["매출 합계",money(info.sales)],["매출 성장률",pct(info.growth)],
+        ["상장사 시가총액",info.cap==null?"자료 없음":money(info.cap)]]) {
+        const cell=document.createElement("div");
+        const label=document.createElement("span");label.textContent=key;
+        const number=document.createElement("strong");number.textContent=value;
+        cell.append(label,number);
+        if(key==="상장사 시가총액"){
+          const note=document.createElement("small");
+          note.textContent="확인 "+info.capCoverage.known+" / 상장 "+info.capCoverage.listed+"곳";
+          cell.appendChild(note);
+        }
+        summary.appendChild(cell);
+      }
+      const kinds=document.createElement("div");
+      kinds.className="sb-map-breakdown";
+      kinds.textContent="소재·부품·장비: "+["소재","부품","장비"].map(k=>k+" "+info.kinds[k]+"곳").join(" · ")+
+        (info.other?" · 기타 "+info.other+"곳":"");
+      nav.insertAdjacentElement("afterend",summary);
+      summary.insertAdjacentElement("afterend",kinds);
+    }
     resetBtn.disabled=!selected;
     schedulePins();
   }
   function pick(name) { selected=selected===name?"":name; redraw(); }
+  details.addEventListener("change",e=>{
+    if(e.target.id!=="sb-map-region-picker")return;
+    selected=regionNames.includes(e.target.value)?e.target.value:"";
+    redraw();announce(selected?selected+" 지역 분석 선택":"전국 지역 분석");
+    const selector=details.querySelector("#sb-map-region-picker");
+    if(selector)selector.focus({preventScroll:true});
+  });
   metricSel.addEventListener("change",()=>{
     metric=metricSel.value; redraw();
   });
