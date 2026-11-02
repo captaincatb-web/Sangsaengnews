@@ -114,7 +114,7 @@
     const arr = displayMode === "all" ? populated : populated.slice(0,Math.max(1,topN));
     if (selected && !arr.some(s => s.name === selected)) {
       const chosen=stats.find(s=>s.name===selected);
-      if(chosen)arr.unshift(chosen);
+      if(chosen)arr.push(chosen);
     }
     return arr.map(s => ({name:s.name,label:pinLabel(s.v,mode),
       value:s.v,n:s.rows.length,selected:s.name === selected}));
