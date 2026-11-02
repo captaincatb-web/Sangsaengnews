@@ -218,6 +218,14 @@ def main():
     if U: share["basis"] = f"국내 상장 소부장 핵심 모집단 {U['core']}개사(기존 {U['existing']} + 신규 {U['new']}). 시가총액은 확인된 종목만 합산"
     share["universe"] = U
     share["groups"] = {"전체": agg(firms, den), **{k: agg([f for f in firms if f["k"] == k], den) for k in KINDS}}
+    # 분모·분자 구분: share 는 (KRX 기준) 코스피·코스닥·코넥스 전체 대비, shareKK 는 코스피·코스닥 소부장만 코스피·코스닥 전체 시총으로 나눈 값(코넥스 제외)
+    denKK = mcap["KOSPI"] + mcap["KOSDAQ"]
+    for gname, g in share["groups"].items():
+        fs = firms if gname == "전체" else [f for f in firms if f["k"] == gname]
+        capKK = sum(f["cap"] for f in fs if f["cap"] and f["m"] in ("KOSPI", "KOSDAQ")); g["shareKK"] = round(capKK / denKK, 6) if denKK else None
+    share["denominator"] = {"share": "코스피·코스닥·코넥스 전체" if src == "krx" else "코스피·코스닥 전체", "shareKK": "코스피·코스닥 전체", "marketTotal": {k: v for k, v in mcap.items()}}
+    share["konexN"] = sum(1 for f in firms if f["m"] == "KONEX")  # 모집단 안의 코넥스 종목 수(집계 값이 아니라 명단에서 센다)
+    share["counts"] = {"population": len(firms), "withCap": sum(1 for f in firms if f["cap"]), "noCap": sum(1 for f in firms if not f["cap"]), "byMarket": dict(sorted(((m, sum(1 for f in firms if f["m"] == m)) for m in {f["m"] for f in firms})))}
     old = [f for f in firms if f.get("g", "E") == "E"]  # 기존 123 기준 값(연속성 비교용)
     share["legacy123"] = {"전체": agg(old, den), **{k: agg([f for f in old if f["k"] == k], den) for k in KINDS}}
     for m in ("KOSPI", "KOSDAQ"):
@@ -227,6 +235,7 @@ def main():
     share["asOf"] = asof; share["konexIncluded"] = src == "krx"
     share["source"] = ("한국거래소(KRX) Open API 일별매매정보 시가총액(" + asof + " 종가), 보통주 기준" if src == "krx" else re.sub(r"\(\d{4}-\d{2}-\d{2} 종가\)", f"({asof} 종가)", share["source"]))
     if src == "krx": share["marketTotal"]["KONEX"] = mcap["KONEX"]
+    share["run"] = {"src": src, "asOf": asof, "collectedAt": caps["updated"]}
     j = lambda o: json.dumps(o, ensure_ascii=False, separators=(",", ":"))
     CAPS.write_text("// 기업별 시가총액·주가(검토용 집계). scripts/update_semi_caps.py 가 매일 갱신합니다. 직접 수정하지 마세요.\nwindow.SEMI_CAPS = " + j(caps) + ";\n", encoding="utf-8")
     head = SHARE.read_text(encoding="utf-8").split("\n", 1)[0]

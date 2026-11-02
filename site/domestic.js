@@ -262,8 +262,9 @@
     $("cp-k").addEventListener("change", (e) => { cst.k = e.target.value; drawCaps(); });
     $("cp-csv").addEventListener("click", () => {
       const pr = (v) => (v == null || !isFinite(v) ? "" : +(v * 100).toFixed(2)), mk = { KOSPI: "코스피", KOSDAQ: "코스닥", KONEX: "코넥스" };
-      const head = ["순위", "기업명", "종목코드", "시장", "업종", "종가(원)", `${D.prev[0]} 종가(원)`, `${D.prev[1]} 종가(원)`, "분기말 대비(%)", "반기말 대비(%)", "상장주식 수(주)", "시가총액(억 원)", "업종 내 비중(%)", "시장 비중(%)"];
-      const lines = rows.map((r) => [r.rank ?? "", r.n, r.c, mk[r.m] || r.m, r.k, r.p ?? "", r.q1 ?? "", r.q2 ?? "", pr(r.d1), pr(r.d2), r.s ?? "", r.cap ?? "", pr(r.inK), r.m === "KONEX" ? "" : pr(r.inM)]);
+      const head = ["순위", "기업명", "종목코드", "시장", "업종", "종가(원)", `${D.prev[0]} 종가(원)`, `${D.prev[1]} 종가(원)`, "분기말 대비(%)", "반기말 대비(%)", "상장주식 수(주)", "시가총액(억 원)", "업종 내 비중(%)", "시장 비중(%)", "기준일(종가)", "모집단 구분", "보조분류", "데이터 출처·산출 기준(비고)"];
+      const note = `${D.source}. 시가총액=종가×상장주식 수(보통주). 분기말·반기말 대비는 수정주가 미반영. 빈 칸은 데이터 미확보이며 0이 아님. 핵심 소부장 모집단(기존 123+신규 37) 기준이며 투자 권유가 아닌 참고 자료`;
+      const lines = rows.map((r) => [r.rank ?? "", r.n, r.c, mk[r.m] || r.m, r.k, r.p ?? "", r.q1 ?? "", r.q2 ?? "", pr(r.d1), pr(r.d2), r.s ?? "", r.cap ?? "", pr(r.inK), r.m === "KONEX" ? "" : pr(r.inM), D.asOf, r.g === "N" ? "신규" : "기존", r.k2 || "", note]);
       const q = (c) => `"${String(c).replace(/"/g, '""')}"`;
       const csv = "\ufeff" + [head.map(q).join(","), ...lines.map((a) => a.map((c) => (typeof c === "number" ? c : q(c))).join(","))].join("\r\n");
       const a = document.createElement("a");
