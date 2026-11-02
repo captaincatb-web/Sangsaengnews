@@ -30,3 +30,16 @@ body[data-view="share"] .db-filters, body[data-view="share"] #filter-toggle, bod
 .ms-tbl tbody th { white-space: nowrap; }
 body[data-view="share"] .cm-limits { display: none; }
 .ms-tbl td.r { white-space: nowrap; }
+
+/* 기업별 시가총액·주가 */
+.cp-tools { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; margin-bottom: 12px; }
+.cp-search { flex: 1 1 220px; max-width: 320px; } .cp-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: inherit; font: inherit; outline: none; }
+.cp-sum { margin: 0 0 0 auto; font-size: 13.5px; color: var(--text-2); }
+.cp-tbl { min-width: 980px; } .cp-tbl thead th button { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; color: inherit; font: inherit; }
+.cp-tbl thead th button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+.cp-tbl tbody th small { display: block; font-weight: 400; font-size: 12px; color: var(--text-3); }
+.cp-tbl tbody td { white-space: nowrap; }
+.ms-up { color: #d6334a; } .ms-dn { color: #2563c9; }
+body[data-view="caps"] .db-filters, body[data-view="caps"] #filter-toggle, body[data-view="caps"] .cm-basis-slot, body[data-view="caps"] .cm-limits { display: none; }
+@media (min-width: 861px) { .cp-tbl tbody th, .cp-tbl thead th:nth-child(2) { position: sticky; left: 0; background: var(--card); z-index: 1; } }
+#v-caps, #c-caps, #c-caps .db-card { min-width: 0; } #c-caps { display: grid; gap: 16px; }

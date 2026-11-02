@@ -213,15 +213,60 @@
     root.innerHTML = `${main}<section class="db-card" aria-labelledby="ms-t2"><div class="db-card-head"><h2 id="ms-t2">코스피·코스닥별 상세</h2></div><div class="ms-mks">${mkCard("KOSPI")}${mkCard("KOSDAQ")}</div></section>${notes}`;
   }
 
+  // ---------- 기업별 시가총액·주가 상세 ----------
+  // data/semi_caps.js(시장 비중 표와 같은 기준·시점). 검색·시장·업종 필터, 열 머리글 클릭으로 정렬. 상단 실적 필터와 무관하다.
+  const cst = { q: "", m: "", k: "", sort: "cap", dir: -1 };
+  const pcs = (v) => (v == null || !isFinite(v) ? "-" : `<span class="${v > 0 ? "ms-up" : v < 0 ? "ms-dn" : ""}">${v > 0 ? "▲" : v < 0 ? "▼" : ""}${nf(Math.abs(v) * 100, 1)}%</span>`);
+  const CCOL = [
+    ["rank", "순위", 0], ["n", "기업", 1], ["m", "시장", 1], ["k", "업종", 1], ["p", "종가(원)", 0], ["d1", "분기말 대비", 0], ["d2", "반기말 대비", 0],
+    ["s", "상장주식 수", 0], ["cap", "시가총액", 0], ["inK", "업종 내 비중", 0], ["inM", "시장 비중", 0],
+  ];
+  function capsRows(D) {
+    const MT = (window.SEMI_SHARE && window.SEMI_SHARE.marketTotal) || {}, kindCap = {}, allCap = {};
+    D.rows.forEach((r) => { if (r.cap) { kindCap[r.k] = (kindCap[r.k] || 0) + r.cap; allCap.t = (allCap.t || 0) + r.cap; } });
+    const rk = [...D.rows].filter((r) => r.cap).sort((a, b) => b.cap - a.cap).map((r) => r.c);
+    return D.rows.map((r) => ({ ...r, rank: r.cap ? rk.indexOf(r.c) + 1 : null, d1: r.p && r.q1 ? r.p / r.q1 - 1 : null, d2: r.p && r.q2 ? r.p / r.q2 - 1 : null,
+      inK: r.cap ? r.cap / kindCap[r.k] : null, inM: r.cap && MT[r.m] ? r.cap / (MT[r.m] / 1) : null }));
+  }
+  function drawCaps() {
+    const root = $("c-caps"); if (!root) return;
+    const D = window.SEMI_CAPS;
+    if (!D || !D.rows) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>기업별 시가총액 자료가 아직 없습니다.</p></section>`; return; }
+    const all = capsRows(D), q = cst.q.trim().toLowerCase();
+    let rows = all.filter((r) => (!cst.m || r.m === cst.m) && (!cst.k || r.k === cst.k) && (!q || r.n.toLowerCase().includes(q) || r.c.includes(q)));
+    const key = cst.sort, dir = cst.dir;
+    rows.sort((a, b) => { const x = a[key], y = b[key]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === "string" ? x.localeCompare(y, "ko") : x - y) * dir; });
+    const sumCap = rows.reduce((t, r) => t + (r.cap || 0), 0);
+    const th = CCOL.map(([k, l, left]) => `<th scope="col" class="${left ? "" : "r"}" aria-sort="${cst.sort === k ? (cst.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" data-sort="${k}">${l}${cst.sort === k ? `<i class="ph ph-caret-${cst.dir > 0 ? "up" : "down"}" aria-hidden="true"></i>` : ""}</button></th>`).join("");
+    const body = rows.map((r) => `<tr><td class="r">${r.rank ?? "-"}</td><th scope="row"><b>${esc(r.n)}</b><small>${esc(r.c)}</small></th><td>${MKN[r.m] || "코넥스"}</td><td><i class="sq" style="background:${KCOL[r.k]}"></i>${r.k}</td>`
+      + `<td class="r">${r.p ? nf(r.p) : "-"}</td><td class="r">${pcs(r.d1)}</td><td class="r">${pcs(r.d2)}</td><td class="r">${r.s ? nf(r.s) : "-"}</td><td class="r"><b>${r.cap ? won(r.cap) : "-"}</b></td><td class="r">${pc2(r.inK)}</td><td class="r">${r.m === "KONEX" ? "-" : pc2(r.inM)}</td></tr>`).join("");
+    const opt = (v, l, cur) => `<option value="${v}"${cur === v ? " selected" : ""}>${l}</option>`;
+    const keep = document.activeElement && document.activeElement.id === "cp-q";
+    root.innerHTML = `<section class="db-card" aria-labelledby="cp-t"><div class="db-card-head"><h2 id="cp-t">기업별 시가총액·주가<small>${esc(D.asOf)} 종가 기준 · 검토용</small></h2></div>
+      <div class="cp-tools"><label class="db-sel cp-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr-only">기업명·종목코드 검색</span><input id="cp-q" type="search" placeholder="기업명·종목코드 검색" value="${esc(cst.q)}" autocomplete="off"></label>
+        <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>시장</span><select id="cp-m">${opt("", "전체", cst.m)}${opt("KOSPI", "코스피", cst.m)}${opt("KOSDAQ", "코스닥", cst.m)}${opt("KONEX", "코넥스", cst.m)}</select></label>
+        <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="cp-k">${opt("", "전체", cst.k)}${["소재", "부품", "장비"].map((k) => opt(k, k, cst.k)).join("")}</select></label>
+        <p class="cp-sum" aria-live="polite"><b>${nf(rows.length)}</b>개 기업 · 시가총액 합계 <b>${won(sumCap) || "-"}</b></p></div>
+      <div class="ms-scroll"><table class="ms-tbl cp-tbl"><caption class="sr-only">기업별 시가총액과 주가</caption><thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="11" class="ms-na">조건에 맞는 기업이 없습니다.</td></tr>`}</tbody></table></div>
+      <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.source)}. 분기말 대비는 ${esc(D.prev[0])}, 반기말 대비는 ${esc(D.prev[1])} 종가와 비교한 값이며 액면분할·무상증자 등은 반영하지 않았습니다. 업종 내 비중은 표에 있는 기업 합계 기준, 시장 비중은 해당 시장 전체 시가총액 기준입니다. 코넥스는 상장주식 수를 확인하지 못해 시가총액을 구하지 못했습니다. 투자 권유가 아닙니다.</span></p></section>`;
+    root.querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.sort; if (cst.sort === k) cst.dir = -cst.dir; else { cst.sort = k; cst.dir = ["n", "m", "k"].includes(k) ? 1 : -1; } drawCaps(); }));
+    $("cp-m").addEventListener("change", (e) => { cst.m = e.target.value; drawCaps(); });
+    $("cp-k").addEventListener("change", (e) => { cst.k = e.target.value; drawCaps(); });
+    const qi = $("cp-q"); qi.addEventListener("input", (e) => { cst.q = e.target.value; const pos = e.target.selectionStart; drawCaps(); const n = $("cp-q"); n.focus(); n.setSelectionRange(pos, pos); });
+    if (keep) qi.focus();
+  }
+
   // ---------- 화면 전환 ----------
-  const VIEWS = ["share", "summary", "group", "list"];
+  const VIEWS = ["share", "caps", "summary", "group", "list"];
+  const STATIC_VIEWS = ["share", "caps"]; // 실적 필터와 무관한 보기
   const SHARE_SUB = "상장 소부장 기업의 시가총액과 시장 비중";
+  const CAPS_SUB = "기업별 시가총액·주가·시장 비중 상세";
   let subText = "";
   const curView = () => (VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "share");
   function show(v) {
     if (!VIEWS.includes(v)) v = "share";
     document.body.dataset.view = v;
-    $("sub").textContent = v === "share" ? SHARE_SUB : subText;
+    $("sub").textContent = v === "share" ? SHARE_SUB : v === "caps" ? CAPS_SUB : subText;
     document.querySelectorAll(".db-view").forEach((el) => (el.hidden = el.dataset.view !== v));
     document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === v));
     pill();
@@ -243,15 +288,15 @@
     const q = SB.toQuery(st);
     history.replaceState(null, "", `${location.pathname}${q ? `?${q}` : ""}${location.hash}`);
     subText = `${SB.describe(st)} · 개별 기준 · ${rows.length}곳`;
-    $("sub").textContent = curView() === "share" ? SHARE_SUB : subText;
+    $("sub").textContent = curView() === "share" ? SHARE_SUB : curView() === "caps" ? CAPS_SUB : subText;
     document.querySelector(".cm-basis-slot").innerHTML = basis(rows, st.fy);
-    drawShare();
+    drawShare(); drawCaps();
     if (!rows.length) {
-      const onShare = curView() === "share"; // 시장 비중 보기는 실적 필터와 무관하므로 실적이 비어도 보여 준다
+      const onShare = STATIC_VIEWS.includes(curView()); // 시장 비중 보기는 실적 필터와 무관하므로 실적이 비어도 보여 준다
       document.body.dataset.view = curView();
       $("empty-panel").hidden = onShare;
       $("empty-panel").innerHTML = `<i class="ph ph-funnel-x" aria-hidden="true"></i><div><b>${SB.recs.length ? "조건에 맞는 기업이 없습니다." : "실적 데이터를 아직 받지 못했습니다."}</b><p>${SB.recs.length ? "조건을 풀어 보세요." : "매일 아침 자동으로 다시 수집합니다."}</p></div>`;
-      document.querySelectorAll(".db-view").forEach((el) => (el.hidden = !(onShare && el.dataset.view === "share")));
+      document.querySelectorAll(".db-view").forEach((el) => (el.hidden = !(onShare && el.dataset.view === curView())));
       document.querySelectorAll("#views-nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.view === curView()));
       pill();
       return;
