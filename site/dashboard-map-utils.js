@@ -88,5 +88,64 @@
     const alpha = (0.20 + Math.sqrt(value / Math.max(upper, 1)) * 0.72).toFixed(2);
     return "rgba(31,111,102," + alpha + ")";
   }
-  return { regions, canonical, provinceOf, group, capOf, capCoverage, metric, color };
+  // These pins summarize a province, never a specific company or factory address.
+  function pinLabel(value, mode) {
+    if (value == null || !Number.isFinite(value)) return "—";
+    if (mode === "count") return String(Math.round(value));
+    if (mode === "growth") return (value > 0 ? "+" : "") + value.toFixed(1) + "%";
+    if (Math.abs(value) >= 10000) return (value / 10000).toFixed(1) + "조";
+    return Math.round(value).toLocaleString("ko-KR") + "억";
+  }
+  function pinSummaries(stats, mode, displayMode, selected, topN = 8) {
+    if (displayMode === "none") return [];
+    const populated = stats.filter(s => s.rows.length > 0 && s.v != null && Number.isFinite(s.v));
+    populated.sort((a, b) => b.v - a.v || a.name.localeCompare(b.name, "ko"));
+    const arr = displayMode === "all" ? populated : populated.slice(0, Math.max(1, topN));
+    if (selected && !arr.some(s => s.name === selected)) {
+      const chosen = stats.find(s => s.name === selected);
+      if (chosen) arr.push(chosen);
+    }
+    return arr.map(s => ({ name:s.name, label:pinLabel(s.v, mode), value:s.v,
+      n:s.rows.length, selected:s.name === selected }));
+  }
+  // Pixel-based layout keeps pins readable on mobile and avoids tiny SVG glyphs.
+  // If a badge must move to avoid overlap, UI draws a leader to its province anchor.
+  function layoutPins(candidates, width, height) {
+    const placed = [];
+    for (const c of candidates) {
+      const label = String(c.label || "");
+      const w = Math.min(92, Math.max(46, 23 + label.length * 8));
+      const h = 39;
+      const originX = Math.max(3, Math.min(width - 3, c.x));
+      const originY = Math.max(3, Math.min(height - 3, c.y));
+      let best = null;
+      for (let ring = 0; ring <= 5; ring++) {
+        const count = ring === 0 ? 1 : ring * 12;
+        for (let j = 0; j < count; j++) {
+          const rad = ring === 0 ? 0 : 25 * ring;
+          const a = j * Math.PI * 2 / count - Math.PI / 2;
+          const tx = originX + Math.cos(a) * rad;
+          const ty = originY + Math.sin(a) * rad;
+          const x = Math.max(w / 2 + 2, Math.min(width - w / 2 - 2, tx));
+          const y = Math.max(h / 2 + 2, Math.min(height - h / 2 - 2, ty));
+          let overlap = 0;
+          for (const p of placed) {
+            const ox = Math.max(0, (w + p.w) / 2 + 7 - Math.abs(x - p.x));
+            const oy = Math.max(0, (h + p.h) / 2 + 7 - Math.abs(y - p.y));
+            overlap += ox * oy;
+          }
+          const d = Math.hypot(x - originX, y - originY);
+          const score = overlap * 500 + d;
+          if (!best || score < best.score) best = { ...c, x, y, anchorX:originX,
+            anchorY:originY, w, h, score, displaced:d > 12 };
+          if (overlap === 0 && d <= 2) break;
+        }
+        if (best && best.score < 300) break;
+      }
+      if (best) placed.push(best);
+    }
+    return placed;
+  }
+  return { regions, canonical, provinceOf, group, capOf, capCoverage, metric, color,
+    pinLabel, pinSummaries, layoutPins };
 });
