@@ -246,12 +246,23 @@
       <div class="cp-tools"><label class="db-sel cp-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr-only">기업명·종목코드 검색</span><input id="cp-q" type="search" placeholder="기업명·종목코드 검색" value="${esc(cst.q)}" autocomplete="off"></label>
         <label class="db-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>시장</span><select id="cp-m">${opt("", "전체", cst.m)}${opt("KOSPI", "코스피", cst.m)}${opt("KOSDAQ", "코스닥", cst.m)}${opt("KONEX", "코넥스", cst.m)}</select></label>
         <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>업종</span><select id="cp-k">${opt("", "전체", cst.k)}${["소재", "부품", "장비"].map((k) => opt(k, k, cst.k)).join("")}</select></label>
+        <button type="button" class="db-btn cp-csv" id="cp-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button>
         <p class="cp-sum" aria-live="polite"><b>${nf(rows.length)}</b>개 기업 · 시가총액 합계 <b>${won(sumCap) || "-"}</b></p></div>
       <div class="ms-scroll"><table class="ms-tbl cp-tbl"><caption class="sr-only">기업별 시가총액과 주가</caption><thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="11" class="ms-na">조건에 맞는 기업이 없습니다.</td></tr>`}</tbody></table></div>
       <p class="db-note"><i class="ph ph-info" aria-hidden="true"></i><span>${esc(D.source)}. 분기말 대비는 ${esc(D.prev[0])}, 반기말 대비는 ${esc(D.prev[1])} 종가와 비교한 값이며 액면분할·무상증자 등은 반영하지 않았습니다. 업종 내 비중은 표에 있는 기업 합계 기준, 시장 비중은 해당 시장 전체 시가총액 기준입니다. 코넥스는 상장주식 수를 확인하지 못해 시가총액을 구하지 못했습니다. 투자 권유가 아닙니다.</span></p></section>`;
     root.querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.sort; if (cst.sort === k) cst.dir = -cst.dir; else { cst.sort = k; cst.dir = ["n", "m", "k"].includes(k) ? 1 : -1; } drawCaps(); }));
     $("cp-m").addEventListener("change", (e) => { cst.m = e.target.value; drawCaps(); });
     $("cp-k").addEventListener("change", (e) => { cst.k = e.target.value; drawCaps(); });
+    $("cp-csv").addEventListener("click", () => {
+      const pr = (v) => (v == null || !isFinite(v) ? "" : +(v * 100).toFixed(2)), mk = { KOSPI: "코스피", KOSDAQ: "코스닥", KONEX: "코넥스" };
+      const head = ["순위", "기업명", "종목코드", "시장", "업종", "종가(원)", `${D.prev[0]} 종가(원)`, `${D.prev[1]} 종가(원)`, "분기말 대비(%)", "반기말 대비(%)", "상장주식 수(주)", "시가총액(억 원)", "업종 내 비중(%)", "시장 비중(%)"];
+      const lines = rows.map((r) => [r.rank ?? "", r.n, r.c, mk[r.m] || r.m, r.k, r.p ?? "", r.q1 ?? "", r.q2 ?? "", pr(r.d1), pr(r.d2), r.s ?? "", r.cap ?? "", pr(r.inK), r.m === "KONEX" ? "" : pr(r.inM)]);
+      const q = (c) => `"${String(c).replace(/"/g, '""')}"`;
+      const csv = "\ufeff" + [head.map(q).join(","), ...lines.map((a) => a.map((c) => (typeof c === "number" ? c : q(c))).join(","))].join("\r\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      a.download = `국내소부장_기업별_시가총액_${D.asOf}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
     const qi = $("cp-q"); qi.addEventListener("input", (e) => { cst.q = e.target.value; const pos = e.target.selectionStart; drawCaps(); const n = $("cp-q"); n.focus(); n.setSelectionRange(pos, pos); });
     if (keep) qi.focus();
   }
