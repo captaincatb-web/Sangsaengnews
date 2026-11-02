@@ -1,0 +1,30 @@
+name: Regional map regression tests
+on:
+  pull_request:
+    paths:
+      - "site/dashboard-map*"
+      - "site/dashboard.html"
+      - "site/dashboard.js"
+      - "site/data/geo/**"
+      - "tests/regional-map.test.cjs"
+      - ".github/workflows/regional-map-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check JavaScript syntax
+        run: |
+          node --check site/dashboard-map-utils.js
+          node --check site/dashboard-map.js
+          node --check site/dashboard.js
+      - name: Test map normalization, aggregation, safety and integration
+        run: node --test tests/regional-map.test.cjs
