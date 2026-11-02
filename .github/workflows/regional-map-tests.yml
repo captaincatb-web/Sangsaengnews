@@ -28,3 +28,15 @@ jobs:
           node --check site/dashboard.js
       - name: Test map normalization, aggregation, safety and integration
         run: node --test tests/regional-map.test.cjs
+      - name: Attach public map preview files for browser verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regional-map-preview
+          path: |
+            site/dashboard.html
+            site/dashboard-map.js
+            site/dashboard-map-utils.js
+            site/dashboard-map.css
+            tests/regional-map.test.cjs
+          retention-days: 7

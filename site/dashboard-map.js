@@ -41,7 +41,9 @@
     return pct(v);
   }
   const fillFor = (value, max, hasRows) => U.color(value, metric, max, hasRows);
+  const anchorCache=new WeakMap();
   function anchorOnProvince(path, region) {
+    if(anchorCache.has(path))return anchorCache.get(path);
     const b = path.getBBox();
     if (!(b.width > 0 && b.height > 0)) return null;
     // Incheon contains far-west islands, so target its mainland section.
@@ -54,32 +56,53 @@
       const d=Math.hypot(p.x-target.x,p.y-target.y);
       if (!best || d<best.d) best={...p,d};
     }
-    return best || target;
+    const anchor=best||target;
+    anchorCache.set(path,anchor);
+    return anchor;
   }
+  const pinStatus = document.getElementById("sb-map-pin-status");
+  const announcement = document.getElementById("sb-map-announcement");
+  const announce = message => { if (announcement) announcement.textContent = message; };
   function renderPins() {
     if (!loaded || !svg || !pinMode || !mapEl.isConnected) return;
+    const focused = document.activeElement && document.activeElement.dataset.sbPin;
     pinLayer.replaceChildren();
-    if (pinMode.value === "none" || !pinStats.length) return;
+    if (pinMode.value === "none") {
+      if (pinStatus) pinStatus.textContent = "지역 집계핀 숨김 · 지도 영역 및 지역 선택 목록으로 탐색 가능";
+      return;
+    }
+    if (!pinStats.length) return;
     const box = mapEl.getBoundingClientRect();
     if (box.width < 150 || box.height < 150) return;
-    const summaries = U.pinSummaries(pinStats, metric, pinMode.value, selected, box.width < 470 ? 6 : 8);
-    const candidates = [];
-    for (const item of summaries) {
-      const p = [...svg.querySelectorAll("path[data-region]")].find(el=>el.dataset.region===item.name);
-      if (!p || !p.getScreenCTM()) continue;
-      const anchor = anchorOnProvince(p,item.name);
-      if (!anchor) continue;
-      const point = new DOMPoint(anchor.x,anchor.y).matrixTransform(p.getScreenCTM());
-      candidates.push({...item,x:point.x-box.left,y:point.y-box.top});
+    const summaries=U.pinSummaries(pinStats,metric,pinMode.value,selected,box.width<470?6:8);
+    // Render real buttons offscreen first to measure DOM size (fonts/zoom/localization).
+    const probe=document.createElement("div");
+    probe.className="sb-map-pin-probe";
+    pinLayer.appendChild(probe);
+    const candidates=[];
+    const svgPaths=[...svg.querySelectorAll("path[data-region]")];
+    for(const item of summaries) {
+      const p=svgPaths.find(el=>el.dataset.region===item.name);
+      if(!p || !p.getScreenCTM())continue;
+      const anchor=anchorOnProvince(p,item.name);
+      if(!anchor)continue;
+      const point=new DOMPoint(anchor.x,anchor.y).matrixTransform(p.getScreenCTM());
+      const badge=document.createElement("button");
+      badge.className="sb-map-pin";
+      badge.textContent=item.label;
+      probe.appendChild(badge);
+      const b=badge.getBoundingClientRect();
+      candidates.push({...item,x:point.x-box.left,y:point.y-box.top,w:b.width,h:b.height});
     }
-    const placed = U.layoutPins(candidates,box.width,box.height);
-    const ns = "http://www.w3.org/2000/svg";
-    const wires = document.createElementNS(ns,"svg");
+    probe.remove();
+    const placed=U.layoutPins(candidates,box.width,box.height);
+    const ns="http://www.w3.org/2000/svg";
+    const wires=document.createElementNS(ns,"svg");
     wires.classList.add("sb-map-pin-wires");
     wires.setAttribute("viewBox","0 0 "+box.width+" "+box.height);
     wires.setAttribute("aria-hidden","true");
-    for (const pin of placed) {
-      if (pin.displaced) {
+    for(const pin of placed) {
+      if(pin.displaced) {
         const line=document.createElementNS(ns,"line");
         line.setAttribute("x1",String(pin.anchorX));line.setAttribute("y1",String(pin.anchorY));
         line.setAttribute("x2",String(pin.x));line.setAttribute("y2",String(pin.y));
@@ -87,19 +110,26 @@
       }
     }
     pinLayer.appendChild(wires);
-    for(const pin of placed) {
-      const button = document.createElement("button");
+    for(const pin of placed){
+      const button=document.createElement("button");
       button.type="button";
       button.className="sb-map-pin";
       button.dataset.sbPin=pin.name;
-      button.style.left=pin.x+"px";
-      button.style.top=pin.y+"px";
+      button.style.left=pin.x+"px";button.style.top=pin.y+"px";
       button.setAttribute("aria-pressed",String(pin.selected));
-      const detail = pin.name + " · " + metricNames[metric] + " " + valueText(pin.value) + " · 분석 기업 " + fmtNum(pin.n) + "곳";
-      button.title=detail+" (지역 집계 핀; 기업 위치 아님)";
+      const detail=pin.name+" · "+metricNames[metric]+" "+valueText(pin.value)+
+        " · 분석 기업 "+fmtNum(pin.n)+"곳";
+      button.title=detail+" (시·도 집계; 기업 위치 아님)";
       button.setAttribute("aria-label",detail+" · 지역 상세 보기");
       button.textContent=pin.label;
       pinLayer.appendChild(button);
+      if(focused===pin.name)button.focus({preventScroll:true});
+    }
+    if(pinStatus){
+      const skipped=Math.max(0,candidates.length-placed.length);
+      pinStatus.textContent="집계핀 "+fmtNum(placed.length)+"개 표시"+
+        (skipped?" · 겹침 방지를 위해 "+fmtNum(skipped)+"개 생략 (지역 선택 목록에서 확인)":"")+
+        " · 총 17개 시·도는 지역 선택 목록에서 탐색 가능";
     }
   }
   function schedulePins() {
@@ -112,7 +142,10 @@
   if (industryView && typeof MutationObserver !== "undefined")
     new MutationObserver(schedulePins).observe(industryView,{attributes:true,attributeFilter:["hidden"]});
   window.addEventListener("resize",schedulePins);
-  pinMode.addEventListener("change",schedulePins);
+  pinMode.addEventListener("change",()=>{
+    schedulePins();
+    announce("지역 핀 표시 방식: "+pinMode.options[pinMode.selectedIndex].textContent);
+  });
   function redraw() {
     if (!loaded) return;
     const { groups, missing } = grouped();
@@ -145,18 +178,20 @@
       ? "청록: 성장 · 적색: 감소 · 회색: 미집계"
       : metric === "cap"
       ? "상장사 시가총액 합계(억원) · 진할수록 큼 · 회색: 미확인/해당 없음 · 네이버증권 " + marketAsOf() + " 수집"
-      : "색이 진할수록 " + metricNames[metric] + "가 큼 · 회색: 0 또는 미집계";
+      : "색이 진할수록 " + metricNames[metric] + "가 큼 · 범위 0~" + valueText(mx) +
+        " (현재 필터 기준) · 회색: 0 또는 미집계";
     const yearEl = document.getElementById("sb-map-year");
     if (yearEl) yearEl.textContent = metric === "cap"
       ? "시총 " + marketAsOf() + " 수집 · 기업 표본 " + String(fy || "-") + "년 재무"
       : String(fy || "-") + "년 재무 · 본사 소재지 기준";
     const focus = selected ? stats.find(s=>s.name===selected) : null;
-    const ranked = stats.filter(s => s.rows.length && (metric !== "cap" || s.v != null))
-      .sort((a,b) => (b.v ?? -Infinity) - (a.v ?? -Infinity));
-    const display = focus ? focus.rows.slice().sort((a,b) =>
-      metric === "cap"
-        ? (U.capOf(b, marketList()) ?? -1) - (U.capOf(a, marketList()) ?? -1)
-        : b.s1 - a.s1) : [];
+    const ranked=stats.slice().sort((a,b)=>{
+      const score=s=>s.v==null?-Infinity:metric==="growth"?Math.abs(s.v):s.v;
+      return score(b)-score(a)||a.name.localeCompare(b.name,"ko");
+    });
+    const display=focus?focus.rows.slice().sort((a,b)=>
+      metric==="cap"?(U.capOf(b,marketList())??-1)-(U.capOf(a,marketList())??-1):
+      metric==="growth"?(b.g??-Infinity)-(a.g??-Infinity):b.s1-a.s1):[];
     const metricCaption = focus ? metricNames[metric] + ": " + valueText(focus.v)
       : metric === "cap" ? "시가총액 합계: " + valueText(metricValue(rows.filter(r => U.provinceOf(r.ad))))
       : "전국 현황";
@@ -170,29 +205,82 @@
         (display.length ? '<div class="sb-map-company-list">'+display.slice(0,10).map(r =>
           '<a href="#company" data-co="' + esc(r.c) + '"><span><b>' + esc(r.n) +
           '</b><small>' + esc(r.kind) + (metric === "cap" && !r.l ? ' · 비상장' : '') +
-          '</small></span><span>' + (metric === "cap" ? (U.capOf(r, marketList()) == null ? '시총 미확인' : money(U.capOf(r, marketList()))) : money(r.s1)) +
+          '</small></span><span>' + (metric === "cap" ? (U.capOf(r, marketList()) == null ? '시총 미확인' : money(U.capOf(r, marketList()))) : metric === "growth" ? pct(r.g) : money(r.s1)) +
           '</span></a>').join("")+'</div>'+
-          (display.length>10?'<p class="sb-map-fine">' + (metric === "cap" ? "시총 확인 기업 우선 상위 10곳만 표시" : "매출 상위 10곳만 표시") + '</p>':'') :
+          (display.length>10?'<p class="sb-map-fine">' + (metric === "cap" ? "시총 확인 기업 우선 상위 10곳만 표시" : metric === "growth" ? "성장률 상위 10곳만 표시" : "매출 상위 10곳만 표시") + '</p>':'') :
           '<p class="sb-map-no-data">이 지역은 현재 필터 조건에서 분석 가능한 기업이 없습니다.</p>')
         :
-        '<div class="sb-map-ranks">'+ranked.slice(0,10).map((s,i)=>
+        '<div class="sb-map-ranks">'+ranked.map((s,i)=>
           '<button type="button" data-sb-region="'+esc(s.name)+'"><span><em>'+String(i+1).padStart(2,"0")+'</em> '+esc(s.name)+'</span><strong>'+valueText(s.v)+'</strong></button>'
         ).join("")+'</div>'+(ranked.length===0?'<p class="sb-map-no-data">현재 조건에서 집계할 기업이 없습니다.</p>':'')
       );
+    const nav=document.createElement("label");
+    nav.className="sb-map-region-picker";
+    nav.textContent="지역 바로가기 ";
+    const sel=document.createElement("select");
+    sel.id="sb-map-region-picker";
+    sel.setAttribute("aria-label","지도 분석 지역 변경");
+    for(const name of ["",...regionNames]){
+      const opt=document.createElement("option");
+      opt.value=name;opt.textContent=name||"전국 17개 시·도";
+      opt.selected=selected===name;sel.appendChild(opt);
+    }
+    nav.appendChild(sel);
+    const title=details.querySelector(".sb-map-panel-title");
+    if(title)title.insertAdjacentElement("afterend",nav);
+    if(focus){
+      const info=U.regionBreakdown(focus.rows,rows,marketList());
+      const summary=document.createElement("div");
+      summary.className="sb-map-summary";
+      for(const [key,value] of [
+        ["기업 수",fmtNum(info.count)+"곳"],["전국 표본 비중",info.share==null?"자료 없음":info.share.toFixed(1)+"%"],
+        ["매출 합계",money(info.sales)],["매출 성장률",pct(info.growth)],
+        ["상장사 시가총액",info.cap==null?"자료 없음":money(info.cap)]]) {
+        const cell=document.createElement("div");
+        const label=document.createElement("span");label.textContent=key;
+        const number=document.createElement("strong");number.textContent=value;
+        cell.append(label,number);
+        if(key==="상장사 시가총액"){
+          const note=document.createElement("small");
+          note.textContent="확인 "+info.capCoverage.known+" / 상장 "+info.capCoverage.listed+"곳";
+          cell.appendChild(note);
+        }
+        summary.appendChild(cell);
+      }
+      const kinds=document.createElement("div");
+      kinds.className="sb-map-breakdown";
+      kinds.textContent="소재·부품·장비: "+["소재","부품","장비"].map(k=>
+        k+" "+info.kinds[k]+"곳 ("+(info.count? (info.kinds[k]/info.count*100).toFixed(1):"0.0")+"%)").join(" · ")+
+        (info.other?" · 기타 "+info.other+"곳":"");
+      nav.insertAdjacentElement("afterend",summary);
+      summary.insertAdjacentElement("afterend",kinds);
+    }
     resetBtn.disabled=!selected;
     schedulePins();
   }
-  function pick(name) { selected=selected===name?"":name; redraw(); }
+  function pick(name) {
+    selected=selected===name?"":name;
+    redraw();
+    announce(selected?selected+" 지역 분석 선택":"전국 지역 분석으로 복귀");
+  }
+  details.addEventListener("change",e=>{
+    if(e.target.id!=="sb-map-region-picker")return;
+    selected=regionNames.includes(e.target.value)?e.target.value:"";
+    redraw();announce(selected?selected+" 지역 분석 선택":"전국 지역 분석");
+    const selector=details.querySelector("#sb-map-region-picker");
+    if(selector)selector.focus({preventScroll:true});
+  });
   metricSel.addEventListener("change",()=>{
     metric=metricSel.value; redraw();
+    announce("지도 지표 "+metricNames[metric]+"로 변경");
   });
-  resetBtn.addEventListener("click",()=>{selected="";redraw();});
+  resetBtn.addEventListener("click",()=>{selected="";redraw();announce("지역 선택 해제, 전국 지역 분석");});
   root.addEventListener("click",e=>{
     const pin=e.target.closest("[data-sb-pin]");
     if(pin){
       pick(pin.dataset.sbPin);
       // On narrow screens the detail card sits below the map.
-      if (window.innerWidth < 900 && typeof details.scrollIntoView === "function")
+      if (selected && window.innerWidth < 900 && typeof details.scrollIntoView === "function")
         details.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
       return;
     }

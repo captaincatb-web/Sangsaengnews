@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="sidebar.shared.css?v=202611021900">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
-  <link rel="stylesheet" href="dashboard-map.css?v=202611030701">
+  <link rel="stylesheet" href="dashboard-map.css?v=202611030800">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -162,8 +162,10 @@
             <div id="sb-map-legend" class="sb-map-legend">지역별 분석값을 지도 색상으로 표시합니다.</div>
             <p class="sb-map-pin-hint"><i class="ph ph-map-pin" aria-hidden="true"></i>핀은 <strong>시·도별 집계값</strong>을 표시합니다. 기업별 실제 주소·공장 위치가 아닙니다. 핀을 누르면 지역 상세를 볼 수 있습니다.</p>
             <div id="sb-map-coverage" class="sb-map-coverage">기업 주소를 확인하는 중…</div>
+            <div id="sb-map-pin-status" class="sb-map-coverage">지역 핀을 표시하는 중…</div>
+            <p id="sb-map-announcement" class="sr-only" role="status" aria-live="polite"></p>
           </div>
-          <div id="sb-map-details" class="sb-map-panel" aria-live="polite">
+          <div id="sb-map-details" class="sb-map-panel">
             <p class="sb-map-no-data">지역별 자료를 불러오는 중…</p>
           </div>
         </div>
@@ -305,8 +307,8 @@
   <script src="data/internal.enc.js?v=202610300900"></script>
   <script src="internal.js?v=202610300900"></script>
   <script src="market.js?v=202610300900"></script>
-  <script src="dashboard-map-utils.js?v=202611030701"></script>
-  <script src="dashboard-map.js?v=202611030701"></script>
+  <script src="dashboard-map-utils.js?v=202611030800"></script>
+  <script src="dashboard-map.js?v=202611030800"></script>
   <script src="dashboard.js?v=202610300900"></script>
   <script src="data/status.js?v=202611011230"></script>
   <script src="data-status.js?v=202611021500"></script>
