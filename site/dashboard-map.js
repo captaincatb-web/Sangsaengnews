@@ -177,12 +177,13 @@
       ? "시총 " + marketAsOf() + " 수집 · 기업 표본 " + String(fy || "-") + "년 재무"
       : String(fy || "-") + "년 재무 · 본사 소재지 기준";
     const focus = selected ? stats.find(s=>s.name===selected) : null;
-    const ranked = stats.filter(s => s.rows.length && (metric !== "cap" || s.v != null))
-      .sort((a,b) => (b.v ?? -Infinity) - (a.v ?? -Infinity));
-    const display = focus ? focus.rows.slice().sort((a,b) =>
-      metric === "cap"
-        ? (U.capOf(b, marketList()) ?? -1) - (U.capOf(a, marketList()) ?? -1)
-        : b.s1 - a.s1) : [];
+    const ranked=stats.slice().sort((a,b)=>{
+      const score=s=>s.v==null?-Infinity:metric==="growth"?Math.abs(s.v):s.v;
+      return score(b)-score(a)||a.name.localeCompare(b.name,"ko");
+    });
+    const display=focus?focus.rows.slice().sort((a,b)=>
+      metric==="cap"?(U.capOf(b,marketList())??-1)-(U.capOf(a,marketList())??-1):
+      metric==="growth"?(b.g??-Infinity)-(a.g??-Infinity):b.s1-a.s1):[];
     const metricCaption = focus ? metricNames[metric] + ": " + valueText(focus.v)
       : metric === "cap" ? "시가총액 합계: " + valueText(metricValue(rows.filter(r => U.provinceOf(r.ad))))
       : "전국 현황";
@@ -196,12 +197,12 @@
         (display.length ? '<div class="sb-map-company-list">'+display.slice(0,10).map(r =>
           '<a href="#company" data-co="' + esc(r.c) + '"><span><b>' + esc(r.n) +
           '</b><small>' + esc(r.kind) + (metric === "cap" && !r.l ? ' · 비상장' : '') +
-          '</small></span><span>' + (metric === "cap" ? (U.capOf(r, marketList()) == null ? '시총 미확인' : money(U.capOf(r, marketList()))) : money(r.s1)) +
+          '</small></span><span>' + (metric === "cap" ? (U.capOf(r, marketList()) == null ? '시총 미확인' : money(U.capOf(r, marketList()))) : metric === "growth" ? pct(r.g) : money(r.s1)) +
           '</span></a>').join("")+'</div>'+
-          (display.length>10?'<p class="sb-map-fine">' + (metric === "cap" ? "시총 확인 기업 우선 상위 10곳만 표시" : "매출 상위 10곳만 표시") + '</p>':'') :
+          (display.length>10?'<p class="sb-map-fine">' + (metric === "cap" ? "시총 확인 기업 우선 상위 10곳만 표시" : metric === "growth" ? "성장률 상위 10곳만 표시" : "매출 상위 10곳만 표시") + '</p>':'') :
           '<p class="sb-map-no-data">이 지역은 현재 필터 조건에서 분석 가능한 기업이 없습니다.</p>')
         :
-        '<div class="sb-map-ranks">'+ranked.slice(0,10).map((s,i)=>
+        '<div class="sb-map-ranks">'+ranked.map((s,i)=>
           '<button type="button" data-sb-region="'+esc(s.name)+'"><span><em>'+String(i+1).padStart(2,"0")+'</em> '+esc(s.name)+'</span><strong>'+valueText(s.v)+'</strong></button>'
         ).join("")+'</div>'+(ranked.length===0?'<p class="sb-map-no-data">현재 조건에서 집계할 기업이 없습니다.</p>':'')
       );
