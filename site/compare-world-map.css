@@ -1,0 +1,42 @@
+/* World country overview - scoped to #cm-world only. */
+#cm-world{margin:16px 0}
+#cm-world .cm-world-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#cm-world .cm-world-controls label{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--text-2)}
+#cm-world-metric{padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit}
+.cm-world-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(220px,.75fr);gap:14px;align-items:start}
+.cm-world-visual{min-width:0}
+.cm-world-canvas{position:relative;isolation:isolate;width:100%;aspect-ratio:2/1;min-height:225px;border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;background:color-mix(in srgb,var(--grid) 68%,var(--card))}
+.cm-world-map{width:100%;height:100%;display:block}
+.cm-world-map path{fill:#d7dfe2;stroke:var(--card);stroke-width:.7;vector-effect:non-scaling-stroke;outline:none}
+.cm-world-map path.is-covered{cursor:pointer;stroke-width:1}
+.cm-world-map path.is-covered:hover,.cm-world-map path.is-covered:focus-visible{stroke:var(--text);stroke-width:2.3}
+.cm-world-map path.is-selected{stroke:var(--text);stroke-width:3;filter:drop-shadow(0 0 2px var(--text-3))}
+.cm-world-pins{position:absolute;inset:0;z-index:2;pointer-events:none}
+.cm-world-pin{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;border:1.5px solid white;border-radius:24px;
+  background:#216d64;color:#fff;box-shadow:0 3px 9px rgba(17,43,39,.22);min-height:34px;
+  min-width:54px;padding:5px 8px;font-weight:700;font-size:11px;line-height:1.2;font-family:inherit;white-space:nowrap;cursor:pointer;touch-action:manipulation}
+.cm-world-pin[aria-pressed="true"]{background:#ad5920;border-color:#fff0ba;z-index:3}
+.cm-world-pin:hover,.cm-world-pin:focus-visible{outline:2px solid #e6af55;outline-offset:2px;z-index:4}
+.cm-world-pin-wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cm-world-pin-wires line{stroke:var(--text-3);stroke-width:1.2;stroke-dasharray:3 3;opacity:.65}
+.cm-world-meta{font-size:12px;color:var(--text-2);line-height:1.6;margin:9px 0}
+.cm-world-legend{font-size:12px;color:var(--text-3);line-height:1.6;min-height:21px}
+.cm-world-countries{border:1px solid var(--line);border-radius:12px;min-width:0;background:var(--card);overflow:hidden}
+.cm-world-countries h3{font-size:14px;margin:0;padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.cm-world-country-list{max-height:315px;overflow:auto;padding:5px}
+.cm-world-country-list button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:5px;color:var(--text);
+  padding:11px 8px;font:inherit;cursor:pointer}
+.cm-world-country-list button:hover,.cm-world-country-list button:focus-visible{background:var(--grid);outline:2px solid var(--brand,var(--blue));outline-offset:-2px}
+.cm-world-country-list button[aria-pressed="true"]{background:color-mix(in srgb,var(--brand,var(--blue)) 11%,var(--card))}
+.cm-world-country-list button span{font-size:13px;min-width:0}
+.cm-world-country-list button strong{font-size:12px;white-space:nowrap}
+.cm-world-method{font-size:12px;line-height:1.7;color:var(--text-3);margin:10px 0 0}
+.cm-world-method a{color:inherit;text-decoration:underline}
+.cm-world-no-data{padding:35px 14px;text-align:center;color:var(--text-3);font-size:13px}
+.cm-world-layer-probe{position:absolute;left:0;top:0;visibility:hidden;pointer-events:none}
+.cm-world-layer-probe .cm-world-pin{position:relative;left:auto;top:auto;transform:none}
+@media(max-width:900px){.cm-world-layout{grid-template-columns:1fr}.cm-world-country-list{max-height:220px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}}
+@media(max-width:520px){.cm-world-canvas{min-height:200px}.cm-world-country-list{grid-template-columns:1fr;max-height:220px}.cm-world-pin{min-height:40px;padding:7px 9px}.cm-world-countries h3{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.cm-world-pin,.cm-world-map path{transition:none}}

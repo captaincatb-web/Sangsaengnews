@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
   <link rel="stylesheet" href="market_share.css?v=202611031200">
+  <link rel="stylesheet" href="compare-world-map.css?v=202611030807">
 </head>
 <body class="db cm-page">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -76,6 +77,33 @@
       <p class="db-headline" id="headline" aria-live="polite"></p>
       <section class="db-kpis" id="kpis" aria-label="핵심 지표"></section>
       <div class="cm-basis-slot"></div>
+      <section class="db-card" id="cm-world" aria-labelledby="cm-world-title">
+        <div class="db-card-head">
+          <h2 id="cm-world-title"><i class="ph ph-globe" aria-hidden="true"></i> 글로벌 반도체 소부장 기업 분포 <small>국가별 분석 · 지도에서 국가 선택</small></h2>
+          <div class="cm-world-controls">
+            <label for="cm-world-metric">지도 지표
+              <select id="cm-world-metric">
+                <option value="count">기업 수</option>
+                <option value="sales">매출 합계</option>
+                <option value="growth">매출 증감률</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="cm-world-layout">
+          <div class="cm-world-visual">
+            <div id="cm-world-canvas" class="cm-world-canvas" aria-label="세계 국가별 기업 분포 지도">세계지도를 불러오는 중…</div>
+            <div id="cm-world-legend" class="cm-world-legend">데이터가 있는 국가를 표시합니다.</div>
+            <div id="cm-world-coverage" class="cm-world-meta">국가별 기업 정보를 집계하는 중…</div>
+            <p id="cm-world-status" class="sr-only" role="status" aria-live="polite"></p>
+          </div>
+          <div class="cm-world-countries" aria-label="국가 선택 목록">
+            <h3>분석 국가 <small>국가를 누르면 상단 필터에 적용</small></h3>
+            <div id="cm-world-country-list" class="cm-world-country-list"></div>
+          </div>
+        </div>
+        <p class="cm-world-method">국가 분포는 현재 수집된 해외 기업의 <strong>본사 소재국</strong>을 기준으로 하며, 전 세계 소부장 전체 기업 수나 생산 거점을 의미하지 않습니다. 모바일에서는 주요 국가 핀만 표시하며, 전체 국가는 오른쪽 또는 지도 아래 목록에서 선택할 수 있습니다. 국가지표 매출은 기업별 최근 회계연도(결산월 상이) 원화 환산 자료이며, 비교 가능한 기업이 없는 경우 성장률은 표시하지 않습니다. 경계: <a href="https://www.naturalearthdata.com/downloads/110m-cultural-vectors/" target="_blank" rel="noopener noreferrer">Natural Earth 1:110m</a>(국가 경계는 지도 제작 목적의 간소화 자료).</p>
+      </section>
       <div class="cm-2">
         <section class="db-card"><div class="db-card-head"><h2>연도별 실적 추이 <small id="yearly-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-yearly"></div></section>
         <section class="db-card"><div class="db-card-head"><h2>분기 실적 추이 <small id="trend-sub"></small></h2><ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i style="background:var(--orange)"></i>영업이익률</li></ul></div><div class="db-chart" id="c-trend"></div></section>
@@ -154,7 +182,9 @@
   <script src="data/master.js?v=202611031100" onerror="void 0"></script>
   <script src="data/classify.js?v=202610300930"></script>
   <script src="metrics.js?v=202610300930"></script>
-  <script src="compare.js?v=202610300930"></script>
+  <script src="compare-world-map-utils.js?v=202611030807"></script>
+  <script src="compare-world-map.js?v=202611030807"></script>
+  <script src="compare.js?v=202611030807"></script>
   <script src="data/status.js?v=202611011230"></script>
   <script src="data-status.js?v=202611021500"></script>
   <script src="site-menu.js?v=202611022000"></script>
