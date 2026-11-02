@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="dashboard.css?v=202610300900">
   <link rel="stylesheet" href="dashboard.theme.css?v=202610300900">
   <link rel="stylesheet" href="sidebar.shared.css?v=202611021900">
-  <link rel="stylesheet" href="navigation.shared.css?v=202611011230">
+  <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
   <link rel="stylesheet" href="dashboard-map.css?v=20261102">
 </head>
@@ -23,8 +23,11 @@
   <header class="krds-header">
     <div class="head-inner">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 분석<small>반도체 소재·부품·장비 기업 정보</small></span></a>
-      <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
-      <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+      <div class="head-actions">
+        <button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button>
+        <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
+        <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+      </div>
     </div>
     <nav class="gnb" id="site-gnb" aria-label="주 메뉴">
       <ul>
@@ -63,7 +66,6 @@
       </div>
       <div class="th-tools th-only">
         <div class="gs"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="gs-q" type="search" role="combobox" aria-expanded="false" aria-controls="gs-list" aria-autocomplete="list" aria-label="기업 검색" placeholder="기업 검색" autocomplete="off"><ul id="gs-list" class="db-combo-list gs-list" role="listbox" aria-label="검색 결과" hidden></ul></div>
-        <button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button>
       </div>
       <button class="db-lock" type="button" id="lock-btn"></button>
       <button class="db-filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters"></button>
@@ -300,5 +302,6 @@
   <script src="dashboard.js?v=202610300900"></script>
   <script src="data/status.js?v=202611011230"></script>
   <script src="data-status.js?v=202611021500"></script>
+  <script src="site-menu.js?v=202611022000"></script>
 </body>
 </html>

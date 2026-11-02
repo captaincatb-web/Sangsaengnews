@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="dashboard.theme.css?v=202610300900">
   <link rel="stylesheet" href="sidebar.shared.css?v=202611021900">
   <link rel="stylesheet" href="market_share.css?v=202611021700">
-  <link rel="stylesheet" href="navigation.shared.css?v=202611011230">
+  <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
 </head>
 <body class="db cm-page">
@@ -23,8 +23,11 @@
   <header class="krds-header">
     <div class="head-inner">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 분석<small>반도체 소재·부품·장비 기업 정보</small></span></a>
-      <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
-      <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+      <div class="head-actions">
+        <button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button>
+        <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
+        <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+      </div>
     </div>
     <nav class="gnb" id="site-gnb" aria-label="주 메뉴">
       <ul>
@@ -58,7 +61,6 @@
         <h1>국내 소부장</h1>
         <p id="sub">상장 소부장 기업의 시가총액과 시장 비중</p>
       </div>
-      <div class="th-tools th-only"><button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button></div>
       <button class="db-filter-toggle" type="button" id="filter-toggle" aria-expanded="false" aria-controls="filters"><i class="ph ph-sliders-horizontal" aria-hidden="true"></i>필터</button>
       <form class="db-filters" id="filters" aria-label="분석 조건" style="grid-column:1/-1">
         <label class="db-sel"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>기준 연도</span><select id="f-fy"></select></label>
@@ -122,5 +124,6 @@
   <script src="domestic.js?v=202611011930"></script>
   <script src="data/status.js?v=202611011230"></script>
   <script src="data-status.js?v=202611021500"></script>
+  <script src="site-menu.js?v=202611022000"></script>
 </body>
 </html>
