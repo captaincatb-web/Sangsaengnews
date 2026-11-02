@@ -43,3 +43,10 @@ header.krds-header .site-menu { display: none; border: 0; background: none; font
   header.krds-header nav.gnb { display: none; }
   header.krds-header.open nav.gnb { display: block; }
 }
+
+/* 화면 모드(달·해) 버튼은 모든 화면에서 머리글 오른쪽 묶음에 둔다 */
+header.krds-header .head-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+header.krds-header .head-actions .site-menu { margin-left: 0 !important; }
+header.krds-header .th-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 12px; background: transparent; box-shadow: none; color: var(--text-2); font-size: 20px; cursor: pointer; transform: none; }
+header.krds-header .th-icon:hover { background: var(--brand-soft); color: var(--brand); transform: none; }
+header.krds-header .th-icon:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
