@@ -92,3 +92,13 @@ body[data-view="caps"] .db-filters, body[data-view="caps"] #filter-toggle, body[
 }
 .cp-tools .db-sel { overflow: hidden; } .cp-tools .db-sel select { min-width: 0; max-width: 100%; width: 100%; text-overflow: ellipsis; }
 .cp-tools .db-sel span { white-space: nowrap; }
+
+/* 해외 수집 현황: 확보 범위 칩, 상세 행, 국내 모집단 요약 */
+.cm-fld { display: inline-block; margin: 0 3px 3px 0; padding: 1px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 600; border: 1px solid var(--line); }
+.cm-fld.ok { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand); } .cm-fld.no { color: var(--text-3); text-decoration: line-through; }
+.cm-more { min-height: 36px; min-width: 44px; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; }
+.cm-det td { background: color-mix(in srgb, var(--brand) 5%, transparent); }
+.cm-dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 16px; margin: 0; padding: 4px 2px; } .cm-dl dt { font-size: 11.5px; color: var(--text-3); } .cm-dl dd { margin: 2px 0 0; font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.cm-popu { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.cm-popu li { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); } .cm-popu b { font-size: 18px; } .cm-popu span { font-size: 12.5px; color: var(--text-3); }
+.cm-covtbl th { position: relative; } /* sr-only(absolute)가 표 밖 스크롤 폭을 만들지 않게 */

@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="sidebar.shared.css?v=202611021900">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
+  <link rel="stylesheet" href="market_share.css?v=202611031200">
 </head>
 <body class="db cm-page">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -130,10 +131,11 @@
 
     <div class="db-view" id="v-coverage" data-view="coverage" hidden>
       <section class="db-kpis" id="kpis-c" aria-label="수집 품질 지표"></section>
-      <section class="db-card"><div class="db-card-head"><h2>기업 마스터와 수집 상태 <small id="cov-sub"></small></h2>
+      <section class="db-card"><div class="db-card-head"><h2>해외 데이터 수집 현황 <small id="cov-sub"></small></h2>
         <div class="dm-tools"><button class="db-btn ghost" type="button" id="csv-std"><i class="ph ph-download-simple" aria-hidden="true"></i>표준화 데이터 CSV</button></div></div>
         <ul class="cm-legend-st" id="st-legend"></ul>
         <div class="db-tbl-wrap" id="c-cov"></div></section>
+      <section class="db-card" aria-labelledby="h-domcov"><div class="db-card-head"><h2 id="h-domcov">국내 소부장 모집단 현황 <small>해외 수집 현황과는 별개의 모집단</small></h2></div><div id="c-domcov"></div></section>
       <section class="db-card"><div class="db-card-head"><h2>국가별 수집 경로</h2></div><div class="db-tbl-wrap" id="c-route"></div></section>
     </div>
 
@@ -148,6 +150,8 @@
   <script src="data/financials.js?v=202610300930"></script>
   <script src="data/market.js?v=202610300930" onerror="void 0"></script>
   <script src="data/peers.js?v=202610300930" onerror="void 0"></script>
+  <script src="data/semi_share.js?v=202611031100" onerror="void 0"></script>
+  <script src="data/master.js?v=202611031100" onerror="void 0"></script>
   <script src="data/classify.js?v=202610300930"></script>
   <script src="metrics.js?v=202610300930"></script>
   <script src="compare.js?v=202610300930"></script>
