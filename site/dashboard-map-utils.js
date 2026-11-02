@@ -49,9 +49,27 @@
     return { byProvince, unknown };
   }
   const sum = (rows, field) => rows.reduce((a, r) => a + (Number(r[field]) || 0), 0);
-  function metric(rows, mode) {
+  // MARKET.list is keyed by DART corporation code (r.c), not stock ticker.
+  // Market caps are in 100-million KRW (억원). Never include an unlisted company
+  // or interpret a missing/zero cap as a genuine zero-valued listing.
+  function capOf(row, market) {
+    if (!row || !row.l || !market || !Object.prototype.hasOwnProperty.call(market, row.c)) return null;
+    const cap = market[row.c] && market[row.c].cap;
+    return typeof cap === "number" && Number.isFinite(cap) && cap > 0 ? cap : null;
+  }
+  function capCoverage(rows, market) {
+    const listed = rows.filter(r => Boolean(r.l));
+    const known = listed.filter(r => capOf(r, market) != null);
+    return { listed: listed.length, known: known.length, missing: listed.length - known.length,
+      unlisted: rows.length - listed.length };
+  }
+  function metric(rows, mode, market) {
     if (mode === "count") return rows.length;
     if (mode === "sales") return sum(rows, "s1");
+    if (mode === "cap") {
+      const valid = rows.map(r => capOf(r, market)).filter(x => x != null);
+      return valid.length ? valid.reduce((a, b) => a + b, 0) : null;
+    }
     if (mode === "growth") {
       const prev = sum(rows, "s0");
       return prev > 0 ? (sum(rows, "s1") / prev - 1) * 100 : null;
@@ -70,5 +88,5 @@
     const alpha = (0.20 + Math.sqrt(value / Math.max(upper, 1)) * 0.72).toFixed(2);
     return "rgba(31,111,102," + alpha + ")";
   }
-  return { regions, canonical, provinceOf, group, metric, color };
+  return { regions, canonical, provinceOf, group, capOf, capCoverage, metric, color };
 });

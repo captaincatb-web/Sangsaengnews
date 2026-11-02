@@ -15,7 +15,7 @@
   const coverage = document.getElementById("sb-map-coverage");
   const legend = document.getElementById("sb-map-legend");
   const regionNames = U.regions;
-  const metricNames = { count:"기업 수", sales:"매출 합계", growth:"매출 성장률" };
+  const metricNames = { count:"기업 수", sales:"매출 합계", growth:"매출 성장률", cap:"시가총액" };
   const fmtNum = n => Number(n || 0).toLocaleString("ko-KR");
   const esc = SB.fmt.esc;
   const money = SB.fmt.won;
@@ -26,11 +26,13 @@
     const { byProvince, unknown } = U.group(rows);
     return { groups: byProvince, missing: unknown };
   }
-  const metricValue = (list) => U.metric(list, metric);
+  const marketList = () => (window.MARKET && window.MARKET.list) || {};
+  const marketAsOf = () => (window.MARKET && window.MARKET.updated) || "기준일 미확인";
+  const metricValue = (list) => U.metric(list, metric, marketList());
   function valueText(v) {
     if (v==null) return "자료 없음";
     if (metric==="count") return fmtNum(v)+"곳";
-    if (metric==="sales") return money(v);
+    if (metric==="sales" || metric==="cap") return money(v);
     return pct(v);
   }
   const fillFor = (value, max, hasRows) => U.color(value, metric, max, hasRows);
@@ -55,19 +57,44 @@
       if (!title) { title=document.createElementNS("http://www.w3.org/2000/svg","title"); p.prepend(title); }
       title.textContent=name+": "+valueText(st.v);
     });
-    const mapped=rows.length-missing.length;
-    coverage.textContent="주소 확인 "+fmtNum(mapped)+" / 분석 "+fmtNum(rows.length)+"곳 · 소재지 미확인 "+fmtNum(missing.length)+"곳";
-    legend.textContent=metric==="growth" ? "청록: 성장 · 적색: 감소 · 회색: 미집계" : "색이 진할수록 "+metricNames[metric]+"가 큼 · 회색: 0 또는 미집계";
+    const mapped = rows.length - missing.length;
+    const caps = U.capCoverage(rows.filter(r => U.provinceOf(r.ad)), marketList());
+    coverage.textContent = "주소 확인 " + fmtNum(mapped) + " / 분석 " + fmtNum(rows.length) +
+      "곳 · 소재지 미확인 " + fmtNum(missing.length) + "곳" +
+      (metric === "cap" ? " · 시총 확인 " + fmtNum(caps.known) + " / 상장 " + fmtNum(caps.listed) +
+      "곳" + (caps.unlisted ? " · 비상장 " + fmtNum(caps.unlisted) + "곳 제외" : "") : "");
+    legend.textContent = metric === "growth"
+      ? "청록: 성장 · 적색: 감소 · 회색: 미집계"
+      : metric === "cap"
+      ? "상장사 시가총액 합계(억원) · 진할수록 큼 · 회색: 미확인/해당 없음 · 네이버증권 " + marketAsOf() + " 수집"
+      : "색이 진할수록 " + metricNames[metric] + "가 큼 · 회색: 0 또는 미집계";
+    const yearEl = document.getElementById("sb-map-year");
+    if (yearEl) yearEl.textContent = metric === "cap"
+      ? "시총 " + marketAsOf() + " 수집 · 기업 표본 " + String(fy || "-") + "년 재무"
+      : String(fy || "-") + "년 재무 · 본사 소재지 기준";
     const focus = selected ? stats.find(s=>s.name===selected) : null;
-    const ranked=stats.filter(s=>s.rows.length).sort((a,b)=>(b.v??-Infinity)-(a.v??-Infinity));
-    const display=focus ? focus.rows.slice().sort((a,b)=>b.s1-a.s1) : [];
-    const metricCaption=focus ? metricNames[metric]+": "+valueText(focus.v) : "전국 현황";
+    const ranked = stats.filter(s => s.rows.length && (metric !== "cap" || s.v != null))
+      .sort((a,b) => (b.v ?? -Infinity) - (a.v ?? -Infinity));
+    const display = focus ? focus.rows.slice().sort((a,b) =>
+      metric === "cap"
+        ? (U.capOf(b, marketList()) ?? -1) - (U.capOf(a, marketList()) ?? -1)
+        : b.s1 - a.s1) : [];
+    const metricCaption = focus ? metricNames[metric] + ": " + valueText(focus.v)
+      : metric === "cap" ? "시가총액 합계: " + valueText(metricValue(rows.filter(r => U.provinceOf(r.ad))))
+      : "전국 현황";
     details.innerHTML =
       '<div class="sb-map-panel-title"><div><span class="sb-map-eyebrow">'+(selected?"선택 지역":"지역 순위")+'</span><h3>'+esc(selected||"전국 17개 시·도")+'</h3></div><strong>'+esc(metricCaption)+'</strong></div>'
       +(focus ?
-        '<div class="sb-map-subinfo">해당 지역 분석 기업 '+fmtNum(display.length)+'곳 · 본사 소재지 기준</div>'+
-        (display.length ? '<div class="sb-map-company-list">'+display.slice(0,10).map(r=>'<a href="#company" data-co="'+esc(r.c)+'"><span><b>'+esc(r.n)+'</b><small>'+esc(r.kind)+'</small></span><span>'+money(r.s1)+'</span></a>').join("")+'</div>'+
-          (display.length>10?'<p class="sb-map-fine">매출 상위 10곳만 표시</p>':'') :
+        '<div class="sb-map-subinfo">해당 지역 분석 기업 ' + fmtNum(display.length) +
+          '곳 · 본사 소재지 기준' +
+          (metric === "cap" ? ' · 시총 확인 ' + fmtNum(U.capCoverage(display, marketList()).known) + '곳(상장사만 합산)' : '') +
+          '</div>'+
+        (display.length ? '<div class="sb-map-company-list">'+display.slice(0,10).map(r =>
+          '<a href="#company" data-co="' + esc(r.c) + '"><span><b>' + esc(r.n) +
+          '</b><small>' + esc(r.kind) + (metric === "cap" && !r.l ? ' · 비상장' : '') +
+          '</small></span><span>' + (metric === "cap" ? (U.capOf(r, marketList()) == null ? '시총 미확인' : money(U.capOf(r, marketList()))) : money(r.s1)) +
+          '</span></a>').join("")+'</div>'+
+          (display.length>10?'<p class="sb-map-fine">' + (metric === "cap" ? "시총 확인 기업 우선 상위 10곳만 표시" : "매출 상위 10곳만 표시") + '</p>':'') :
           '<p class="sb-map-no-data">이 지역은 현재 필터 조건에서 분석 가능한 기업이 없습니다.</p>')
         :
         '<div class="sb-map-ranks">'+ranked.slice(0,10).map((s,i)=>
@@ -135,8 +162,6 @@
     render(nextRows,year) {
       rows=Array.isArray(nextRows)?nextRows:[];
       fy=year;
-      const y=document.getElementById("sb-map-year");
-      if(y) y.textContent=String(fy||"-")+"년 재무 · 본사 소재지 기준";
       redraw();
     },
     regionOf:groupOf
