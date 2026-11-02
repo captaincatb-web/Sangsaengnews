@@ -34,3 +34,19 @@ header.krds-header nav.gnb a[aria-current="page"]::after, header.krds-header nav
   header.krds-header nav.gnb a { min-height: 46px; padding-inline: 11px; font-size: 15px !important; }
 }
 @media (prefers-reduced-motion: reduce) { header.krds-header nav.gnb a { transition: none; } }
+
+/* 모바일: 상단 메뉴는 접어 두고 '메뉴' 버튼으로 연다(site-menu.js). 모든 화면 공통 */
+header.krds-header .site-menu { display: none; border: 0; background: none; font: inherit; cursor: pointer; }
+@media (max-width: 860px) {
+  header.krds-header .site-menu { display: inline-flex; }
+  header.krds-header { min-height: 73px; box-sizing: border-box; } /* 화면마다 머리글 높이가 달라 제목 시작 위치가 어긋나던 것을 맞춤 */
+  header.krds-header nav.gnb { display: none; }
+  header.krds-header.open nav.gnb { display: block; }
+}
+
+/* 화면 모드(달·해) 버튼은 모든 화면에서 머리글 오른쪽 묶음에 둔다 */
+header.krds-header .head-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+header.krds-header .head-actions .site-menu { margin-left: 0 !important; }
+header.krds-header .th-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 12px; background: transparent; box-shadow: none; color: var(--text-2); font-size: 20px; cursor: pointer; transform: none; }
+header.krds-header .th-icon:hover { background: var(--brand-soft); color: var(--brand); transform: none; }
+header.krds-header .th-icon:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }

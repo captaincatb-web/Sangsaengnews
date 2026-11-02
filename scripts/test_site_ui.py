@@ -94,7 +94,7 @@ nav_css = (SITE / "navigation.shared.css").read_text(encoding="utf-8")
 side_css = (SITE / "sidebar.shared.css").read_text(encoding="utf-8")
 assert "font-size: 15px !important" in nav_css and "scroll-snap-type" in nav_css, "GNB common styles are incomplete"
 assert "overflow-x: auto" in side_css and "scroll-snap-type: x proximity" in side_css, "Mobile sidebar horizontal scrolling is missing"
-assert "min-height: 64px" in side_css and "min-width: 84px" in side_css, "Mobile sidebar touch targets are too small"
+assert "min-height: 64px" in side_css and "flex: 1 1 0; min-width: 50px" in side_css, "Mobile sidebar items must share the width (fit on one screen) with usable touch targets"
 
 status_builder = (ROOT / "scripts" / "build_data_status.py").read_text(encoding="utf-8")
 assert r'window\.' in status_builder, "Data status builder must match JavaScript window.NAME assignments"
