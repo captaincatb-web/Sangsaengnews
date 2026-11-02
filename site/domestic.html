@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="dashboard.css?v=202610300900">
   <link rel="stylesheet" href="dashboard.theme.css?v=202610300900">
   <link rel="stylesheet" href="sidebar.shared.css?v=202611021130">
-  <link rel="stylesheet" href="market_share.css?v=202611011600">
+  <link rel="stylesheet" href="market_share.css?v=202611021200">
   <link rel="stylesheet" href="navigation.shared.css?v=202611011230">
   <link rel="stylesheet" href="data-status.css?v=202611011230">
 </head>
@@ -43,6 +43,7 @@
     <nav>
       <ul class="db-nav" id="views-nav">
         <li><a href="#share" data-view="share"><i class="ph ph-chart-pie-slice" aria-hidden="true"></i><span class="l">시장 비중</span><span class="s" aria-hidden="true">비중</span></a></li>
+        <li><a href="#caps" data-view="caps"><i class="ph ph-ranking" aria-hidden="true"></i><span class="l">기업별 시총·주가</span><span class="s" aria-hidden="true">시총</span></a></li>
         <li><a href="#summary" data-view="summary"><i class="ph ph-squares-four" aria-hidden="true"></i><span class="l">실적 요약</span><span class="s" aria-hidden="true">요약</span></a></li>
         <li><a href="#group" data-view="group"><i class="ph ph-stack" aria-hidden="true"></i><span class="l">업종·규모별</span><span class="s" aria-hidden="true">업종·규모</span></a></li>
         <li><a href="#list" data-view="list"><i class="ph ph-table" aria-hidden="true"></i><span class="l">기업별 실적표</span><span class="s" aria-hidden="true">기업별</span></a></li>
@@ -73,6 +74,8 @@
     <div class="cm-basis-slot"></div>
 
     <div class="db-view" id="v-share" data-view="share"><div id="c-share"></div></div>
+
+    <div class="db-view" id="v-caps" data-view="caps"><div id="c-caps"></div></div>
 
     <div class="db-view" id="v-summary" data-view="summary">
       <p class="db-headline" id="headline" aria-live="polite"></p>
@@ -113,6 +116,7 @@
   <script src="data/attrs.js?v=202610300900"></script>
   <script src="data/financials.js?v=202610300900"></script>
   <script src="data/semi_share.js?v=202611011700"></script>
+  <script src="data/semi_caps.js?v=202611021200"></script>
   <script src="data/classify.js?v=202610300900"></script>
   <script src="metrics.js?v=202610300900"></script>
   <script src="domestic.js?v=202611011930"></script>
