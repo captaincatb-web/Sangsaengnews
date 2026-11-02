@@ -118,6 +118,43 @@ test("pin layout avoids collision and stays in bounds on mobile and desktop", ()
     }
   }
 });
+test("growth summary priority includes severe declines as well as increases",()=>{
+  const rows=n=>Array.from({length:n},()=>({}));
+  const stats=[{name:"경기도",rows:rows(3),v:2},
+    {name:"서울특별시",rows:rows(2),v:-28},
+    {name:"충청북도",rows:rows(2),v:12}];
+  assert.deepEqual(U.pinSummaries(stats,"growth","top","",2).map(s=>s.name),
+    ["서울특별시","충청북도"]);
+  assert.deepEqual(U.pinSummaries(stats,"growth","top","경기도",2).map(s=>s.name),
+    ["경기도","서울특별시","충청북도"]);
+});
+test("rendered pin dimensions are respected, and impossible labels are omitted",()=>{
+  const pts=[{name:"first",label:"100",x:60,y:45,w:95,h:44,selected:true},
+    {name:"second",label:"200",x:65,y:45,w:100,h:44},
+    {name:"third",label:"300",x:70,y:45,w:100,h:44}];
+  const tiny=U.layoutPins(pts,120,50);
+  assert.equal(tiny.length,1);
+  assert.equal(tiny[0].name,"first");
+  const roomy=U.layoutPins(pts,320,230);
+  assert.equal(roomy.length,3);
+  for(let i=0;i<roomy.length;i++)for(let j=i+1;j<roomy.length;j++){
+    const a=roomy[i],b=roomy[j];
+    assert.ok(Math.abs(a.x-b.x)>=(a.w+b.w)/2+5||
+      Math.abs(a.y-b.y)>=(a.h+b.h)/2+5);
+  }
+});
+test("regional breakdown preserves current financial cohort and missing cap",()=>{
+  const rows=[{c:"A",l:1,kind:"소재",s1:110,s0:100},
+    {c:"B",l:0,kind:"장비",s1:220,s0:200},
+    {c:"C",l:1,kind:"부품",s1:330,s0:300},
+    {c:"D",l:0,kind:"장비",s1:440,s0:400}];
+  const d=U.regionBreakdown(rows.slice(0,3),rows,{A:{cap:5000},C:{cap:null}});
+  assert.equal(d.count,3);assert.equal(d.share,75);
+  assert.deepEqual(d.kinds,{소재:1,부품:1,장비:1});
+  assert.equal(d.sales,660);assert.equal(d.growth,10);assert.equal(d.cap,5000);
+  assert.equal(d.capCoverage.known,1);
+  assert.equal(U.regionBreakdown([],rows,{}).cap,null);
+});
 test("source SVG has exactly 17 allowed, unique province paths", () => {
   const src=fs.readFileSync(path.join(__dirname,"../site/data/geo/korea-sido.svg"),"utf8");
   const ids=[...src.matchAll(/<path\b[^>]*\bid="([^"]+)"/g)].map(m=>m[1]);
@@ -141,6 +178,11 @@ test("dashboard integration is additive and preserves original filters", () => {
   assert.ok(map.includes('data-sb-pin'));
   assert.ok(map.includes('U.layoutPins'));
   assert.ok(map.includes('anchorOnProvince'));
+  assert.ok(map.includes('sb-map-region-picker'));
+  assert.ok(map.includes('getBoundingClientRect'));
+  assert.ok(map.includes('regionBreakdown'));
+  assert.ok(html.includes('sb-map-announcement'));
+  assert.ok(html.includes('sb-map-pin-status'));
   assert.ok(html.indexOf('dashboard-map-utils.js')<html.indexOf('dashboard-map.js'));
   assert.ok(html.indexOf('dashboard-map.js')<html.indexOf('dashboard.js'));
   assert.ok(html.includes('id="f-area"'));
