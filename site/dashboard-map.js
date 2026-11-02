@@ -14,6 +14,10 @@
   const resetBtn = document.getElementById("sb-map-reset");
   const coverage = document.getElementById("sb-map-coverage");
   const legend = document.getElementById("sb-map-legend");
+  const pinMode = document.getElementById("sb-map-pins");
+  const pinLayer = document.createElement("div");
+  pinLayer.className = "sb-map-pin-layer";
+  pinLayer.setAttribute("aria-label", "시·도별 집계 핀");
   const regionNames = U.regions;
   const metricNames = { count:"기업 수", sales:"매출 합계", growth:"매출 성장률", cap:"시가총액" };
   const fmtNum = n => Number(n || 0).toLocaleString("ko-KR");
@@ -22,6 +26,7 @@
   const pct = SB.fmt.sg;
   const groupOf = (r) => U.provinceOf(r.ad);
   let rows = [], fy = null, selected = "", metric = "count", svg = null, loaded = false;
+  let pinStats = [], pinFrame = 0;
   function grouped() {
     const { byProvince, unknown } = U.group(rows);
     return { groups: byProvince, missing: unknown };
@@ -36,10 +41,83 @@
     return pct(v);
   }
   const fillFor = (value, max, hasRows) => U.color(value, metric, max, hasRows);
+  function anchorOnProvince(path, region) {
+    const b = path.getBBox();
+    if (!(b.width > 0 && b.height > 0)) return null;
+    // Incheon contains far-west islands, so target its mainland section.
+    const target = {x:b.x + b.width * (region === "인천광역시" ? .90 : .50),
+      y:b.y + b.height * (region === "인천광역시" ? .55 : .50)};
+    let best = null;
+    for (let i=0;i<=15;i++) for(let j=0;j<=15;j++){
+      const p={x:b.x+b.width*(i+.5)/16,y:b.y+b.height*(j+.5)/16};
+      if (path.isPointInFill && !path.isPointInFill(new DOMPoint(p.x,p.y))) continue;
+      const d=Math.hypot(p.x-target.x,p.y-target.y);
+      if (!best || d<best.d) best={...p,d};
+    }
+    return best || target;
+  }
+  function renderPins() {
+    if (!loaded || !svg || !pinMode || !mapEl.isConnected) return;
+    pinLayer.replaceChildren();
+    if (pinMode.value === "none" || !pinStats.length) return;
+    const box = mapEl.getBoundingClientRect();
+    if (box.width < 150 || box.height < 150) return;
+    const summaries = U.pinSummaries(pinStats, metric, pinMode.value, selected, box.width < 470 ? 6 : 8);
+    const candidates = [];
+    for (const item of summaries) {
+      const p = [...svg.querySelectorAll("path[data-region]")].find(el=>el.dataset.region===item.name);
+      if (!p || !p.getScreenCTM()) continue;
+      const anchor = anchorOnProvince(p,item.name);
+      if (!anchor) continue;
+      const point = new DOMPoint(anchor.x,anchor.y).matrixTransform(p.getScreenCTM());
+      candidates.push({...item,x:point.x-box.left,y:point.y-box.top});
+    }
+    const placed = U.layoutPins(candidates,box.width,box.height);
+    const ns = "http://www.w3.org/2000/svg";
+    const wires = document.createElementNS(ns,"svg");
+    wires.classList.add("sb-map-pin-wires");
+    wires.setAttribute("viewBox","0 0 "+box.width+" "+box.height);
+    wires.setAttribute("aria-hidden","true");
+    for (const pin of placed) {
+      if (pin.displaced) {
+        const line=document.createElementNS(ns,"line");
+        line.setAttribute("x1",String(pin.anchorX));line.setAttribute("y1",String(pin.anchorY));
+        line.setAttribute("x2",String(pin.x));line.setAttribute("y2",String(pin.y));
+        wires.appendChild(line);
+      }
+    }
+    pinLayer.appendChild(wires);
+    for(const pin of placed) {
+      const button = document.createElement("button");
+      button.type="button";
+      button.className="sb-map-pin";
+      button.dataset.sbPin=pin.name;
+      button.style.left=pin.x+"px";
+      button.style.top=pin.y+"px";
+      button.setAttribute("aria-pressed",String(pin.selected));
+      const detail = pin.name + " · " + metricNames[metric] + " " + valueText(pin.value) + " · 분석 기업 " + fmtNum(pin.n) + "곳";
+      button.title=detail+" (지역 집계 핀; 기업 위치 아님)";
+      button.setAttribute("aria-label",detail+" · 지역 상세 보기");
+      button.textContent=pin.label;
+      pinLayer.appendChild(button);
+    }
+  }
+  function schedulePins() {
+    cancelAnimationFrame(pinFrame);
+    pinFrame=requestAnimationFrame(renderPins);
+  }
+  // Initial dashboard view is hidden. Reposition when it becomes visible or resized.
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(schedulePins).observe(mapEl);
+  const industryView=document.getElementById("v-industry");
+  if (industryView && typeof MutationObserver !== "undefined")
+    new MutationObserver(schedulePins).observe(industryView,{attributes:true,attributeFilter:["hidden"]});
+  window.addEventListener("resize",schedulePins);
+  pinMode.addEventListener("change",schedulePins);
   function redraw() {
     if (!loaded) return;
     const { groups, missing } = grouped();
     const stats = regionNames.map(n => ({name:n, rows:groups[n], v:metricValue(groups[n])}));
+    pinStats = stats;
     const mx=Math.max(.01,...stats.map(r=>Math.abs(r.v||0)));
     svg.querySelectorAll("path[id]").forEach(p=>{
       const raw=p.id;
@@ -102,6 +180,7 @@
         ).join("")+'</div>'+(ranked.length===0?'<p class="sb-map-no-data">현재 조건에서 집계할 기업이 없습니다.</p>':'')
       );
     resetBtn.disabled=!selected;
+    schedulePins();
   }
   function pick(name) { selected=selected===name?"":name; redraw(); }
   metricSel.addEventListener("change",()=>{
@@ -109,6 +188,14 @@
   });
   resetBtn.addEventListener("click",()=>{selected="";redraw();});
   root.addEventListener("click",e=>{
+    const pin=e.target.closest("[data-sb-pin]");
+    if(pin){
+      pick(pin.dataset.sbPin);
+      // On narrow screens the detail card sits below the map.
+      if (window.innerWidth < 900 && typeof details.scrollIntoView === "function")
+        details.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
+      return;
+    }
     const btn=e.target.closest("[data-sb-region]");
     if (btn) { pick(btn.dataset.sbRegion); return; }
     const path=e.target.closest("path[data-region]");
@@ -156,7 +243,7 @@
     svg.classList.add("sb-map-shape");
     svg.setAttribute("aria-label", "대한민국 시·도별 기업 분포");
     svg.setAttribute("role", "group");
-    mapEl.replaceChildren(svg); loaded=true; redraw();
+    mapEl.replaceChildren(svg,pinLayer); loaded=true; redraw();
   }).catch(err=>{mapEl.textContent="지도를 불러오지 못했습니다: "+err.message;mapEl.classList.add("sb-map-error");});
   window.SobujangMap={
     render(nextRows,year) {
