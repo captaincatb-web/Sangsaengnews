@@ -234,6 +234,8 @@ jobs:
         id: caps
         continue-on-error: true
         timeout-minutes: 10
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
         run: python scripts/update_semi_caps.py
 
       - name: Build data freshness manifest
