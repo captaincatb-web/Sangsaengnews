@@ -138,7 +138,10 @@
   if (industryView && typeof MutationObserver !== "undefined")
     new MutationObserver(schedulePins).observe(industryView,{attributes:true,attributeFilter:["hidden"]});
   window.addEventListener("resize",schedulePins);
-  pinMode.addEventListener("change",schedulePins);
+  pinMode.addEventListener("change",()=>{
+    schedulePins();
+    announce("지역 핀 표시 방식: "+pinMode.options[pinMode.selectedIndex].textContent);
+  });
   function redraw() {
     if (!loaded) return;
     const { groups, missing } = grouped();
@@ -249,7 +252,11 @@
     resetBtn.disabled=!selected;
     schedulePins();
   }
-  function pick(name) { selected=selected===name?"":name; redraw(); }
+  function pick(name) {
+    selected=selected===name?"":name;
+    redraw();
+    announce(selected?selected+" 지역 분석 선택":"전국 지역 분석으로 복귀");
+  }
   details.addEventListener("change",e=>{
     if(e.target.id!=="sb-map-region-picker")return;
     selected=regionNames.includes(e.target.value)?e.target.value:"";
@@ -259,14 +266,15 @@
   });
   metricSel.addEventListener("change",()=>{
     metric=metricSel.value; redraw();
+    announce("지도 지표 "+metricNames[metric]+"로 변경");
   });
-  resetBtn.addEventListener("click",()=>{selected="";redraw();});
+  resetBtn.addEventListener("click",()=>{selected="";redraw();announce("지역 선택 해제, 전국 지역 분석");});
   root.addEventListener("click",e=>{
     const pin=e.target.closest("[data-sb-pin]");
     if(pin){
       pick(pin.dataset.sbPin);
       // On narrow screens the detail card sits below the map.
-      if (window.innerWidth < 900 && typeof details.scrollIntoView === "function")
+      if (selected && window.innerWidth < 900 && typeof details.scrollIntoView === "function")
         details.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
       return;
     }
