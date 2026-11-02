@@ -41,7 +41,9 @@
     return pct(v);
   }
   const fillFor = (value, max, hasRows) => U.color(value, metric, max, hasRows);
+  const anchorCache=new WeakMap();
   function anchorOnProvince(path, region) {
+    if(anchorCache.has(path))return anchorCache.get(path);
     const b = path.getBBox();
     if (!(b.width > 0 && b.height > 0)) return null;
     // Incheon contains far-west islands, so target its mainland section.
@@ -54,7 +56,9 @@
       const d=Math.hypot(p.x-target.x,p.y-target.y);
       if (!best || d<best.d) best={...p,d};
     }
-    return best || target;
+    const anchor=best||target;
+    anchorCache.set(path,anchor);
+    return anchor;
   }
   const pinStatus = document.getElementById("sb-map-pin-status");
   const announcement = document.getElementById("sb-map-announcement");
@@ -174,7 +178,8 @@
       ? "청록: 성장 · 적색: 감소 · 회색: 미집계"
       : metric === "cap"
       ? "상장사 시가총액 합계(억원) · 진할수록 큼 · 회색: 미확인/해당 없음 · 네이버증권 " + marketAsOf() + " 수집"
-      : "색이 진할수록 " + metricNames[metric] + "가 큼 · 회색: 0 또는 미집계";
+      : "색이 진할수록 " + metricNames[metric] + "가 큼 · 범위 0~" + valueText(mx) +
+        " (현재 필터 기준) · 회색: 0 또는 미집계";
     const yearEl = document.getElementById("sb-map-year");
     if (yearEl) yearEl.textContent = metric === "cap"
       ? "시총 " + marketAsOf() + " 수집 · 기업 표본 " + String(fy || "-") + "년 재무"
@@ -244,7 +249,8 @@
       }
       const kinds=document.createElement("div");
       kinds.className="sb-map-breakdown";
-      kinds.textContent="소재·부품·장비: "+["소재","부품","장비"].map(k=>k+" "+info.kinds[k]+"곳").join(" · ")+
+      kinds.textContent="소재·부품·장비: "+["소재","부품","장비"].map(k=>
+        k+" "+info.kinds[k]+"곳 ("+(info.count? (info.kinds[k]/info.count*100).toFixed(1):"0.0")+"%)").join(" · ")+
         (info.other?" · 기타 "+info.other+"곳":"");
       nav.insertAdjacentElement("afterend",summary);
       summary.insertAdjacentElement("afterend",kinds);
