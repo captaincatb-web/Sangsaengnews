@@ -79,7 +79,9 @@
       metric === "cap"
         ? (U.capOf(b, marketList()) ?? -1) - (U.capOf(a, marketList()) ?? -1)
         : b.s1 - a.s1) : [];
-    const metricCaption=focus ? metricNames[metric]+": "+valueText(focus.v) : "전국 현황";
+    const metricCaption = focus ? metricNames[metric] + ": " + valueText(focus.v)
+      : metric === "cap" ? "시가총액 합계: " + valueText(metricValue(rows.filter(r => U.provinceOf(r.ad))))
+      : "전국 현황";
     details.innerHTML =
       '<div class="sb-map-panel-title"><div><span class="sb-map-eyebrow">'+(selected?"선택 지역":"지역 순위")+'</span><h3>'+esc(selected||"전국 17개 시·도")+'</h3></div><strong>'+esc(metricCaption)+'</strong></div>'
       +(focus ?
