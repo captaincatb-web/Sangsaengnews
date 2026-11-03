@@ -1,10 +1,12 @@
 """핵심 모집단 반영 검증: CSV 189 / 핵심 160(소재 37·부품 47·장비 76) / 별도 관리 / 사용자 지정 분류 / 기존 시세 보존."""
 import csv, json, re, subprocess, sys
 from collections import Counter
+import os
+DATA = os.environ.get("DATA_DIR", "site/data")  # 검증 대상 데이터 폴더(배포 산출물을 검사할 때 지정)
 CSV = "scripts/data/semi_universe_final_20261102.csv"
 src = list(csv.DictReader(open(CSV, encoding="utf-8-sig")))
 load = lambda t: json.loads(re.search(r"=\s*(\{.*\});", t, re.S).group(1))
-caps = load(open("site/data/semi_caps.js", encoding="utf-8").read()); share = load(open("site/data/semi_share.js", encoding="utf-8").read())
+caps = load(open(f"{DATA}/semi_caps.js", encoding="utf-8").read()); share = load(open(f"{DATA}/semi_share.js", encoding="utf-8").read())
 try: old = load(subprocess.check_output(["git", "show", "HEAD:site/data/semi_caps.js"], text=True, stderr=subprocess.DEVNULL))
 except Exception: old = None
 ok = True
@@ -40,7 +42,15 @@ D = share.get("denominator") or {}
 chk("비중 분모가 안내와 일치(shareKK=코스피·코스닥)", D.get("shareKK") == "코스피·코스닥 전체" and all("shareKK" in g for g in G.values()))
 tot = share["marketTotal"]; capKK = sum(r["cap"] for r in rows if r["cap"] and r["m"] in ("KOSPI", "KOSDAQ"))
 chk("shareKK 산식 검산", abs(G["전체"]["shareKK"] - capKK / (tot["KOSPI"] + tot["KOSDAQ"])) < 2e-6)
-mst = load(open("site/data/master.js", encoding="utf-8").read()); P = mst["populations"]
+mst = load(open(f"{DATA}/master.js", encoding="utf-8").read()); P = mst["populations"]
 chk("마스터: 핵심 160·별도 29, 종목코드 고유", P["core"]["n"] == 160 and P["managed"]["n"] == 29 and len({r["c"] for r in mst["rows"]}) == 189)
 chk("마스터: 재무 분석 명단(134)은 160과 합치지 않고 별도 기록", P["fin134"]["n"] == 134 != P["core"]["n"])
+# --- CSV ↔ 화면 데이터 일치, 링크 정확성 ---
+csvrows = {r["stock_code"]: r for r in src}
+chk("CSV 핵심(CORE_*)과 화면 명단의 종목코드·분류·구분이 전수 일치", all(c in csvrows and csvrows[c]["primary_category"] == byc[c]["k"] and ({"CORE_EXISTING": "E", "CORE_NEW": "N"}.get(csvrows[c]["implementation_group"]) == byc[c]["g"]) for c in byc) and len(byc) == sum(1 for r in src if r["implementation_group"].startswith("CORE")))
+chk("CSV 별도 관리(HOLD/OSAT/DIST)와 화면 managed가 일치", {m["c"]: m["g"] for m in caps["managed"]} == {r["stock_code"]: {"HOLD_REVIEW": "H", "SEPARATE_OSAT": "O", "SEPARATE_DISTRIBUTION": "D"}[r["implementation_group"]] for r in src if not r["implementation_group"].startswith("CORE")})
+comp = open(f"{DATA}/companies.js", encoding="utf-8").read(); prof = {code: corp for _, corp, code in re.findall(r'\[\s*"([^"]+)"\s*,\s*"(\d{8})"\s*,\s*"(\d{6})?"', comp) if code}
+links = {r["c"]: r["corp"] for r in mst["rows"] if r["corp"]}
+chk("프로필·재무 분석 링크는 종목코드가 정확히 같은 기업에만 연결(DART 고유번호 일치)", all(prof.get(c) == corp for c, corp in links.items()) and len(links) == sum(1 for c in byc if c in prof), f"링크 {len(links)}곳")
+chk("링크 대상은 핵심·별도 관리 명단에 있는 종목", set(links) <= {r["c"] for r in mst["rows"]})
 sys.exit(0 if ok else 1)

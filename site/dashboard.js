@@ -255,11 +255,11 @@
       : o[last - 1] < 0 ? { txt: "적자 지속", cls: "down" } : gr(o[last], o[last - 1]);
     const md = n > 1 && m[last] != null && m[last - 1] != null ? { txt: pp(m[last] - m[last - 1]), cls: tone(m[last] - m[last - 1]) } : { txt: "-" };
     const ed = n > 1 && e && e[last] != null && e[last - 1] > 0 ? (() => { const d = e[last] - e[last - 1]; return { txt: `${d > 0 ? "+" : ""}${d.toLocaleString("ko-KR")}명 (${sg(growth(e[last], e[last - 1]))})`, cls: tone(d) }; })() : { txt: "-" };
-    return `<table class="db-tbl db-ytbl"><thead><tr><th scope="col">구분</th>${years.map((y) => `<th scope="col">${y}</th>`).join("")}<th scope="col">전년 대비</th></tr></thead><tbody>`
+    return `<div class="db-qwrap"><table class="db-tbl db-ytbl"><thead><tr><th scope="col">구분</th>${years.map((y) => `<th scope="col">${y}</th>`).join("")}<th scope="col">전년 대비</th></tr></thead><tbody>`
       + row("매출", s, wonRow(s), sd) + row("영업이익", o, wonRow(o), od) + row("영업이익률", m, (v) => pc(v), md)
       + row("임직원", e || years.map(() => null), people, ed)
       + (() => { const pv = years.map((_, i) => (e && e[i] > 0 && sE[i] != null ? sE[i] / e[i] : null)); return pv.some((v) => v != null) ? row("1인당 매출", pv, (v) => (v == null ? "-" : `${v.toFixed(1)}억`), n > 1 ? gr(pv[last], pv[last - 1]) : { txt: "-" }) : ""; })()
-      + `</tbody></table>${eNote ? `<p class="db-mini">${eNote}</p>` : ""}`;
+      + `</tbody></table></div>${eNote ? `<p class="db-mini">${eNote}</p>` : ""}`;
   }
   // 기준 연도까지 최대 3년: 자료가 있는 해만 쓴다(예: 2024년 기준이면 수집된 2023·2024년)
   function yearlyChart(rows) {

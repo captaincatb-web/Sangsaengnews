@@ -49,8 +49,10 @@ def source(label: str, updated, count, outcome: str, collected: str = ""):
         status, note = "missing", "데이터 기준일을 확인할 수 없습니다"
     elif outcome == "success":
         status, note = "fresh", "최근 수집 완료"
-    elif outcome == "failure":
+    elif outcome in ("failure", "stale"):
         status, note = "stale", "최신 데이터 갱신 지연 · 이전 수집 데이터 표시 중"  # 수집은 실패했지만 사이트는 이전 값으로 배포됨
+    elif outcome == "lagging":
+        status, note = "stale", "기준일이 1거래일 전입니다(휴장일 또는 거래소 자료 지연)"
     else:
         status, note = "cached", "이전 수집 데이터 표시 중"
     out = {"label": label, "updated": updated, "count": count if isinstance(count, int) else None, "status": status, "note": note}
