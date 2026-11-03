@@ -67,9 +67,11 @@
     <div class="db-view">
       <section class="db-card" id="chart-card" aria-labelledby="ct">
         <div class="db-card-head"><h2 id="ct">소재·부품·장비 매출 추이와 영업이익률 <small>매출과 영업이익률은 따로 표시합니다</small></h2>
-          <label class="gc-mode" id="w-base" hidden><span>국내 기준</span><select id="f-base"><option value="sep">개별</option><option value="cons">연결</option></select></label>
+          <label class="gc-mode gc-view"><span>비교 기준</span><select id="f-view" aria-describedby="mode-note"></select></label>
           <label class="gc-mode"><span>값</span><select id="f-mode"><option value="idx">매출지수(2023=100)</option><option value="sum">매출액 합계</option><option value="avg">기업당 평균 매출</option></select></label>
           <ul class="db-legend" id="legend"></ul></div>
+        <p class="gc-modenote" id="mode-note" role="note"></p>
+        <p class="gc-modecount" id="mode-count"></p>
         <p class="gc-result" id="result" aria-live="polite"></p>
         <p class="gc-note" id="detail-note" hidden role="status"></p>
         <div class="db-chart" id="chart" role="group" aria-label="국내·해외계 소재·부품·장비 매출과 영업이익률 비교 차트"></div>
@@ -83,6 +85,6 @@
   <script src="data/status.js?v=202611011230"></script>
   <script src="data-status.js?v=202611021500"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="growth-comparison.js?v=3"></script>
+  <script src="growth-comparison.js?v=4"></script>
 </body>
 </html>

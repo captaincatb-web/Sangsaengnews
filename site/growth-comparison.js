@@ -10,8 +10,12 @@ const pct=v=>v==null?'–':v.toFixed(1)+'%';
 const pp=v=>v==null?'–':(v>=0?'+':'')+v.toFixed(2)+'%p';
 const sg=v=>v==null?'–':(v>=0?'+':'')+v.toFixed(1)+'%';
 const PAL=['var(--blue)','var(--orange)','var(--teal)','var(--purple)'];
-let GR=[]; /* 표시 그룹(데이터 기반): [{key,label,full,color}] */
-const base=()=>{const e=$('f-base');return S&&S.cells_cons&&e&&e.value==='cons'?S.cells_cons:S.cells};
+let GR=[]; /* 표시 그룹(현재 모드의 groups, 데이터 기반): [{key,label,full,color}] */
+function setGroups(){const gs=(curMode().groups||S.groups||[{key:'dom',label:'국내'},{key:'ov',label:'해외계'}]);GR=gs.map((g,i)=>({key:g.key,label:g.label,short:String(g.label).split('(')[0].trim().replace('한국 소재 ','한국 '),color:PAL[i%PAL.length],full:g.label}))}
+/* 비교 모드: S.modes[i](cells·groups·coverage·note). modes 가 없으면 최상위 값(기본 모드)을 쓴다 */
+const modes=()=>S.modes&&S.modes.length?S.modes:[{id:'blend',label:'기본',groups:S.groups,note:'',coverage:S.coverage,cells:S.cells}];
+const curMode=()=>{const m=modes(),e=$('f-view');return m[e&&e.selectedIndex>0?e.selectedIndex:0]||m[0]};
+const base=()=>curMode().cells;
 const cell=(c,p)=>base()[key(c,p)];
 const path=()=>{const p=[];for(let i=1;i<=5;i++){const v=$('f-d'+i).value;if(!v)break;p.push(v)}return p};
 function opts(sel,vals){const cur=sel.value;sel.length=1;[...new Set(vals)].sort().forEach(v=>sel.add(new Option(v,v)));sel.value=cur;sel.disabled=sel.length<2}
@@ -39,7 +43,7 @@ function revChart(d,mode,mx){
    svg.append(svgEl('text',{x:bx(yi,gi)+bw*.46,y:BASE-h-3,'text-anchor':'middle','font-size':'8.5','font-weight':'600',style:'fill:'+g.color},mode==='idx'?val.toFixed(0):compact(val)))})});
  Y.forEach((y,yi)=>svg.append(svgEl('text',{x:m+yi*sw+sw/2,y:BASE+14,'text-anchor':'middle','font-size':'10'},String(y))));
  GR.forEach((g,gi)=>{const gr=growthOf(d.x&&d.x[g.key]);
-  Y.forEach((y,yi)=>{if(!gr||gr[yi]==null)return;svg.append(svgEl('text',{x:m+yi*sw+sw/2,y:BASE+30+gi*12,'text-anchor':'middle','font-size':'8.5',style:'fill:'+g.color},g.label+' '+sg(gr[yi])))})});
+  Y.forEach((y,yi)=>{if(!gr||gr[yi]==null)return;svg.append(svgEl('text',{x:m+yi*sw+sw/2,y:BASE+30+gi*12,'text-anchor':'middle','font-size':'8.5',style:'fill:'+g.color},g.short+' '+sg(gr[yi])))})});
  svg.append(svgEl('text',{x:W/2,y:H-3,'text-anchor':'middle','font-size':'8',style:'fill:var(--text-3)'},'막대: '+(mode==='idx'?'매출지수(2023=100)':mode==='avg'?'기업당 평균 매출':'매출 합계')+' · 아래 숫자: 전년 대비'));
  return svg}
 function marginChart(d,lo,hi){
@@ -68,7 +72,7 @@ function draw(){
  res.innerHTML='<b>현재 조건</b> '+esc([sel||'전체',...p].join(' › '))+' — '+(cur?counts({x:cur}):GR.map(g=>'<span style="color:'+g.color+'">'+esc(g.label)+' 공개 기준 미달</span>').join(' · '))+' <small>(3개년 실적이 확인된 법인, 한 곳 미만·5곳 미만 조합은 공개하지 않음)</small>';
  /* 상세구분 필터 안내 */
  const nt=$('detail-note');nt.hidden=true;nt.textContent='';
- if(p.length&&S.coverage&&S.coverage.detail_missing){const dm=S.coverage.detail_missing[sel||'전체']||{};const parts=GR.filter(g=>dm[g.key]&&dm[g.key].no_detail>0).map(g=>g.label+' '+dm[g.key].no_detail+'곳');
+ if(p.length&&curMode().id==='blend'&&S.coverage&&S.coverage.detail_missing){const dm=S.coverage.detail_missing[sel||'전체']||{};const parts=GR.filter(g=>dm[g.key]&&dm[g.key].no_detail>0).map(g=>g.label+' '+dm[g.key].no_detail+'곳');
   if(parts.length){nt.hidden=false;nt.textContent='상세구분이 없는 기업('+parts.join(' · ')+')은 상세 필터에서 제외됩니다. 상세구분이 없는 기업을 임의로 분류하지 않습니다.'}}
  if(!data.some(d=>d.x&&GR.some(g=>d.x[g.key]))){box.innerHTML='<p class="gc-empty">이 조건에서는 공개 기준(그룹별 5곳 이상, 3개년 실적 확인)을 충족하는 비교 대상이 없습니다.</p>';$('influence').hidden=true;tbl([]);ptbl([]);return}
  const mx=Math.max(1,...data.flatMap(d=>GR.flatMap(g=>(series(d.x&&d.x[g.key],mode)||[]).filter(v=>v!=null))));
@@ -84,7 +88,7 @@ function draw(){
 function influence(data,sel){
  const card=$('influence'),parts=[];
  const mx=S.mix||{};
- if(!sel&&mx.ov&&mx.ov['장비']){const o=mx.ov['장비'],dm=mx.dom&&mx.dom['장비'];
+ if(curMode().id==='blend'&&!sel&&mx.ov&&mx.ov['장비']){const o=mx.ov['장비'],dm=mx.dom&&mx.dom['장비'];
   parts.push(esc((GR.find(g=>g.key==='ov')||{label:'해외계'}).label)+' 2025년 장비 비중: 매출 '+o.rev_share_2025+'% · 영업이익 '+(o.op_share_2025==null?'–':o.op_share_2025+'%')+(dm?' (국내 장비: 매출 '+dm.rev_share_2025+'% · 영업이익 '+(dm.op_share_2025==null?'–':dm.op_share_2025+'%')+')':'')+'. 소재·부품·장비는 겹칠 수 있습니다. 전체 수익성 차이는 업종 구성과 대형 법인의 영향을 받으므로 업종별 값과 함께 해석하세요.')}
  const fl=[];data.forEach(d=>GR.forEach(g=>{const s=d.x&&d.x[g.key];if(!s||!s.flags)return;const yrs=[...new Set([...(s.flags.rev_single_driver_years||[]),...(s.flags.op_single_driver_years||[])])];if(yrs.length)fl.push(g.label+' '+d.c+' '+yrs.sort().join('·')+'년')}));
  if(fl.length)parts.push('특정 연도('+fl.join(', ')+')는 한 법인의 실적이 합계를 크게 좌우합니다(법인 비공개).');
@@ -105,11 +109,16 @@ function ptbl(data){const t=$('ptbl');t.textContent='';if(!data.length)return;
     [d.c,a.label+' − '+z.label+' 격차',...gap.map(pp),gap[1]==null||gap[0]==null?'–':pp(gap[1]-gap[0]),gap[2]==null||gap[1]==null?'–':pp(gap[2]-gap[1])].forEach(v=>row.insertCell().textContent=v)}}})}
 
 /* ---------- 산출 기준·구성 ---------- */
+function modeInfo(){
+ const m=curMode(),c=m.coverage||{},bp=c.balanced_panel||{},dm=GR.find(g=>g.key==='dom'),ov=GR.find(g=>g.key==='ov');
+ $('mode-note').innerHTML='<b>이 비교의 재무 범위:</b> '+esc(m.note||'모드 설명 없음');
+ const parts=[];if(dm)parts.push('<span style="color:'+dm.color+'">'+esc(dm.label)+' '+(bp['국내']!=null?bp['국내']:'–')+'곳</span>');if(ov)parts.push('<span style="color:'+ov.color+'">'+esc(ov.label)+' '+(bp['해외']!=null?bp['해외']:'–')+'곳</span>');
+ $('mode-count').innerHTML='3개년 실적이 확인된 비교 대상(동일 기업군): '+parts.join(' · ')}
 function notes(){
- const nl=S.notes_list||[];
- $('notes').innerHTML=nl.map(x=>'<li>'+esc(x)+'</li>').join('')+(S.cells_cons&&S.basis&&S.basis.scope_cons?'<li>'+esc(S.basis.scope_cons)+'</li>':'')+
+ const nl=S.notes_list||[],m=curMode();
+ $('notes').innerHTML=nl.map(x=>'<li>'+esc(x)+'</li>').join('')+(m.id!=='blend'?'<li><b>현재 비교 기준('+esc(m.label)+'):</b> '+esc(m.note||'')+'</li>':'')+
   '<li class="gc-disc"><b>유의:</b> 기업별 연결 범위, 사업 구성, 회계기간 및 환율의 차이가 있어 매출 규모와 수익성을 동일한 기준의 직접 비교 결과로 해석하기 어렵습니다. 자세한 산출 방법은 방법론 문서(docs/growth-comparison-methodology.md)를 참고하세요.</li>';
- const c=S.coverage||{},cp=c.composition,bp=c.balanced_panel||{},en=c.entities||{};
+ const c=m.coverage||S.coverage||{},cp=m.id==='blend'?(S.coverage||{}).composition:null,bp=c.balanced_panel||{},en=c.entities||{};
  const ov=GR.find(g=>g.key==='ov'),dm=GR.find(g=>g.key==='dom');
  let h='<p>';
  if(dm)h+=esc(dm.label)+': 기업군 '+(en['국내']!=null?en['국내']+'곳 중 ':'')+'3개년 실적이 확인된 '+(bp['국내']!=null?bp['국내']:'–')+'곳. ';
@@ -124,10 +133,11 @@ function legend(){$('legend').innerHTML=GR.map(g=>'<li><i class="sq" style="back
 /* ---------- 초기화 ---------- */
 const tb=$('theme-btn');if(tb){const cur=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const paint=()=>{const d=cur()==='dark';tb.innerHTML='<i class="ph ph-'+(d?'sun':'moon')+'" aria-hidden="true"></i>';tb.title=d?'밝은 화면으로':'어두운 화면으로'};tb.addEventListener('click',()=>{const t=cur()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sobujang:theme',t)}catch(e){}paint()});paint()}
 fetch('data/growth-comparison-summary.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{S=j;
- GR=(S.groups||[{key:'dom',label:'국내'},{key:'ov',label:'해외계'}]).map((g,i)=>({key:g.key,label:g.label,color:PAL[i%PAL.length],full:g.key==='ov'?g.label+'(공시 본사·한국 내 외국계)':g.label}));
- const cs=new Set();for(const k in S.cells){const c=JSON.parse(k)[0];if(c)cs.add(c)}CH.filter(c=>cs.has(c)).forEach(c=>$('f-chart').add(new Option(c,c)));
- legend();notes();sync();draw();
- if(S.cells_cons){const w=$('w-base');if(w)w.hidden=false}
- ['f-chart','f-d1','f-d2','f-d3','f-d4','f-d5','f-mode','f-base'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='f-chart')for(let i=1;i<=5;i++)$('f-d'+i).value='';else if(/f-d/.test(id)){const n=+id.slice(3);for(let i=n+1;i<=5;i++)$('f-d'+i).value=''}sync();draw()}))
+ const vs=$('f-view');modes().forEach((m,i)=>vs.add(new Option(m.label,m.id)));vs.parentElement.hidden=modes().length<2;
+ function refreshMode(){setGroups();const fc=$('f-chart');fc.length=1;fc.value='';for(let i=1;i<=5;i++)$('f-d'+i).value='';
+  const cs=new Set();for(const k in base()){const c=JSON.parse(k)[0];if(c)cs.add(c)}CH.filter(c=>cs.has(c)).forEach(c=>fc.add(new Option(c,c)));
+  legend();modeInfo();notes();sync();draw()}
+ refreshMode();
+ ['f-chart','f-d1','f-d2','f-d3','f-d4','f-d5','f-mode','f-view'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='f-view'){refreshMode();return}if(id==='f-chart')for(let i=1;i<=5;i++)$('f-d'+i).value='';else if(/f-d/.test(id)){const n=+id.slice(3);for(let i=n+1;i<=5;i++)$('f-d'+i).value=''}sync();draw()}))
 }).catch(e=>{$('chart').innerHTML='<p class="gc-empty">집계 자료를 불러오지 못했습니다.</p>'});
 })();
