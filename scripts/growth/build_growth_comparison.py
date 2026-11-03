@@ -49,6 +49,31 @@ def load_roster(priv):
     return [(r, kind[r["c"]]["kind"]) for r in recs if kind.get(r["c"], {}).get("kind") not in ("수요", "IT·서비스")]
 
 
+def dedupe_kr_affiliates(ents, scopes, dov):
+    """한국에 설립된 외국계(region 외국계)를 해외계로 합치면서 이중 집계를 막는다. (keep, log, dropped) 반환.
+    제외 조건(모두 충족): ①본사 후보가 이름 접두 일치 ②본사가 ELIGIBLE·3개년 균형 패널 ③본사 재무가 연결 기준 ④검토 결과(dov)가 '관계 아님'이 아님.
+    본사가 개별 기준이면 자회사 실적이 본사에 들어 있지 않으므로 제외하지 않는다."""
+    parents = {e["id"][2:]: e for e in ents if e["region"] == "해외" and e["eligible"] == "ELIGIBLE" and e["id"].startswith("O:")}
+    keep, log, dropped = [], [], 0
+    for e in ents:
+        if e["region"] == "외국계":
+            nk = e.pop("_nk", ""); cands = [pk for pk in parents if len(pk) >= 4 and nk != pk and nk.startswith(pk)]
+            drop = False
+            for pk in cands:
+                par = parents[pk]; sc = scopes.get("O:" + pk, set()); why = []
+                rel = dov.get((nk, pk), "candidate")
+                if rel == "unrelated": why.append("검토 결과 본사-자회사 관계 아님")
+                if not A.usable(par): why.append("본사가 3개년 균형 패널에 없음")
+                if sc != {"연결"}: why.append("본사 재무가 연결 기준이 아님(" + ("/".join(sorted(sc)) or "없음") + ")")
+                dec = "drop" if not why else "keep"
+                log.append({"sub_key": nk, "parent_key": pk, "relation": rel, "parent_scope": "/".join(sorted(sc)), "parent_balanced": A.usable(par), "decision": dec, "reason": "; ".join(why) or "연결 본사에 이미 포함(이중 집계 방지)"})
+                if dec == "drop": drop = True; break
+            if drop: dropped += 1; continue
+            e["region"] = "해외"; e["_kr"] = True
+        keep.append(e)
+    return keep, log, dropped
+
+
 def build_entities(priv, csv_universe):
     rows = rd(priv / "master_rows.csv"); match = {m["corp_no"]: m for m in rd(priv / "domestic_match.csv")}
     fin = defaultdict(dict)
@@ -133,26 +158,8 @@ def build_entities(priv, csv_universe):
     # 해외계 통합(사용자 결정): 한국에 설립된 외국계 법인을 해외 상장 본사와 한 집단으로 합친다.
     # 이중 집계 방지: 본사 실적이 연결 기준이고(자회사 포함) 본사가 3개년 균형 패널에 들어 있으며 본사-자회사 관계가 확인된 경우에만 한국 자회사를 뺀다.
     # 본사가 개별 기준이면 자회사는 본사 실적에 들어 있지 않으므로 빼지 않는다. 관계는 이름 접두 일치를 후보로만 쓰고 dedupe_overrides.csv(검토 결과)로 확정·부정한다.
-    def usable_e(e): return A.usable(e)
-    parents = {e["id"][2:]: e for e in ents if e["region"] == "해외" and e["eligible"] == "ELIGIBLE" and e["id"].startswith("O:")}
     dov = {(x["sub_key"], x["parent_key"]): x["decision"] for x in rd(priv / "dedupe_overrides.csv")}
-    keep, log, dropped = [], [], 0
-    for e in ents:
-        if e["region"] == "외국계":
-            nk = e.pop("_nk", ""); cands = [pk for pk in parents if len(pk) >= 4 and nk != pk and nk.startswith(pk)]
-            drop = False
-            for pk in cands:
-                par = parents[pk]; sc = scopes.get("O:" + pk, set()); why = []
-                rel = dov.get((nk, pk), "candidate")
-                if rel == "unrelated": why.append("검토 결과 본사-자회사 관계 아님")
-                if not usable_e(par): why.append("본사가 3개년 균형 패널에 없음")
-                if sc != {"연결"}: why.append("본사 재무가 연결 기준이 아님(" + ("/".join(sorted(sc)) or "없음") + ")")
-                dec = "drop" if not why else "keep"
-                log.append({"sub_key": nk, "parent_key": pk, "relation": rel, "parent_scope": "/".join(sorted(sc)), "parent_balanced": usable_e(par), "decision": dec, "reason": "; ".join(why) or "연결 본사에 이미 포함(이중 집계 방지)"})
-                if dec == "drop": drop = True; break
-            if drop: dropped += 1; continue
-            e["region"] = "해외"; e["_kr"] = True
-        keep.append(e)
+    keep, log, dropped = dedupe_kr_affiliates(ents, scopes, dov)
     if log:
         with open(priv / "dedupe_log.csv", "w", encoding="utf-8-sig", newline="") as fh:
             w = csv.DictWriter(fh, fieldnames=list(log[0])); w.writeheader(); w.writerows(log)

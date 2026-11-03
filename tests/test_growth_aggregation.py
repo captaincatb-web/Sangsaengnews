@@ -55,3 +55,26 @@ class Safety(unittest.TestCase):
         es = [ent(f"a{i}", "국내", (100, 100, 100), (1, 1, 1), d=("설비", "전공정", "A")) for i in range(6)] + [ent(f"b{i}", "국내", (100, 100, 100), (1, 1, 1), d=("설비", "전공정", "B")) for i in range(6)]
         ok = A.publishable(es, k=5); self.assertIn(("장비", ("설비", "전공정", "A")), ok); self.assertIn(("장비", ("설비", "전공정", "B")), ok)
 if __name__ == "__main__": unittest.main(verbosity=2)
+
+
+class DedupeKr(unittest.TestCase):
+    """한국 자회사 이중 집계 방지 규칙(연결 본사·균형 패널·관계 확인)."""
+    @staticmethod
+    def _e(i, region, fin=True, nk=None):
+        e = {"id": i, "region": region, "eligible": "ELIGIBLE", "fin": {y: {"rev": 100.0, "op": 10.0} for y in (2023, 2024, 2025)} if fin else {}, "memberships": []}
+        if nk is not None: e["_nk"] = nk
+        return e
+    def run_case(self, scope, parent_fin=True, dov=None):
+        import build_growth_comparison as B
+        ents = [self._e("O:lamresearch", "해외", parent_fin), self._e("F:1", "외국계", True, "lamresearchkorea")]
+        keep, log, dropped = B.dedupe_kr_affiliates(ents, {"O:lamresearch": {scope}}, dov or {}); return keep, log, dropped
+    def test_consolidated_parent_in_panel_drops_sub(self):
+        keep, log, dropped = self.run_case("연결"); self.assertEqual(dropped, 1); self.assertEqual([e["id"] for e in keep], ["O:lamresearch"])
+    def test_separate_parent_keeps_sub(self):
+        keep, log, dropped = self.run_case("개별"); self.assertEqual(dropped, 0); self.assertEqual({e["id"] for e in keep}, {"O:lamresearch", "F:1"}); self.assertIn("연결 기준이 아님", log[0]["reason"])
+    def test_parent_not_in_balanced_panel_keeps_sub(self):
+        keep, log, dropped = self.run_case("연결", parent_fin=False); self.assertEqual(dropped, 0); self.assertIn("균형 패널에 없음", log[0]["reason"])
+    def test_review_marks_unrelated_keeps_sub(self):
+        keep, log, dropped = self.run_case("연결", dov={("lamresearchkorea", "lamresearch"): "unrelated"}); self.assertEqual(dropped, 0)
+    def test_sub_region_becomes_overseas_when_kept(self):
+        keep, log, dropped = self.run_case("개별"); self.assertEqual([e["region"] for e in keep if e["id"] == "F:1"], ["해외"])
