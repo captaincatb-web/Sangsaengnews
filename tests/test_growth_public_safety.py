@@ -3,8 +3,8 @@ import json, re, unittest
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SUMMARY = ROOT / "site" / "data" / "growth-comparison-summary.json"
-TOP = {"version", "generatedAt", "years", "unit", "k_min_per_side", "basis", "coverage", "cells", "groups", "notes_list", "mix"}
-TOP_OPTIONAL = {"cells_cons", "coverage_cons"}
+TOP = {"version", "generatedAt", "years", "unit", "k_min_per_side", "basis", "coverage", "cells", "groups", "notes_list", "mix", "modes"}
+TOP_OPTIONAL = set()
 CHARTS = {None, "소재", "부품", "장비", "미분류"}
 GROUPS = ("dom", "ov", "fo")
 
@@ -16,11 +16,15 @@ def load():
 class SummarySafety(unittest.TestCase):
     def setUp(self): self.raw = SUMMARY.read_text(encoding="utf-8"); self.j = json.loads(self.raw)
 
+    def cell_sets(self):
+        return [self.j["cells"]] + [m["cells"] for m in self.j.get("modes", [])]
+    def test_mode_keys_are_limited(self):
+        for m in self.j.get("modes", []): self.assertLessEqual(set(m), {"id", "label", "groups", "note", "coverage", "cells"})
     def test_top_level_keys(self): self.assertLessEqual(set(self.j), TOP | TOP_OPTIONAL); self.assertTrue(TOP <= set(self.j))
 
     def test_each_group_meets_k(self):
         k = self.j["k_min_per_side"]
-        for key, cell in self.j["cells"].items():
+        for key, cell in [kv for c in self.cell_sets() for kv in c.items()]:
             for g in GROUPS:
                 if g in cell: self.assertGreaterEqual(cell[g]["n"], k, f"{key} {g} 법인 수가 k({k}) 미만으로 공개됨")
 
@@ -30,7 +34,7 @@ class SummarySafety(unittest.TestCase):
         for tok in ("@", "http", "주식회사", "(주)", "㈜", "유한회사"): self.assertNotIn(tok, body, tok)
 
     def test_cell_keys_are_chart_and_path(self):
-        for key in self.j["cells"]:
+        for key in [k_ for c in self.cell_sets() for k_ in c]:
             chart, path = json.loads(key)
             self.assertIn(chart, CHARTS, key); self.assertIsInstance(path, list)
             self.assertTrue(all(isinstance(p, str) for p in path))

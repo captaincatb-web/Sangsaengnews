@@ -58,18 +58,21 @@ if __name__ == "__main__": unittest.main(verbosity=2)
 
 
 class DedupeKr(unittest.TestCase):
-    """한국 자회사 이중 집계 방지 규칙(연결 본사·균형 패널·관계 확인)."""
+    """한국 자회사 이중 집계 방지 규칙(관계 확인·연결 본사·균형 패널)."""
+    CONF = {("lamresearchkorea", "lamresearch"): "confirmed"}
     @staticmethod
     def _e(i, region, fin=True, nk=None):
         e = {"id": i, "region": region, "eligible": "ELIGIBLE", "fin": {y: {"rev": 100.0, "op": 10.0} for y in (2023, 2024, 2025)} if fin else {}, "memberships": []}
         if nk is not None: e["_nk"] = nk
         return e
-    def run_case(self, scope, parent_fin=True, dov=None):
+    def run_case(self, scope, parent_fin=True, dov="conf"):
         import build_growth_comparison as B
         ents = [self._e("O:lamresearch", "해외", parent_fin), self._e("F:1", "외국계", True, "lamresearchkorea")]
-        keep, log, dropped = B.dedupe_kr_affiliates(ents, {"O:lamresearch": {scope}}, dov or {}); return keep, log, dropped
-    def test_consolidated_parent_in_panel_drops_sub(self):
+        return B.dedupe_kr_affiliates(ents, {"O:lamresearch": {scope}}, self.CONF if dov == "conf" else dov)
+    def test_confirmed_consolidated_parent_in_panel_drops_sub(self):
         keep, log, dropped = self.run_case("연결"); self.assertEqual(dropped, 1); self.assertEqual([e["id"] for e in keep], ["O:lamresearch"])
+    def test_name_similarity_alone_never_drops(self):
+        keep, log, dropped = self.run_case("연결", dov={}); self.assertEqual(dropped, 0); self.assertIn("관계 미확인", log[0]["reason"])
     def test_separate_parent_keeps_sub(self):
         keep, log, dropped = self.run_case("개별"); self.assertEqual(dropped, 0); self.assertEqual({e["id"] for e in keep}, {"O:lamresearch", "F:1"}); self.assertIn("연결 기준이 아님", log[0]["reason"])
     def test_parent_not_in_balanced_panel_keeps_sub(self):
@@ -78,3 +81,18 @@ class DedupeKr(unittest.TestCase):
         keep, log, dropped = self.run_case("연결", dov={("lamresearchkorea", "lamresearch"): "unrelated"}); self.assertEqual(dropped, 0)
     def test_sub_region_becomes_overseas_when_kept(self):
         keep, log, dropped = self.run_case("개별"); self.assertEqual([e["region"] for e in keep if e["id"] == "F:1"], ["해외"])
+
+
+class CrossMode(unittest.TestCase):
+    """비교 모드 간 교차 역산 방지(같은 재무 기준끼리 비교)."""
+    def test_nested_sets_with_small_difference_suppressed_across_modes(self):
+        big = {f"o{i}" for i in range(8)}; small = {f"o{i}" for i in range(6)}  # 차이 2곳 < k
+        oks = [{(None, ()): {"ov": big}}, {(None, ()): {"ov": small}}]
+        A.cross_suppress(oks, k=5); self.assertEqual(oks[1], {}); self.assertIn((None, ()), oks[0])
+    def test_large_difference_kept(self):
+        big = {f"o{i}" for i in range(20)}; small = {f"o{i}" for i in range(6)}
+        oks = [{(None, ()): {"ov": big}}, {(None, ()): {"ov": small}}]; A.cross_suppress(oks, k=5); self.assertIn((None, ()), oks[1])
+    def test_different_basis_not_compared(self):
+        big = {f"d{i}" for i in range(8)}; small = {f"d{i}" for i in range(6)}
+        oks = [{(None, ()): {"dom": big}}, {(None, ()): {"dom": small}}]
+        A.cross_suppress(oks, k=5, bases=[{"dom": "sep"}, {"dom": "cons"}]); self.assertIn((None, ()), oks[1])

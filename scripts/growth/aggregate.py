@@ -85,3 +85,23 @@ def publishable(entities, k=5):
                         del ok[y][reg]; changed = True
                         if not ok[y]: del ok[y]
     return ok
+
+
+def cross_suppress(oks, k=5, bases=None):
+    """비교 모드(집단 구성이 다른 여러 집계)를 함께 공개할 때의 교차 역산 방지. oks 는 모드별 publishable 결과의 목록이며 제자리에서 수정한다.
+    서로 다른 두 공개 조합(모드·집단·필터가 달라도)에서 한쪽의 법인 집합이 다른 쪽의 진부분집합이고 차이가 1~(k-1)곳이면 작은 쪽을 가린다(큰 쪽 − 작은 쪽의 합으로 소수 법인 값이 드러나는 것을 막음). 안정될 때까지 반복. bases[mode][reg]는 그 집단 재무의 기준 이름(예: 국내 별도·국내 연결): 기준이 다르면 같은 법인이어도 값이 달라 차이로 개별 값이 드러나지 않으므로 같은 기준끼리만 비교한다."""
+    bases = bases or [{} for _ in oks]
+    base_of = lambda mi, reg: bases[mi].get(reg, reg)
+    changed = True
+    while changed:
+        changed = False
+        items = [(mi, key, reg, ids) for mi, ok in enumerate(oks) for key, sides in ok.items() for reg, ids in sides.items()]
+        for a in items:
+            for b in items:
+                if a is b or (a[0], a[1], a[2]) == (b[0], b[1], b[2]) or base_of(a[0], a[2]) != base_of(b[0], b[2]): continue
+                X, Y = a[3], b[3]
+                if Y < X and 0 < len(X - Y) < k and b[1] in oks[b[0]] and b[2] in oks[b[0]][b[1]]:
+                    del oks[b[0]][b[1]][b[2]]
+                    if not oks[b[0]][b[1]]: del oks[b[0]][b[1]]
+                    changed = True
+    return oks

@@ -51,8 +51,8 @@ def load_roster(priv):
 
 def dedupe_kr_affiliates(ents, scopes, dov):
     """한국에 설립된 외국계(region 외국계)를 해외계로 합치면서 이중 집계를 막는다. (keep, log, dropped) 반환.
-    제외 조건(모두 충족): ①본사 후보가 이름 접두 일치 ②본사가 ELIGIBLE·3개년 균형 패널 ③본사 재무가 연결 기준 ④검토 결과(dov)가 '관계 아님'이 아님.
-    본사가 개별 기준이면 자회사 실적이 본사에 들어 있지 않으므로 제외하지 않는다."""
+    제외 조건(모두 충족): ①본사-자회사 관계가 **확인됨**(dov 의 'confirmed': 근거 URL이 있는 검토 파일 또는 법인 판정 CSV의 모회사 정보) ②본사가 ELIGIBLE·3개년 균형 패널 ③본사 재무가 연결 기준.
+    이름이 비슷한 것만으로는(후보) 제외하지 않는다. 본사가 개별 기준이면 자회사 실적이 본사에 들어 있지 않으므로 제외하지 않는다."""
     parents = {e["id"][2:]: e for e in ents if e["region"] == "해외" and e["eligible"] == "ELIGIBLE" and e["id"].startswith("O:")}
     keep, log, dropped = [], [], 0
     for e in ents:
@@ -63,6 +63,7 @@ def dedupe_kr_affiliates(ents, scopes, dov):
                 par = parents[pk]; sc = scopes.get("O:" + pk, set()); why = []
                 rel = dov.get((nk, pk), "candidate")
                 if rel == "unrelated": why.append("검토 결과 본사-자회사 관계 아님")
+                elif rel != "confirmed": why.append("본사-자회사 관계 미확인(이름 유사만, 공식 근거 필요)")
                 if not A.usable(par): why.append("본사가 3개년 균형 패널에 없음")
                 if sc != {"연결"}: why.append("본사 재무가 연결 기준이 아님(" + ("/".join(sorted(sc)) or "없음") + ")")
                 dec = "drop" if not why else "keep"
@@ -98,6 +99,22 @@ def build_entities(priv, csv_universe):
             v = {"rev": num(f_["revenue_krw"]), "op": num(f_["op_income_krw"])}; y_ = int(f_["year"])
             if v["rev"] is not None or v["op"] is not None: ovf[f_["corp_no"]].setdefault(y_, v)
     univ = {r["stock_code"]: r for r in csv_universe}; ov_rows = {r["entity_id"]: r for r in rd(priv / "eligibility_overrides.csv")}; over = {k: v["eligible"] for k, v in ov_rows.items()}
+    status = {x["entity_key"]: x for x in rd(priv / "entity_status.csv")}  # 법인 판정 CSV(ingest_entity_status.py). 사용자 결정(eligibility_overrides)이 우선, 판정 CSV는 빈 곳만 채운다
+    for k_, x_ in status.items():
+        eid_ = "O:" + k_
+        if eid_ not in ov_rows:
+            jd_ = x_.get("소부장판정", "")
+            if jd_ in ("포함", "제외", "보류"):
+                over[eid_] = {"포함": "ELIGIBLE", "제외": "EXCLUDED", "보류": "REVIEW"}[jd_]
+                if x_.get("대표업종"): ov_rows[eid_] = {"entity_id": eid_, "eligible": over[eid_], "rep_chart": x_["대표업종"]}
+    guard_log = []
+    for k_, x_ in status.items():  # 모회사 수치를 자회사·지점에 대체 입력 금지: 자체 공시가 없는 비상장 자회사·지점으로 판정된 법인의 재무는 쓰지 않는다
+        eid_ = "O:" + k_
+        if x_.get("법인상태") in ("비상장 자회사", "지점") and fin.get(eid_):
+            guard_log.append({"entity_key": k_, "법인상태": x_["법인상태"], "action": "재무 사용 안 함(자체 공시 없음)"}); fin.pop(eid_, None); scopes.pop(eid_, None)
+    if guard_log:
+        with open(priv / "fin_guard_log.csv", "w", encoding="utf-8-sig", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(guard_log[0])); w.writeheader(); w.writerows(guard_log)
     groups = defaultdict(list)
     for r in rows:
         if r["region"] == "국내": key = "D:" + (r["corp_no"] or "NOID-" + r["row_id"])
@@ -158,7 +175,14 @@ def build_entities(priv, csv_universe):
     # 해외계 통합(사용자 결정): 한국에 설립된 외국계 법인을 해외 상장 본사와 한 집단으로 합친다.
     # 이중 집계 방지: 본사 실적이 연결 기준이고(자회사 포함) 본사가 3개년 균형 패널에 들어 있으며 본사-자회사 관계가 확인된 경우에만 한국 자회사를 뺀다.
     # 본사가 개별 기준이면 자회사는 본사 실적에 들어 있지 않으므로 빼지 않는다. 관계는 이름 접두 일치를 후보로만 쓰고 dedupe_overrides.csv(검토 결과)로 확정·부정한다.
-    dov = {(x["sub_key"], x["parent_key"]): x["decision"] for x in rd(priv / "dedupe_overrides.csv")}
+    dov = {(x["sub_key"], x["parent_key"]): x["decision"] for x in rd(priv / "dedupe_overrides.csv") if x["decision"] != "confirmed" or (x.get("evidence_url") or "").startswith("http")}
+    off_key = {name_key((x.get("공식법인명") or "")): k for k, x in status.items() if x.get("공식법인명")}
+    for k_, x_ in status.items():  # 판정 CSV: 모회사공식명 + 근거URL + 연결재무 포함 → 관계 확인
+        if x_.get("모회사공식명") and (x_.get("근거URL") or "").startswith("http") and x_.get("연결재무포함여부") == "포함":
+            pk_ = off_key.get(name_key(x_["모회사공식명"])) or name_key(x_["모회사공식명"])
+            dov[(k_, pk_)] = "confirmed"
+    import copy
+    META["kr_entities"] = [dict(copy.deepcopy(e), region="외국계") for e in ents if e["region"] == "외국계"]; META["by_scope"] = by_scope
     keep, log, dropped = dedupe_kr_affiliates(ents, scopes, dov)
     if log:
         with open(priv / "dedupe_log.csv", "w", encoding="utf-8-sig", newline="") as fh:
@@ -185,8 +209,8 @@ def concentration(es):
     return out
 
 
-def build(ents, k=5, generated=None):
-    by = {e["id"]: e for e in ents}; ok = A.publishable(ents, k); out = {}
+def build(ents, k=5, generated=None, ok=None):
+    by = {e["id"]: e for e in ents}; ok = A.publishable(ents, k) if ok is None else ok; out = {}
     for (chart, path), sides in ok.items():
         sub = [by[i] for reg in sides for i in sides[reg]]
         res = A.compare(sub); cell = {}
@@ -228,29 +252,56 @@ def build(ents, k=5, generated=None):
 
 
 def consolidated_variant(ents, priv):
-    """국내 기업군의 재무를 연결(CFS) 기준으로 바꾼 사본(해외는 그대로). 연결이 없는 회사는 개별을 그대로 쓴다(수집 단계에서 표시). 연결 파일이 없으면 None."""
+    """국내 기업군의 재무를 연결(CFS) 기준으로 바꾼 사본. 연결재무제표가 없는 회사(수집 단계 basis '연결 미작성→개별')는 개별 수치로 대체하지 않고 이 모드에서 뺀다. 연결 파일이 없으면 None."""
     rows = rd(Path(priv) / "roster_cfs.csv")
     if not rows: return None
-    cfs = defaultdict(dict)
-    for r in rows: cfs[r["corp_code"]][int(r["year"])] = {"rev": num(r["revenue_krw"]), "op": num(r["op_income_krw"])}
+    cfs = defaultdict(dict); fallback = set()
+    for r in rows:
+        if r.get("basis", "").startswith("연결 미작성"): fallback.add(r["corp_code"]); continue
+        cfs[r["corp_code"]][int(r["year"])] = {"rev": num(r["revenue_krw"]), "op": num(r["op_income_krw"])}
     out = []
     for e in ents:
-        if e["region"] == "국내" and e["id"].startswith("D:") and e["id"][2:] in cfs:
-            f = {y: v for y, v in cfs[e["id"][2:]].items() if v.get("rev") is not None or v.get("op") is not None}
-            e = dict(e, fin=f)
+        if e["region"] == "국내" and e["id"].startswith("D:"):
+            code = e["id"][2:]
+            f = {y: v for y, v in cfs.get(code, {}).items() if v.get("rev") is not None or v.get("op") is not None}
+            e = dict(e, fin=f)  # 연결 없음(대체 안 함) → fin 비어 균형 패널에서 빠짐
         out.append(e)
     return out
+
+
+def modes_entities(ents, priv):
+    """비교 모드별 법인 목록. ①blend: 국내 별도 vs 해외계 통합(참고용) ②cons_listed: 국내 연결 vs 해외 상장 본사 연결 ③sep_kr: 국내 별도 vs 한국 소재 외국계 별도."""
+    dom_sep = [e for e in ents if e["region"] == "국내"]; mode = []
+    mode.append(("blend", ents))
+    cons = consolidated_variant(ents, priv)
+    if cons is not None:
+        by_scope = META.get("by_scope", {}); ov = []
+        for e in ents:
+            if e["region"] == "해외" and e["id"].startswith("O:") and not e.get("_kr"):
+                c = by_scope.get(e["id"], {}).get("연결", {})
+                ov.append(dict(e, fin={y: v for y, v in c.items() if v.get("rev") is not None or v.get("op") is not None}))
+        mode.append(("cons_listed", [e for e in cons if e["region"] == "국내"] + ov))
+    kr = META.get("kr_entities", [])
+    if kr: mode.append(("sep_kr", dom_sep + [dict(e, region="해외") for e in kr]))
+    return mode
+
+
+MODE_META = {
+    "blend": {"label": "국내 별도 vs 해외계 통합(참고용)", "dom": "국내(별도)", "ov": "해외계(공시 본사·한국 내 외국계)", "note": "국내는 별도 재무, 해외계는 개별 우선·미공시 시 연결이라 재무 범위가 서로 다름"},
+    "cons_listed": {"label": "국내 연결 vs 해외 상장 본사 연결", "dom": "국내(연결)", "ov": "해외 상장 본사(연결)", "note": "양쪽 모두 연결 재무. 연결재무제표가 없는 기업은 별도로 대체하지 않고 제외. 해외 상장 본사 중 연결 3개년이 확인된 법인만"},
+    "sep_kr": {"label": "국내 별도 vs 한국 소재 외국계 별도", "dom": "국내(별도)", "ov": "한국 소재 외국계(별도)", "note": "한국에 설립된 외국계 법인(사업·감사보고서, 억 원 단위 반올림)의 별도 재무. 본사·자회사 중복은 이 모드에 해당 없음"},
+}
 
 
 def main():
     priv = os.environ.get("GROWTH_PRIVATE_DIR"); k = int(sys.argv[sys.argv.index("--k") + 1]) if "--k" in sys.argv else 5
     if not priv: sys.exit("GROWTH_PRIVATE_DIR 가 필요합니다")
     univ = rd(next(iter(sorted((REPO / "scripts" / "data").glob("semi_universe_final_*.csv")))))
-    ents = build_entities(Path(priv), univ); summary = build(ents, k)
-    cons = consolidated_variant(ents, priv)
-    if cons is not None:  # 국내 연결 기준 병행(국내 기준 선택: 개별/연결). 해외 값은 같다.
-        c = build(cons, k); summary["cells_cons"] = c["cells"]; summary["coverage_cons"] = c["coverage"]
-        summary["basis"]["scope_cons"] = "국내 연결 기준: DART 사업보고서 연결재무제표(CFS). 연결재무제표가 없는 회사(종속회사 없음·감사보고서만 제출)는 개별 재무를 그대로 사용"
+    ents = build_entities(Path(priv), univ)
+    modes = modes_entities(ents, priv); oks = [A.publishable(e, k) for _, e in modes]; A.cross_suppress(oks, k, bases=[{"국내": "dom-cons" if mid == "cons_listed" else "dom-sep", "해외": "ov"} for mid, _ in modes])  # 모드 간 교차 역산 방지(같은 재무 기준끼리 비교)
+    built = [(mid, build(e, k, ok=ok)) for (mid, e), ok in zip(modes, oks)]
+    summary = dict(built[0][1])
+    summary["modes"] = [{"id": mid, "label": MODE_META[mid]["label"], "groups": [{"key": "dom", "label": MODE_META[mid]["dom"]}, {"key": "ov", "label": MODE_META[mid]["ov"]}], "note": MODE_META[mid]["note"], "coverage": b["coverage"], "cells": b["cells"]} for mid, b in built]
     p = REPO / "site" / "data" / "growth-comparison-summary.json"; p.write_text(json.dumps(summary, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({"entities": summary["coverage"]["entities"], "eligibility": summary["coverage"]["eligibility"], "with_3y": summary["coverage"]["with_3y_financials"], "balanced_panel": summary["coverage"]["balanced_panel"], "published_cells": len(summary["cells"])}, ensure_ascii=False))
 if __name__ == "__main__": main()
