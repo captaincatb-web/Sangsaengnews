@@ -22,21 +22,22 @@ def main():
     reg = {"dom": "국내", "ov": "해외"}
     for g, r in reg.items():
         n = sum(1 for e in ents if e["region"] == r and usable(e)); ok(f"균형 패널 {r} = JSON 메타", n == S["coverage"]["balanced_panel"][r], f"{n}")
-    # 전체·분류별 재계산(법인은 분류마다 한 번)
-    bad = 0; checked = 0
-    for key, cell in S["cells"].items():
-        chart, path = json.loads(key)
-        for g, r in reg.items():
-            if g not in cell: continue
-            es = [e for e in ents if e["region"] == r and usable(e) and any((chart is None or m["chart"] == chart) and all(m.get(f"d{i+1}") == p or (p == "(해당 없음)" and not m.get(f"d{i+1}")) for i, p in enumerate(path)) for m in e["memberships"])]
-            rev = [sum(e["fin"][y]["rev"] for e in es) / 1e8 for y in YEARS]; op = [sum(e["fin"][y]["op"] for e in es) / 1e8 for y in YEARS]
-            c = cell[g]; checked += 1
-            if len(es) != c["n"] or any(abs(a - b) > 0.11 for a, b in zip(rev, c["rev"])) or any(abs(a - b) > 0.11 for a, b in zip(op, c["op"])): bad += 1; continue
-            mg = [o / r_ * 100 if r_ else None for o, r_ in zip(op, rev)]
-            if any(m is None or abs(m - x) > 0.02 for m, x in zip(mg, c["margin"])): bad += 1; continue
-            if abs((rev[2] / rev[1] - 1) * 100 - c["growth"]["2025"]) > 0.02: bad += 1
-    ok("공개 셀 재계산 일치(기업 수·합계·영업이익률·성장률)", bad == 0, f"{checked}개 중 불일치 {bad}")
-    # 상세구분 단계가 비어 있는 경우도 경로 보존
+    # 전체·분류별 재계산(법인은 분류마다 한 번) — 비교 모드마다 그 모드의 법인 목록으로 다시 계산해 대조한다. 교차 역산 방지로 가려진 셀은 JSON에 없으므로 JSON에 있는 셀만 대조.
+    mode_ents = dict(B.modes_entities(ents, priv))
+    for m in S.get("modes", [{"id": "blend", "cells": S["cells"]}]):
+        me = mode_ents.get(m["id"], ents); bad = checked = 0
+        for key, cell in m["cells"].items():
+            chart, path = json.loads(key)
+            for g, r in reg.items():
+                if g not in cell: continue
+                es = [e for e in me if e["region"] == r and usable(e) and any((chart is None or mm["chart"] == chart) and all(mm.get(f"d{i+1}") == p_ or (p_ == "(해당 없음)" and not mm.get(f"d{i+1}")) for i, p_ in enumerate(path)) for mm in e["memberships"])]
+                rev = [sum(e["fin"][y]["rev"] for e in es) / 1e8 for y in YEARS]; op = [sum(e["fin"][y]["op"] for e in es) / 1e8 for y in YEARS]
+                c = cell[g]; checked += 1
+                if len(es) != c["n"] or any(abs(a - b) > 0.11 for a, b in zip(rev, c["rev"])) or any(abs(a - b) > 0.11 for a, b in zip(op, c["op"])): bad += 1; continue
+                mg = [o / r_ * 100 if r_ else None for o, r_ in zip(op, rev)]
+                if any(mm_ is None or abs(mm_ - x) > 0.02 for mm_, x in zip(mg, c["margin"])): bad += 1; continue
+                if abs((rev[2] / rev[1] - 1) * 100 - c["growth"]["2025"]) > 0.02: bad += 1
+        ok(f"공개 셀 재계산 일치 — 모드 {m['id']}(기업 수·합계·영업이익률·성장률)", bad == 0, f"{checked}개 중 불일치 {bad}")
     # 원화 환산 재계산
     fxbad = fxn = 0
     for fname in ("overseas_financials.csv", "overseas_financials_ext.csv"):

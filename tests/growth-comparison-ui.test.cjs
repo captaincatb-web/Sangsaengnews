@@ -90,3 +90,31 @@ test("필터·값 전환·테마 전환", async () => {
   assert.notEqual(t0, t1, "테마 전환"); assert.deepEqual(errs, []);
   await ctx.close();
 });
+
+for (const w of [360, 1200]) {
+  test(`비교 모드 선택 ${w}px`, async () => {
+    const { page, ctx, errs } = await open(w);
+    const modes = await page.evaluate(async () => (await (await fetch("data/growth-comparison-summary.json")).json()).modes || []);
+    const opts = await page.locator("#f-view option").count();
+    assert.equal(opts, modes.length || 1, "비교 기준 선택지 수 = JSON 모드 수");
+    if (modes.length >= 3) assert.equal(opts, 3, "모드 3종");
+    const seen = new Set();
+    for (let i = 0; i < Math.max(modes.length, 1); i++) {
+      if (modes.length) await page.selectOption("#f-view", { index: i }); await page.waitForTimeout(350);
+      const cap = await page.locator("#mode-note").innerText();
+      assert.ok(/이 비교의 재무 범위/.test(cap) && cap.length > 20, "재무 범위 설명이 항상 보임");
+      seen.add(cap);
+      assert.ok(await page.locator("#mode-note").isVisible(), "설명 표시");
+      assert.ok(/비교 대상/.test(await page.locator("#mode-count").innerText()), "모드별 기업 수 줄");
+      assert.ok((await page.locator("#chart svg").count()) >= 1 || /공개 기준/.test(await page.locator("#chart").innerText()), "차트 또는 공개 기준 미달 안내");
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `모드 ${i} 가로 넘침 없음`);
+      const labels = await page.locator("#legend li").allInnerTexts();
+      if (modes.length) for (const g of modes[i].groups) assert.ok(labels.some((t) => t.includes(g.label)), "범례가 모드 그룹 라벨을 사용");
+      assert.equal(await page.locator("#filters select").count(), 6, "필터 6개 유지");
+    }
+    if (modes.length > 1) assert.ok(seen.size > 1, "모드를 바꾸면 설명이 바뀜");
+    assert.equal(await page.locator("#f-base").count(), 0, "옛 국내 기준 선택 제거");
+    assert.deepEqual(errs, [], "콘솔 오류·404 없음");
+    await ctx.close();
+  });
+}
