@@ -17,6 +17,9 @@ if not UA or not os.environ.get("GROWTH_PRIVATE_DIR"): sys.exit("SEC_USER_AGENT 
 H = {"User-Agent": UA, "Accept-Encoding": "gzip, deflate"}
 REV = ["Revenues", "RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "SalesRevenueNet", "SalesRevenueGoodsNet"]
 YEARS = (2022, 2023, 2024, 2025)
+# SEC 등록명이 목록 표기와 달라(주 표기 '/DE', 사명 변경 'MKS Inc.', 'Industries' 추가 등) 이름 열쇠가 맞지 않는 법인은 티커로 잇는다.
+# 목록의 정규화 이름 → 티커. 2026-11-03 외부 조사(SEC 10-K 원문 확인)에서 확인된 4곳만 둔다(근거는 비공개 조사표).
+ALIAS_TICKER = {"appliedmaterials": "AMAT", "mksinstruments": "MKSI", "airproductsandchemicals": "APD", "kulickesoffa": "KLIC"}
 def get(url):
     time.sleep(0.2); r = requests.get(url, headers=H, timeout=60)
     if r.status_code in (403, 429): sys.exit(f"[ABORT] SEC {r.status_code}: 접근 제한 — 요청을 중단합니다")
@@ -56,9 +59,11 @@ def main():
     for v in tick.values(): reg.setdefault(name_key(v["title"]), []).append(v)
     daily = fx_daily(); match, fin = [], []
     for n in names:
-        c = reg.get(n["entity_key"]) or []; ciks = {x["cik_str"] for x in c}
+        c = reg.get(n["entity_key"]) or []
+        if not c and n["entity_key"] in ALIAS_TICKER: c = [v for v in tick.values() if v.get("ticker") == ALIAS_TICKER[n["entity_key"]]]
+        ciks = {x["cik_str"] for x in c}
         if len(ciks) != 1: match.append({"entity_key": n["entity_key"], "cik": "", "sec_title": "", "basis": "NOT_FOUND" if not c else "REVIEW(동일 이름 복수)"}); continue
-        cik = next(iter(ciks)); match.append({"entity_key": n["entity_key"], "cik": cik, "sec_title": c[0]["title"], "basis": "이름 정확 일치(SEC 등록명)"})
+        cik = next(iter(ciks)); match.append({"entity_key": n["entity_key"], "cik": cik, "sec_title": c[0]["title"], "basis": ("티커 확인(이름 표기 불일치)" if n["entity_key"] in ALIAS_TICKER and not reg.get(n["entity_key"]) else "이름 정확 일치(SEC 등록명)")})
         r = get(f"https://data.sec.gov/api/xbrl/companyfacts/CIK{int(cik):010d}.json")
         if r.status_code != 200: continue
         facts = r.json().get("facts", {}); rev = annual(facts, REV); op = annual(facts, ["OperatingIncomeLoss"])
