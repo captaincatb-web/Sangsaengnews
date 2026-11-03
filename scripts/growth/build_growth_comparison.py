@@ -96,7 +96,7 @@ def build_entities(priv, csv_universe):
             if m.get("dart_corp_code") in dom_codes: continue
             f = {y: v for y, v in ovf.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
             mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
-            ents.append({"id": eid, "region": "외국계", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": mem}); continue
+            ents.append({"id": eid, "region": "외국계", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": mem, "_nk": rs[0]["name_key"]}); continue
         if region == "국내":
             m = match.get(key[2:], {}); u = univ.get(m.get("stock_code", ""))
             st = "ELIGIBLE"  # 사용자 목록의 국내 법인은 모두 대상. 검증된 160 모집단에서 '별도 관리(제외·OSAT·유통)'로 확정된 법인만 뺀다.
@@ -116,7 +116,17 @@ def build_entities(priv, csv_universe):
         if eid in have: continue
         f = {y: v for y, v in fin.get(eid, {}).items() if v.get("rev") is not None or v.get("op") is not None}
         ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}]})
-    return ents
+    # 해외 그룹 통합(사용자 결정): 국내 소재 외국계를 해외에 합친다. 본사 실적(연결)에 이미 자회사가 포함되므로, 본사가 집계에 들어온 그룹의 한국 자회사는 빼서 이중 집계를 막는다(본사만).
+    parents = {e["id"][2:] for e in ents if e["region"] == "해외" and e["eligible"] == "ELIGIBLE" and e["fin"]}
+    dropped = 0; keep = []
+    for e in ents:
+        if e["region"] == "외국계":
+            nk = e.pop("_nk", "")
+            if any(len(pk) >= 4 and nk != pk and nk.startswith(pk) for pk in parents): dropped += 1; continue
+            e["region"] = "해외"
+        keep.append(e)
+    print(f"해외 통합: 본사가 집계에 있어 제외한 한국 자회사 {dropped}곳", file=sys.stderr)
+    return keep
 
 
 def fmt(side):
@@ -142,7 +152,7 @@ def build(ents, k=5, generated=None):
            "with_3y_financials": {r: sum(1 for e in ents if e["region"] == r and all(e["fin"].get(y, {}).get("rev") is not None and e["fin"].get(y, {}).get("op") is not None for y in YEARS)) for r in ("국내", "해외", "외국계")},
            "balanced_panel": {r: usable(r) for r in ("국내", "해외", "외국계")}}
     return {"version": 1, "generatedAt": generated or dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "years": list(YEARS), "unit": "억 원", "k_min_per_side": k,
-            "basis": {"population": "국내는 소부장 경영 정보와 같은 기업군(수요기업·IT·서비스 제외, 업종도 그 화면과 같은 기준). 해외는 사용자 목록 중 법인 본인의 공식 공시로 실적이 확인된 상장사(비반도체 법인 제외). 국내 소재 외국계는 한국에 설립된 외국계 법인으로 해외 집계와 합치지 않고 따로 집계", "revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내와 국내 소재 외국계는 개별(별도) 재무(외국계는 사업보고서·감사보고서, 억 원 단위 반올림). 해외는 개별을 우선하되 미국 SEC 등록 법인과 Nova는 개별이 공시되지 않아 연결을 사용. 자회사 실적을 모회사 실적으로 대체하지 않음. 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
+            "basis": {"population": "국내는 소부장 경영 정보와 같은 기업군(수요기업·IT·서비스 제외, 업종도 그 화면과 같은 기준). 해외는 사용자 목록·추가 후보 중 법인 본인의 공식 공시로 실적이 확인된 상장사(비반도체 제외)와 한국에 설립된 외국계 법인(감사·사업보고서)을 합친 집계이며, 본사가 집계에 있는 그룹의 한국 자회사는 이중 집계를 막으려고 뺌", "revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내와 국내 소재 외국계는 개별(별도) 재무(외국계는 사업보고서·감사보고서, 억 원 단위 반올림). 해외는 개별을 우선하되 미국 SEC 등록 법인과 Nova는 개별이 공시되지 않아 연결을 사용. 자회사 실적을 모회사 실적으로 대체하지 않음. 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
                       "margin": "영업이익 합계 ÷ 매출 합계", "growth": "전년 대비, 2023년은 2022년 매출이 전원 확인될 때만", "fx": "해외 원화 환산: 보고 통화별 ECB 일별 교차환율의 해당 회계기간 평균. 회계연도는 회계기간 종료일의 연도(3월 결산 법인은 해당 3월 종료 기간)", "nonexclusive": "한 기업이 여러 분류에 속할 수 있어 분류별 합계가 전체와 다를 수 있음"},
             "coverage": cov, "cells": out}
 

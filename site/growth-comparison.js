@@ -18,7 +18,7 @@ function draw(){
  const G=['dom','ov','fo'];
  const mx=Math.max(1,...data.flatMap(d=>G.flatMap(r=>(series(d.x&&d.x[r])||[]).filter(v=>v!=null))));
  const allM=data.flatMap(d=>G.flatMap(r=>((d.x&&d.x[r]&&d.x[r].margin)||[]).filter(v=>v!=null))),mmax=Math.max(5,...allM),mmin=Math.min(0,...allM);
- const OVL='해외(주요 공시기업)',COL={dom:'var(--blue)',ov:'var(--orange)',fo:'var(--teal)'},NAMES={dom:'국내',ov:OVL,fo:'국내 소재 외국계'},SHORT={dom:'국내',ov:'해외',fo:'외국계'};
+ const OVL='해외(공시기업·한국 내 외국계)',COL={dom:'var(--blue)',ov:'var(--orange)',fo:'var(--teal)'},NAMES={dom:'국내',ov:OVL,fo:'국내 소재 외국계'},SHORT={dom:'국내',ov:'해외',fo:'외국계'};
  const BH=150,BASE=H-46,MB=[94,124]; /* 영업이익률 선 영역(위) / 막대 기준선 */
  data.forEach(d=>{const svg=svgEl('svg',{viewBox:`0 0 ${W} ${H}`,role:'img','aria-label':d.c+' 매출과 영업이익률'}),x0=m;
   svg.append(svgEl('text',{x:W/2,y:14,'text-anchor':'middle','font-weight':'bold'},d.c));
@@ -39,10 +39,10 @@ function draw(){
    svg.append(svgEl('polyline',{points:pts,fill:'none',stroke:COL[r],'stroke-width':1.8}))});
   Y.forEach((y,yi)=>svg.append(svgEl('text',{x:x0+bw*(yi*3+1.9),y:H-34,'text-anchor':'middle','font-size':'10'},String(y))));
   svg.append(svgEl('text',{x:W/2,y:H-20,'text-anchor':'middle','font-size':'8.5',style:'fill:var(--text-3)'},'점선: 막대 상단 연결(전년 대비 %) · 실선: 영업이익률'));svg.append(svgEl('text',{x:W/2,y:H-6,'text-anchor':'middle','font-size':'8.5',style:'fill:var(--text-3)'},'막대: '+(mode==='idx'?'매출지수(2023=100)':mode==='avg'?'기업당 평균 매출(억 원)':'매출 합계(억 원)')));grid.append(svg)});
- box.append(grid);if(!data.some(d=>d.x&&d.x.ov&&d.x.ov.n)){const n=document.createElement('p');n.className='gc-empty';n.textContent='해외(주요 공시기업): 공개 기준을 충족하는 비교 가능 기업이 없어 표시하지 않습니다(추정·모회사 실적 대체 없음).';box.append(n)}tbl(data)}
+ box.append(grid);if(!data.some(d=>d.x&&d.x.ov&&d.x.ov.n)){const n=document.createElement('p');n.className='gc-empty';n.textContent='해외(공시기업·한국 내 외국계): 공개 기준을 충족하는 비교 가능 기업이 없어 표시하지 않습니다(추정·모회사 실적 대체 없음).';box.append(n)}tbl(data)}
 function tbl(data){const t=$('tbl');t.textContent='';if(!data.length)return;
  const h=t.createTHead().insertRow();['분류','구분','기업 수',...Y.map(y=>y+' 매출(억 원)'),'2025 영업이익률'].forEach(x=>{const c=document.createElement('th');c.textContent=x;h.append(c)});
- const b=t.createTBody();data.forEach(d=>['dom','ov','fo'].forEach(r=>{const s=d.x&&d.x[r];if(!s||!s.n)return;const row=b.insertRow();[d.c,{dom:'국내',ov:'해외(주요 공시기업)',fo:'국내 소재 외국계'}[r],s.n,...s.rev.map(fmt),pct(s.margin[2])].forEach(v=>row.insertCell().textContent=v)}))}
+ const b=t.createTBody();data.forEach(d=>['dom','ov','fo'].forEach(r=>{const s=d.x&&d.x[r];if(!s||!s.n)return;const row=b.insertRow();[d.c,{dom:'국내',ov:'해외(공시기업·한국 내 외국계)',fo:'국내 소재 외국계'}[r],s.n,...s.rev.map(fmt),pct(s.margin[2])].forEach(v=>row.insertCell().textContent=v)}))}
 function notes(){const b=S.basis;$('notes').innerHTML=Object.values(b).map(x=>'<li>'+x.replace(/</g,'&lt;')+'</li>').join('')+'<li class="gc-disc"><b>유의:</b> 본 비교는 국내 기업의 별도재무제표와 해외 상장기업의 연결재무제표를 사용한 참고 분석입니다. 기업별 연결 범위, 사업 구성, 회계기간 및 환율의 차이가 있어 매출 규모와 수익성을 동일한 기준의 직접 비교 결과로 해석하기 어렵습니다. 해외 지표는 확인 가능한 일부 기업의 실적을 집계한 것으로, 해외 반도체 소부장 산업 전체를 대표하지 않습니다.</li>';
  const c=S.coverage;$('cov').innerHTML='<p>국내 소부장 경영 정보 기업군 '+c.entities['국내']+'곳 중 3개년 실적이 확인된 '+c.balanced_panel['국내']+'곳, 해외 목록 '+c.entities['해외']+'개 법인 중 적격·실적 확인 '+c.balanced_panel['해외']+'곳을 비교합니다. 확인되지 않은 법인은 집계에서 제외하며 수치를 추정하지 않습니다.</p>';
  $('updated').textContent=S.generatedAt.slice(0,10)}
