@@ -109,6 +109,13 @@ def build_entities(priv, csv_universe):
         rep = (ov_rows.get(eid) or {}).get("rep_chart")
         if rep: mem = [{"chart": rep, **{k: None for k in A.DEPTH_KEYS}}]  # 기업 전체 매출은 대표 업종 한 곳에만 반영(원본 품목 분류로 중복 배분하지 않음)
         ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": mem})
+    # 사용자가 추가한 소부장 후보(원본 목록에 없던 해외 기업): 적격으로 보고 대표 업종 지정. 실적이 확인된 경우에만 집계에 들어온다.
+    have = {e["id"] for e in ents}
+    for x in rd(priv / "extra_candidates.csv"):
+        eid = "O:" + x["entity_key"]
+        if eid in have: continue
+        f = {y: v for y, v in fin.get(eid, {}).items() if v.get("rev") is not None or v.get("op") is not None}
+        ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}]})
     return ents
 
 
