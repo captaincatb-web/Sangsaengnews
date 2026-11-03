@@ -38,6 +38,14 @@ async function open(w, url, opts = {}) {
   await page.goto(base + url); await page.waitForTimeout(500);
   return { page, ctx, errs };
 }
+
+// 가로 넘침이 있으면 원인 요소(스크롤 영역 밖으로 튀어나온 것)를 알려 주는 진단 함수
+async function overflowInfo(page) {
+  return page.evaluate(() => { const w = innerWidth; if (document.documentElement.scrollWidth <= w) return "";
+    const clipped = (e) => { for (let p = e.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if (o === "auto" || o === "scroll" || o === "hidden") return true; } return false; };
+    const bad = [...document.querySelectorAll("body *")].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > w + 1 && getComputedStyle(e).position !== "fixed" && !clipped(e); }).slice(0, 5).map((e) => `${e.tagName}.${String(e.className).slice(0, 40)}#${e.id} right=${Math.round(e.getBoundingClientRect().right)}`);
+    return `scrollWidth=${document.documentElement.scrollWidth} > ${w}; ${bad.join(" | ") || "원인 요소 미확인"}`; });
+}
 const PAGES = ["dashboard.html", "domestic.html#share", "compare.html", "index.html", "analysis2.html", "guide.html"];
 
 for (const w of [360, 390, 768]) {
@@ -47,7 +55,7 @@ for (const w of [360, 390, 768]) {
       const { page, ctx, errs } = await open(w, u);
       const r = await page.evaluate(() => { const h = document.querySelector(".krds-header"), t = document.querySelector("h1").getBoundingClientRect().top, main = document.querySelector("main"), vis = [...main.children].filter((e) => e.offsetHeight > 0), st = document.querySelector(".site-data-status");
         return { hs: document.documentElement.scrollWidth > innerWidth, gnb: document.querySelector("nav.gnb").offsetHeight > 0, menu: !!document.getElementById("site-menu") && document.getElementById("site-menu").offsetHeight > 0, top: Math.round(t), statusLast: vis[vis.length - 1] === st, themeInHeader: !!h.querySelector("#theme-btn, .th-btn, .th-icon") }; });
-      assert.equal(r.hs, false, `${u} 가로 넘침`); assert.equal(r.gnb, false, `${u} 상단 메뉴가 접혀 있어야 함`); assert.equal(r.menu, true, `${u} 메뉴 버튼`);
+      assert.equal(r.hs, false, `${u} 가로 넘침: ${await overflowInfo(page)}`); assert.equal(r.gnb, false, `${u} 상단 메뉴가 접혀 있어야 함`); assert.equal(r.menu, true, `${u} 메뉴 버튼`);
       assert.equal(r.statusLast, true, `${u} 데이터 기준일 패널은 본문 맨 아래`); assert.equal(r.themeInHeader, true, `${u} 화면 모드 버튼은 머리글`);
       tops.add(r.top); assert.deepEqual(errs, [], `${u} 스크립트 오류`);
       await page.click("#site-menu"); assert.equal(await page.evaluate(() => document.querySelector("nav.gnb").offsetHeight > 0), true, `${u} 메뉴 열림`);
@@ -117,7 +125,7 @@ test("스모크: 6개 화면 × 360·390·768·1440px — 스크립트·콘솔 �
   for (const w of [360, 390, 768, 1440]) for (const u of PAGES) {
     const { page, ctx, errs } = await open(w, u);
     assert.equal(await page.locator(".site-data-status").count(), 1, `${w}px ${u} 데이터 기준일 패널`);
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `${w}px ${u} 가로 넘침`);
+    assert.equal(await overflowInfo(page), "", `${w}px ${u} 가로 넘침`);
     assert.deepEqual(errs, [], `${w}px ${u}`); await ctx.close();
   }
 });
