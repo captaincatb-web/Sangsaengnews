@@ -66,6 +66,7 @@
     <div class="db-view">
       <section class="db-card" id="chart-card" aria-labelledby="ct">
         <div class="db-card-head"><h2 id="ct">소재·부품·장비 매출과 영업이익률 <small>막대 = 매출(지수 또는 억 원), 위쪽 실선 = 영업이익률, 점선 = 막대 상단 연결(전년 대비 %)</small></h2>
+          <label class="gc-mode" id="w-base" hidden><span>국내 기준</span><select id="f-base"><option value="sep">개별</option><option value="cons">연결</option></select></label>
           <label class="gc-mode"><span>값</span><select id="f-mode"><option value="idx">매출지수(2023=100)</option><option value="sum">매출액 합계</option><option value="avg">기업당 평균 매출</option></select></label>
           <ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>국내</li><li><i class="sq" style="background:var(--orange)"></i>해외(공시기업·한국 내 외국계)</li></ul></div>
         <div class="db-chart" id="chart" role="img" aria-label="국내·해외 소재·부품·장비 매출과 영업이익률 비교 차트"></div>

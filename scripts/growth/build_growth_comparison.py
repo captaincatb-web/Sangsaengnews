@@ -160,11 +160,30 @@ def build(ents, k=5, generated=None):
             "coverage": cov, "cells": out}
 
 
+def consolidated_variant(ents, priv):
+    """국내 기업군의 재무를 연결(CFS) 기준으로 바꾼 사본(해외는 그대로). 연결이 없는 회사는 개별을 그대로 쓴다(수집 단계에서 표시). 연결 파일이 없으면 None."""
+    rows = rd(Path(priv) / "roster_cfs.csv")
+    if not rows: return None
+    cfs = defaultdict(dict)
+    for r in rows: cfs[r["corp_code"]][int(r["year"])] = {"rev": num(r["revenue_krw"]), "op": num(r["op_income_krw"])}
+    out = []
+    for e in ents:
+        if e["region"] == "국내" and e["id"].startswith("D:") and e["id"][2:] in cfs:
+            f = {y: v for y, v in cfs[e["id"][2:]].items() if v.get("rev") is not None or v.get("op") is not None}
+            e = dict(e, fin=f)
+        out.append(e)
+    return out
+
+
 def main():
     priv = os.environ.get("GROWTH_PRIVATE_DIR"); k = int(sys.argv[sys.argv.index("--k") + 1]) if "--k" in sys.argv else 5
     if not priv: sys.exit("GROWTH_PRIVATE_DIR 가 필요합니다")
     univ = rd(next(iter(sorted((REPO / "scripts" / "data").glob("semi_universe_final_*.csv")))))
     ents = build_entities(Path(priv), univ); summary = build(ents, k)
+    cons = consolidated_variant(ents, priv)
+    if cons is not None:  # 국내 연결 기준 병행(국내 기준 선택: 개별/연결). 해외 값은 같다.
+        c = build(cons, k); summary["cells_cons"] = c["cells"]; summary["coverage_cons"] = c["coverage"]
+        summary["basis"]["scope_cons"] = "국내 연결 기준: DART 사업보고서 연결재무제표(CFS). 연결재무제표가 없는 회사(종속회사 없음·감사보고서만 제출)는 개별 재무를 그대로 사용"
     p = REPO / "site" / "data" / "growth-comparison-summary.json"; p.write_text(json.dumps(summary, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({"entities": summary["coverage"]["entities"], "eligibility": summary["coverage"]["eligibility"], "with_3y": summary["coverage"]["with_3y_financials"], "balanced_panel": summary["coverage"]["balanced_panel"], "published_cells": len(summary["cells"])}, ensure_ascii=False))
 if __name__ == "__main__": main()

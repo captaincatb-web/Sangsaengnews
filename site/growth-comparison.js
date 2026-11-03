@@ -2,10 +2,11 @@
 const $=id=>document.getElementById(id),NS='http://www.w3.org/2000/svg',Y=[2023,2024,2025],CH=['소재','부품','장비'];
 let S=null;const key=(c,p)=>JSON.stringify([c||null,p]);
 const fmt=v=>v==null?'–':Math.round(v).toLocaleString('ko-KR'),pct=v=>v==null?'–':v.toFixed(1)+'%';
-function cell(c,p){return S.cells[key(c,p)]}
+const base=()=>{const e=document.getElementById('f-base');return S&&S.cells_cons&&e&&e.value==='cons'?S.cells_cons:S.cells};
+function cell(c,p){return base()[key(c,p)]}
 function path(){const p=[];for(let i=1;i<=5;i++){const v=$('f-d'+i).value;if(!v)break;p.push(v)}return p}
 function opts(sel,vals){const cur=sel.value;sel.length=1;[...new Set(vals)].sort().forEach(v=>sel.add(new Option(v,v)));sel.value=cur;sel.disabled=sel.length<2}
-function children(c,p){const out=[];for(const k in S.cells){const [cc,pp]=JSON.parse(k);if((cc||null)===(c||null)&&pp.length===p.length+1&&p.every((x,i)=>pp[i]===x))out.push(pp[p.length])}return out}
+function children(c,p){const out=[];for(const k in base()){const [cc,pp]=JSON.parse(k);if((cc||null)===(c||null)&&pp.length===p.length+1&&p.every((x,i)=>pp[i]===x))out.push(pp[p.length])}return out}
 function sync(){const c=$('f-chart').value;let p=[];for(let i=1;i<=5;i++){const s=$('f-d'+i);if(i>1&&!$('f-d'+(i-1)).value){s.length=1;s.disabled=true;continue}opts(s,children(c,p));if(!s.value)break;p.push(s.value)}}
 function svgEl(n,a,t){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e}
 function draw(){
@@ -48,5 +49,6 @@ function notes(){const b=S.basis;$('notes').innerHTML=Object.values(b).map(x=>'<
  $('updated').textContent=S.generatedAt.slice(0,10)}
 const tb=$('theme-btn');if(tb){const cur=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const paint=()=>{const d=cur()==='dark';tb.innerHTML='<i class="ph ph-'+(d?'sun':'moon')+'" aria-hidden="true"></i>';tb.title=d?'밝은 화면으로':'어두운 화면으로'};tb.addEventListener('click',()=>{const t=cur()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sobujang:theme',t)}catch(e){}paint()});paint()}
 fetch('data/growth-comparison-summary.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{S=j;const cs=new Set();for(const k in S.cells){const c=JSON.parse(k)[0];if(c)cs.add(c)}CH.filter(c=>cs.has(c)).forEach(c=>$('f-chart').add(new Option(c,c)));notes();sync();draw();
- ['f-chart','f-d1','f-d2','f-d3','f-d4','f-d5','f-mode'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='f-chart')for(let i=1;i<=5;i++)$('f-d'+i).value='';else if(/f-d/.test(id)){const n=+id.slice(3);for(let i=n+1;i<=5;i++)$('f-d'+i).value=''}sync();draw()}))}).catch(()=>{$('chart').innerHTML='<p class="gc-empty">집계 자료를 불러오지 못했습니다.</p>'});
+ if(S.cells_cons){const w=$('w-base');if(w)w.hidden=false}
+ ['f-chart','f-d1','f-d2','f-d3','f-d4','f-d5','f-mode','f-base'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='f-chart')for(let i=1;i<=5;i++)$('f-d'+i).value='';else if(/f-d/.test(id)){const n=+id.slice(3);for(let i=n+1;i<=5;i++)$('f-d'+i).value=''}sync();draw()}))}).catch(()=>{$('chart').innerHTML='<p class="gc-empty">집계 자료를 불러오지 못했습니다.</p>'});
 })();
