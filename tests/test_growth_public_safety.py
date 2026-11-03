@@ -3,7 +3,8 @@ import json, re, unittest
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SUMMARY = ROOT / "site" / "data" / "growth-comparison-summary.json"
-TOP = {"version", "generatedAt", "years", "unit", "k_min_per_side", "basis", "coverage", "cells"}
+TOP = {"version", "generatedAt", "years", "unit", "k_min_per_side", "basis", "coverage", "cells", "groups", "notes_list", "mix"}
+TOP_OPTIONAL = {"cells_cons", "coverage_cons"}
 CHARTS = {None, "소재", "부품", "장비", "미분류"}
 GROUPS = ("dom", "ov", "fo")
 
@@ -15,7 +16,7 @@ def load():
 class SummarySafety(unittest.TestCase):
     def setUp(self): self.raw = SUMMARY.read_text(encoding="utf-8"); self.j = json.loads(self.raw)
 
-    def test_top_level_keys(self): self.assertLessEqual(set(self.j), TOP); self.assertTrue(TOP <= set(self.j))
+    def test_top_level_keys(self): self.assertLessEqual(set(self.j), TOP | TOP_OPTIONAL); self.assertTrue(TOP <= set(self.j))
 
     def test_each_group_meets_k(self):
         k = self.j["k_min_per_side"]

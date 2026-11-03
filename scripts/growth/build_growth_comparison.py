@@ -15,6 +15,7 @@ YEARS = A.YEARS
 EOK = 1e8
 
 
+META = {}  # 빌드 중 모은 건수(공개 JSON 메타데이터용, 법인 정보 없음)
 ALIAS_ID = {"O:veecoinstruments": "O:veeco", "O:besemiconductorindustries": "O:besemiconductor"}  # 같은 법인의 표기 차이(수집기 키 ↔ 조사 CSV 목록표기)를 한 법인으로 합친다
 
 
@@ -53,9 +54,19 @@ def build_entities(priv, csv_universe):
     fin = defaultdict(dict)
     for f in rd(priv / "domestic_financials.csv"):
         fin[f["corp_no"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
+    # 해외 법인 재무: 법인별로 기준(개별/연결)마다 따로 모은 뒤 한 기준만 고른다(3개년 기준 통일).
+    # 개별 우선: 개별로 2023~2025 매출·영업이익이 모두 있으면 개별, 아니면 연결로 3개년이 모두 있을 때 연결, 둘 다 불완전하면 연도가 더 많은 쪽.
+    by_scope = defaultdict(lambda: defaultdict(dict)); scopes = {}
     for fname in ("overseas_financials.csv", "overseas_financials_ext.csv"):  # SEC 수집분 + 조사 CSV(ingest_overseas_csv.py)분. 법인 본인 실적이 공식 자료로 확인된 법인만(원화 환산 완료)
         for f in rd(priv / fname):
-            fin[ALIAS_ID.get(f["entity_id"], f["entity_id"])][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
+            eid_ = ALIAS_ID.get(f["entity_id"], f["entity_id"]); v_ = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
+            if v_["rev"] is None and v_["op"] is None: continue
+            sc_ = "연결" if "연결" in (f.get("scope") or f.get("basis") or "") else "개별"
+            by_scope[eid_][sc_][int(f["year"])] = v_
+    for eid_, d in by_scope.items():
+        full = lambda sc: all(d.get(sc, {}).get(y, {}).get("rev") is not None and d.get(sc, {}).get(y, {}).get("op") is not None for y in YEARS)
+        pick = "개별" if full("개별") else "연결" if full("연결") else max(d, key=lambda sc: len(d[sc]))
+        fin[eid_] = dict(d[pick]); scopes[eid_] = {pick}
     ovm = {m["corp_no"]: m for m in rd(priv / "ovkr_match.csv")}; ovf = defaultdict(dict)
     for fname in ("ovkr_financials.csv", "ovkr_audit_financials.csv"):  # 사업보고서 XBRL(collect_domestic.py) + 감사·사업보고서(collect_audit.py)
         for f_ in rd(priv / fname):
@@ -119,16 +130,34 @@ def build_entities(priv, csv_universe):
         if eid in have: continue
         f = {y: v for y, v in fin.get(eid, {}).items() if v.get("rev") is not None or v.get("op") is not None}
         ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}]})
-    # 해외 그룹 통합(사용자 결정): 국내 소재 외국계를 해외에 합친다. 본사 실적(연결)에 이미 자회사가 포함되므로, 본사가 집계에 들어온 그룹의 한국 자회사는 빼서 이중 집계를 막는다(본사만).
-    parents = {e["id"][2:] for e in ents if e["region"] == "해외" and e["eligible"] == "ELIGIBLE" and e["fin"]}
-    dropped = 0; keep = []
+    # 해외계 통합(사용자 결정): 한국에 설립된 외국계 법인을 해외 상장 본사와 한 집단으로 합친다.
+    # 이중 집계 방지: 본사 실적이 연결 기준이고(자회사 포함) 본사가 3개년 균형 패널에 들어 있으며 본사-자회사 관계가 확인된 경우에만 한국 자회사를 뺀다.
+    # 본사가 개별 기준이면 자회사는 본사 실적에 들어 있지 않으므로 빼지 않는다. 관계는 이름 접두 일치를 후보로만 쓰고 dedupe_overrides.csv(검토 결과)로 확정·부정한다.
+    def usable_e(e): return A.usable(e)
+    parents = {e["id"][2:]: e for e in ents if e["region"] == "해외" and e["eligible"] == "ELIGIBLE" and e["id"].startswith("O:")}
+    dov = {(x["sub_key"], x["parent_key"]): x["decision"] for x in rd(priv / "dedupe_overrides.csv")}
+    keep, log, dropped = [], [], 0
     for e in ents:
         if e["region"] == "외국계":
-            nk = e.pop("_nk", "")
-            if any(len(pk) >= 4 and nk != pk and nk.startswith(pk) for pk in parents): dropped += 1; continue
-            e["region"] = "해외"
+            nk = e.pop("_nk", ""); cands = [pk for pk in parents if len(pk) >= 4 and nk != pk and nk.startswith(pk)]
+            drop = False
+            for pk in cands:
+                par = parents[pk]; sc = scopes.get("O:" + pk, set()); why = []
+                rel = dov.get((nk, pk), "candidate")
+                if rel == "unrelated": why.append("검토 결과 본사-자회사 관계 아님")
+                if not usable_e(par): why.append("본사가 3개년 균형 패널에 없음")
+                if sc != {"연결"}: why.append("본사 재무가 연결 기준이 아님(" + ("/".join(sorted(sc)) or "없음") + ")")
+                dec = "drop" if not why else "keep"
+                log.append({"sub_key": nk, "parent_key": pk, "relation": rel, "parent_scope": "/".join(sorted(sc)), "parent_balanced": usable_e(par), "decision": dec, "reason": "; ".join(why) or "연결 본사에 이미 포함(이중 집계 방지)"})
+                if dec == "drop": drop = True; break
+            if drop: dropped += 1; continue
+            e["region"] = "해외"; e["_kr"] = True
         keep.append(e)
-    print(f"해외 통합: 본사가 집계에 있어 제외한 한국 자회사 {dropped}곳", file=sys.stderr)
+    if log:
+        with open(priv / "dedupe_log.csv", "w", encoding="utf-8-sig", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=list(log[0])); w.writeheader(); w.writerows(log)
+    META.update({"excluded_kr_subs": dropped, "kept_with_parent_candidate": sum(1 for x in log if x["decision"] == "keep")})
+    print(f"해외계 통합: 이중 집계 방지로 제외한 한국 자회사 {dropped}곳(로그 dedupe_log.csv)", file=sys.stderr)
     return keep
 
 
@@ -139,15 +168,41 @@ def fmt(side):
             "growth": {str(y): r(side["growth"].get(y), 2) for y in (2023, 2024, 2025)}, "avg_rev": [r(side["avg_rev"][y] / EOK, 1) for y in YEARS]}
 
 
+def concentration(es):
+    """한 법인이 합계를 좌우하는 연도(법인 이름·금액 없이 연도만). 매출 또는 영업이익 절댓값 합의 50% 이상을 한 법인이 차지하면 표시."""
+    out = {"rev_single_driver_years": [], "op_single_driver_years": []}
+    for y in YEARS:
+        for key, fld in (("rev_single_driver_years", "rev"), ("op_single_driver_years", "op")):
+            vals = [abs(e["fin"][y][fld]) for e in es]; tot = sum(vals)
+            if tot and max(vals) / tot >= 0.5: out[key].append(y)
+    return out
+
+
 def build(ents, k=5, generated=None):
     by = {e["id"]: e for e in ents}; ok = A.publishable(ents, k); out = {}
     for (chart, path), sides in ok.items():
         sub = [by[i] for reg in sides for i in sides[reg]]
         res = A.compare(sub); cell = {}
-        for reg, name in (("국내", "dom"), ("해외", "ov"), ("외국계", "fo")):
-            if reg in sides: cell[name] = fmt(res[name])
+        for reg, name in (("국내", "dom"), ("해외", "ov")):
+            if reg in sides:
+                cell[name] = fmt(res[name]); cell[name]["flags"] = concentration([by[i] for i in sides[reg]])
         if "dom" in cell and "ov" in cell: cell["gap_pp"] = [None if res["margin_gap_pp"][y] is None else round(res["margin_gap_pp"][y], 2) for y in YEARS]
         out[json.dumps([chart, list(path)], ensure_ascii=False, separators=(",", ":"))] = cell
+    mix = {}
+    for name in ("dom", "ov"):
+        tot = out.get(json.dumps([None, []], separators=(",", ":")), {}).get(name)
+        for chart in ("소재", "부품", "장비"):
+            cc = out.get(json.dumps([chart, []], ensure_ascii=False, separators=(",", ":")), {}).get(name)
+            if tot and cc: mix.setdefault(name, {})[chart] = {"rev_share_2025": round(cc["rev"][2] / tot["rev"][2] * 100, 1), "op_share_2025": round(cc["op"][2] / tot["op"][2] * 100, 1) if tot["op"][2] else None}
+    miss = {}
+    for chart in (None, "소재", "부품", "장비"):
+        for reg, name in (("국내", "dom"), ("해외", "ov")):
+            es = [e for e in ents if e["region"] == reg and A.usable(e) and (chart is None or any(m["chart"] == chart for m in e["memberships"]))]
+            n = sum(1 for e in es if not any(m["d1"] for m in e["memberships"] if chart is None or m["chart"] == chart))
+            miss.setdefault(chart or "전체", {})[name] = {"panel": len(es), "no_detail": n}
+    kr = [e for e in ents if e.get("_kr")]
+    comp = {"listed_or_direct": sum(1 for e in ents if e["region"] == "해외" and not e.get("_kr") and A.usable(e)), "kr_incorporated_affiliates": sum(1 for e in kr if A.usable(e)),
+            "kr_affiliates_in_scope": len(kr), "kr_affiliates_excluded_double_count": META.get("excluded_kr_subs", 0), "kr_affiliates_kept_despite_parent_candidate": META.get("kept_with_parent_candidate", 0)}
     c = Counter((e["region"], e["eligible"]) for e in ents)
     usable = lambda reg: sum(1 for e in ents if e["region"] == reg and A.usable(e))
     cov = {"entities": {r: sum(1 for e in ents if e["region"] == r) for r in ("국내", "해외", "외국계")},
@@ -155,9 +210,14 @@ def build(ents, k=5, generated=None):
            "with_3y_financials": {r: sum(1 for e in ents if e["region"] == r and all(e["fin"].get(y, {}).get("rev") is not None and e["fin"].get(y, {}).get("op") is not None for y in YEARS)) for r in ("국내", "해외", "외국계")},
            "balanced_panel": {r: usable(r) for r in ("국내", "해외", "외국계")}}
     return {"version": 1, "generatedAt": generated or dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "years": list(YEARS), "unit": "억 원", "k_min_per_side": k,
-            "basis": {"population": "국내는 소부장 경영 정보와 같은 기업군(수요기업·IT·서비스 제외, 업종도 그 화면과 같은 기준). 해외는 사용자 목록·추가 후보 중 법인 본인의 공식 공시로 실적이 확인된 상장사(비반도체 제외)와 한국에 설립된 외국계 법인(감사·사업보고서)을 합친 집계이며, 본사가 집계에 있는 그룹의 한국 자회사는 이중 집계를 막으려고 뺌", "revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내와 국내 소재 외국계는 개별(별도) 재무(외국계는 사업보고서·감사보고서, 억 원 단위 반올림). 해외는 개별을 우선하되 미국 SEC 등록 법인과 Nova는 개별이 공시되지 않아 연결을 사용. 자회사 실적을 모회사 실적으로 대체하지 않음. 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
+            "basis": {"population": "국내는 소부장 경영 정보와 같은 기업군(수요기업·IT·서비스 제외, 업종도 그 화면과 같은 기준). 해외계는 사용자 목록·추가 후보 중 법인 본인의 공식 공시로 실적이 확인된 상장 본사(비반도체 제외)와 한국에 설립된 외국계 법인을 합친 집단. 본사가 연결 기준으로 집계에 있고 관계가 확인된 한국 자회사만 이중 집계 방지로 제외", "revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내와 한국에 설립된 외국계는 개별(별도) 재무, 해외 상장 본사는 개별 우선·미공시 시 연결(법인별 3개년 기준 통일). 자회사 실적을 모회사 실적으로 대체하지 않음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
                       "margin": "영업이익 합계 ÷ 매출 합계", "growth": "전년 대비, 2023년은 2022년 매출이 전원 확인될 때만", "fx": "해외 원화 환산: 보고 통화별 ECB 일별 교차환율의 해당 회계기간 평균. 회계연도는 회계기간 종료일의 연도(3월 결산 법인은 해당 3월 종료 기간)", "nonexclusive": "한 기업이 여러 분류에 속할 수 있어 분류별 합계가 전체와 다를 수 있음"},
-            "coverage": cov, "cells": out}
+            "coverage": {**cov, "composition": comp, "detail_missing": miss}, "mix": mix, "cells": out,
+            "groups": [{"key": "dom", "label": "국내"}, {"key": "ov", "label": "해외계"}],
+            "notes_list": ["국내 기업: 별도(개별)재무 기준(DART 사업보고서, 감사보고서)", "한국에 설립된 외국계 법인: 별도(개별)재무 기준(사업보고서·감사보고서, 억 원 단위 반올림)",
+                           "해외 상장 본사: 개별재무 우선, 개별이 공시되지 않으면 연결재무(미국 SEC 등록 법인 등). 법인별 3개년은 같은 기준으로 통일",
+                           "매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아님", "해외계는 공식 공시로 확인된 표본이며 해외 반도체 소부장 산업 전체를 대표하지 않음",
+                           "회계연도(회계기간 종료일 기준)·환율·재무 범위 차이로 직접 비교에 한계가 있음. 산출 방법은 방법론 문서 참고"]}
 
 
 def consolidated_variant(ents, priv):
