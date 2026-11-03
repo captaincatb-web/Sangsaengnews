@@ -36,12 +36,15 @@ def compare(entities):
     return {"dom": dom, "ov": ov, "margin_gap_pp": gap}
 
 
+BLANK_LABEL = "(해당 없음)"
+
+
 def cell_keys(m):
-    """한 품목 행이 속하는 필터 조합(그래프분류 선택 여부 × 상세구분1→5 앞부분 선택). 값이 빈칸이면 그 단계부터는 더 내려가지 않는다."""
-    path = []
-    for k in DEPTH_KEYS:
-        if m.get(k) in (None, ""): break
-        path.append(m[k])
+    """한 품목 행이 속하는 필터 조합(그래프분류 선택 여부 × 상세구분1→5 앞부분 선택).
+    중간 단계가 빈칸이어도 더 깊은 단계 값이 있으면 버리지 않고 빈칸을 '(해당 없음)'으로 채워 보존한다. 끝쪽 빈칸만 생략한다."""
+    vals = [None if m.get(k) in (None, "") else m[k] for k in DEPTH_KEYS]
+    while vals and vals[-1] is None: vals.pop()
+    path = [BLANK_LABEL if v is None else v for v in vals]
     out = []
     for chart in (None, m["chart"]):
         for depth in range(0, len(path) + 1):

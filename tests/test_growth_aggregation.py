@@ -34,9 +34,12 @@ class Calc(unittest.TestCase):
     def test_entity_counted_once_per_filter_even_with_many_product_rows(self):
         e = ent("a", "국내", (100, 100, 100), (1, 1, 1)); e["memberships"].append(dict(chart="장비", d1="설비", d2="전공정", d3="FAB설비", d4="Main", d5="CVD")); e["memberships"].append(dict(chart="장비", d1="설비", d2="전공정", d3="FAB설비", d4="Main", d5="PVD"))
         c = A.cells([e]); self.assertEqual(c[("장비", ("설비", "전공정"))], {"a"}); self.assertEqual(len(c[("장비", ("설비",))]), 1)
-    def test_blank_detail_stops_descending(self):
+    def test_blank_middle_level_keeps_deeper_levels(self):
         keys = A.cell_keys({"chart": "소재", "d1": "원자재", "d2": "전공정", "d3": "PR", "d4": None, "d5": "Thinner"})
-        self.assertIn(("소재", ("원자재", "전공정", "PR")), keys); self.assertNotIn(("소재", ("원자재", "전공정", "PR", None)), keys); self.assertFalse(any("Thinner" in k[1] for k in keys))
+        self.assertIn(("소재", ("원자재", "전공정", "PR", A.BLANK_LABEL, "Thinner")), keys)  # 상세구분4가 비어도 상세구분5 보존
+    def test_trailing_blank_not_extended(self):
+        keys = A.cell_keys({"chart": "소재", "d1": "원자재", "d2": "전공정", "d3": "PR", "d4": None, "d5": None})
+        self.assertIn(("소재", ("원자재", "전공정", "PR")), keys); self.assertFalse(any(len(k[1]) > 3 for k in keys))
 
 class Safety(unittest.TestCase):
     def pool(self, n_dom, n_ov, d3="X"):

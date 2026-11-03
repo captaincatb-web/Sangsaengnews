@@ -1,7 +1,7 @@
 """비공개 작업 폴더의 법인·재무 자료로 공개용 집계 요약(site/data/growth-comparison-summary.json)을 만든다.
 공개 파일에는 집계값·건수·필터 조합만 담는다: 기업명·등록번호·개별 재무·품목 매핑·원본 행은 넣지 않는다.
 사용: GROWTH_PRIVATE_DIR=<저장소 밖> python scripts/growth/build_growth_comparison.py [--k 5]
-입력(비공개 폴더): master_rows.csv, domestic_match.csv, domestic_financials.csv, [overseas_financials.csv], [eligibility_overrides.csv]
+입력(비공개 폴더): master_rows.csv, domestic_match.csv, domestic_financials.csv, [overseas_financials.csv], [eligibility_overrides.csv: entity_id, eligible, rep_chart, 판정 근거]
 적격성: 국내는 사용자 목록 전체를 대상으로 하고, 검증된 모집단(scripts/data/semi_universe_final_*.csv)에서 별도 관리(제외·OSAT·유통)로 확정된 법인만 EXCLUDED.
 확정되지 않은 기업(REVIEW)은 기본 집계에서 빠진다. 해외는 개별 법인 실적이 확인된 자료(overseas_financials.csv)가 있어야 들어온다."""
 import csv, datetime as dt, json, os, sys
@@ -30,7 +30,7 @@ def build_entities(priv, csv_universe):
         fin[f["corp_no"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
     for f in rd(priv / "overseas_financials.csv"):  # 개별 법인 실적이 공식 자료로 확인된 해외 법인(원화 환산 완료)만
         fin[f["entity_id"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
-    univ = {r["stock_code"]: r for r in csv_universe}; over = {r["entity_id"]: r["eligible"] for r in rd(priv / "eligibility_overrides.csv")}
+    univ = {r["stock_code"]: r for r in csv_universe}; ov_rows = {r["entity_id"]: r for r in rd(priv / "eligibility_overrides.csv")}; over = {k: v["eligible"] for k, v in ov_rows.items()}
     groups = defaultdict(list)
     for r in rows:
         key = ("D:" + (r["corp_no"] or "NOID-" + r["row_id"])) if r["region"] == "국내" else ("O:" + (r["name_key"] or "NOKEY-" + r["row_id"]))
@@ -44,9 +44,12 @@ def build_entities(priv, csv_universe):
             if u and u["implementation_group"].startswith("SEPARATE"): st = "EXCLUDED"
             f = {y: v for y, v in fin.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
         else:  # 해외: SEC 등록 법인 본인(이름 정확 일치)의 연결 실적이 확인된 법인만 대상. 나머지는 실적 미확인(REVIEW)
-            f = {y: v for y, v in fin.get(key, {}).items() if v.get("rev") is not None or v.get("op") is not None}; st = "ELIGIBLE" if f else "REVIEW"
+            f = {y: v for y, v in fin.get(key, {}).items() if v.get("rev") is not None or v.get("op") is not None}; st = "REVIEW"  # 사업 적격성은 재무 확보 여부와 별개: 검토로 확정된 override(eligibility_overrides.csv)만 ELIGIBLE
         st = over.get(eid, st)
-        ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]})
+        mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
+        rep = (ov_rows.get(eid) or {}).get("rep_chart")
+        if rep: mem = [{"chart": rep, **{k: None for k in A.DEPTH_KEYS}}]  # 기업 전체 매출은 대표 업종 한 곳에만 반영(원본 품목 분류로 중복 배분하지 않음)
+        ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": mem})
     return ents
 
 
