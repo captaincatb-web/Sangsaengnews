@@ -43,8 +43,8 @@ def build_entities(priv, csv_universe):
             st = "ELIGIBLE"  # 사용자 목록의 국내 법인은 모두 대상. 검증된 160 모집단에서 '별도 관리(제외·OSAT·유통)'로 확정된 법인만 뺀다.
             if u and u["implementation_group"].startswith("SEPARATE"): st = "EXCLUDED"
             f = {y: v for y, v in fin.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
-        else:
-            st, f = "REVIEW", fin.get(key, {})
+        else:  # 해외: SEC 등록 법인 본인(이름 정확 일치)의 연결 실적이 확인된 법인만 대상. 나머지는 실적 미확인(REVIEW)
+            f = {y: v for y, v in fin.get(key, {}).items() if v.get("rev") is not None or v.get("op") is not None}; st = "ELIGIBLE" if f else "REVIEW"
         st = over.get(eid, st)
         ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]})
     return ents
@@ -73,8 +73,8 @@ def build(ents, k=5, generated=None):
            "with_3y_financials": {r: sum(1 for e in ents if e["region"] == r and all(e["fin"].get(y, {}).get("rev") is not None and e["fin"].get(y, {}).get("op") is not None for y in YEARS)) for r in ("국내", "해외")},
            "balanced_panel": {r: usable(r) for r in ("국내", "해외")}}
     return {"version": 1, "generatedAt": generated or dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "years": list(YEARS), "unit": "억 원", "k_min_per_side": k,
-            "basis": {"revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "해당 법인의 개별(별도) 재무, 모회사 연결 실적으로 대체하지 않음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
-                      "margin": "영업이익 합계 ÷ 매출 합계", "growth": "전년 대비, 2023년은 2022년 매출이 전원 확인될 때만", "fx": "해외 환산: 회계연도 평균 환율(출처 별도 표기)", "nonexclusive": "한 기업이 여러 분류에 속할 수 있어 분류별 합계가 전체와 다를 수 있음"},
+            "basis": {"revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내는 해당 법인의 개별(별도) 재무, 해외는 SEC 등록 법인 본인의 연결 재무(10-K). 자회사 실적을 모회사 실적으로 대체하지 않음. 두 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
+                      "margin": "영업이익 합계 ÷ 매출 합계", "growth": "전년 대비, 2023년은 2022년 매출이 전원 확인될 때만", "fx": "해외 USD→원화 환산: ECB 일별 교차환율의 해당 연도 평균(2025년은 확보된 일자까지)", "nonexclusive": "한 기업이 여러 분류에 속할 수 있어 분류별 합계가 전체와 다를 수 있음"},
             "coverage": cov, "cells": out}
 
 
