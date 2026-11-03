@@ -43,7 +43,7 @@ for (const w of [360, 1200]) {
     const overlaps = await page.evaluate(() => {
       const out = [];
       document.querySelectorAll("#chart svg").forEach((svg, si) => {
-        const ts = [...svg.querySelectorAll("text")].filter((t) => t.textContent.trim() && !(t.getAttribute("style") || "").includes("#fff")).map((t) => ({ t: t.textContent, b: t.getBoundingClientRect() }));
+        const ts = [...svg.querySelectorAll("text")].filter((t) => t.textContent.trim()).map((t) => ({ t: t.textContent, b: t.getBoundingClientRect() }));
         for (let i = 0; i < ts.length; i++) for (let k = i + 1; k < ts.length; k++) {
           const a = ts[i].b, b = ts[k].b, ox = Math.min(a.right, b.right) - Math.max(a.left, b.left), oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
           if (ox > 2 && oy > 2) out.push(si + ":" + ts[i].t + "/" + ts[k].t);
@@ -52,6 +52,14 @@ for (const w of [360, 1200]) {
       return out;
     });
     assert.deepEqual(overlaps, [], "차트 글자 겹침 없음");
+    const txt = await page.evaluate(() => document.body.innerText);
+    assert.ok(!/외국계 –|국내 소재 외국계/.test(txt), "3그룹 잔재(외국계 –) 없음");
+    assert.ok(/현재 조건/.test(await page.locator("#result").innerText()), "결과 줄 표시");
+    assert.ok((await page.locator("#ptbl").innerText()).includes("%p"), "수익성 변화 표에 %p 표기");
+    assert.ok((await page.locator("#ptbl tr.gc-gap").count()) >= 1, "격차 행");
+    assert.equal(await page.locator("#chart .gc-panel").first().locator("svg").count(), 2, "패널마다 매출·영업이익률 차트 분리");
+    const groups = await page.evaluate(async () => (await (await fetch("data/growth-comparison-summary.json")).json()).groups.length);
+    assert.equal(await page.locator("#legend li").count(), groups, "범례 수 = 그룹 수(데이터 기반)");
     await ctx.close();
   });
 }
@@ -64,7 +72,14 @@ test("필터·값 전환·테마 전환", async () => {
   await page.selectOption("#f-chart", { index: 1 }); await page.waitForTimeout(250);
   assert.equal(await page.locator("#chart svg").count(), 1, "분류 선택 시 패널 1개");
   assert.ok(before > 1, "전체는 여러 패널");
-  const d1 = page.locator("#f-d1"); if (!(await d1.isDisabled())) { await d1.selectOption({ index: 1 }); await page.waitForTimeout(250); assert.ok((await page.locator("#chart svg").count()) >= 0); }
+  const d1 = page.locator("#f-d1");
+  if (!(await d1.isDisabled())) {
+    await d1.selectOption({ index: 1 }); await page.waitForTimeout(250);
+    const need = await page.evaluate(async () => { const j = await (await fetch("data/growth-comparison-summary.json")).json(); const m = j.coverage.detail_missing["소재"] || {}; return Object.values(m).some((v) => v.no_detail > 0); });
+    const shown = await page.locator("#detail-note").isVisible();
+    assert.equal(shown, need, "상세구분이 없는 기업이 있으면 안내 표시");
+    assert.ok(/현재 조건/.test(await page.locator("#result").innerText()), "필터 변경 시 결과 줄 갱신");
+  }
   await page.selectOption("#f-chart", ""); await page.selectOption("#f-mode", "sum"); await page.waitForTimeout(250);
   assert.match(await page.locator("#chart svg").first().textContent(), /매출 합계/, "값 전환(합계)");
   await page.selectOption("#f-mode", "idx"); await page.waitForTimeout(250);
