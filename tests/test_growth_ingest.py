@@ -9,7 +9,7 @@ def fx():
 
 
 def row(**kw):
-    r = {"목록표기": "TOKYO ELECTRON", "공식법인명": "Tokyo Electron Ltd.", "회계연도": "FY2024", "기간시작": "2024-01-01", "기간종료": "2024-12-30", "통화": "JPY", "매출": "1000", "영업이익": "200", "연결/개별": "개별", "출처URL": "https://example.org/x", "쪽/표위치": "p.1", "확신도": "높음"}
+    r = {"목록표기": "TOKYO ELECTRON", "공식법인명": "Tokyo Electron Ltd.", "회계연도": "FY2024", "기간시작": "2024-01-01", "기간종료": "2024-12-30", "통화": "JPY", "금액단위": "1", "매출": "1000", "영업이익": "200", "연결/개별": "개별", "출처URL": "https://example.org/x", "쪽/표위치": "p.1", "확신도": "높음"}
     r.update(kw); return r
 
 
@@ -26,6 +26,13 @@ class Ingest(unittest.TestCase):
         ok, rej = I.convert([row(영업이익="")], fx()); self.assertEqual(ok[0]["op_income_krw"], "")
     def test_currency_without_rate_keeps_local_only(self):
         ok, rej = I.convert([row(통화="TWD")], fx()); self.assertEqual(ok[0]["revenue_krw"], ""); self.assertIn("환율 없음(원화 환산 비움)", rej)
+
+    def test_unit_required_and_applied(self):
+        ok, rej = I.convert([row(금액단위="")], fx()); self.assertEqual(ok, []); self.assertIn("금액단위 없음/해석 불가", rej)
+        ok, rej = I.convert([row(금액단위="백만")], fx()); self.assertAlmostEqual(ok[0]["revenue_krw"], 1000 * 1e6 * 9.0)
+    def test_mixed_scope_entity_rejected(self):
+        rows = [row(기간시작="2023-01-01", 기간종료="2023-12-31", **{"연결/개별": "연결"}), row(**{"연결/개별": "개별"})]
+        ok, rej = I.convert(rows, fx()); self.assertEqual(ok, []); self.assertIn("연결/개별 혼재(법인 전체 거부)", rej)
 
 
 if __name__ == "__main__": unittest.main()
