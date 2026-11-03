@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="sidebar.shared.css?v=202611031300">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
-  <link rel="stylesheet" href="growth-comparison.css?v=2">
+  <link rel="stylesheet" href="growth-comparison.css?v=3">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -45,6 +45,7 @@
     <nav>
       <ul class="db-nav" id="views-nav">
         <li><a href="#chart-card"><i class="ph ph-chart-line-up" aria-hidden="true"></i><span class="l">매출·영업이익률</span><span class="s" aria-hidden="true">차트</span></a></li>
+        <li><a href="#profit-card"><i class="ph ph-percent" aria-hidden="true"></i><span class="l">수익성 변화(%p)</span><span class="s" aria-hidden="true">수익성</span></a></li>
         <li><a href="#table-card"><i class="ph ph-table" aria-hidden="true"></i><span class="l">표로 보기</span><span class="s" aria-hidden="true">표</span></a></li>
         <li><a href="#notes-card"><i class="ph ph-info" aria-hidden="true"></i><span class="l">산출 기준·한계</span><span class="s" aria-hidden="true">기준</span></a></li>
       </ul>
@@ -65,12 +66,16 @@
     </form>
     <div class="db-view">
       <section class="db-card" id="chart-card" aria-labelledby="ct">
-        <div class="db-card-head"><h2 id="ct">소재·부품·장비 매출과 영업이익률 <small>막대 = 매출(지수 또는 억 원), 위쪽 실선 = 영업이익률, 점선 = 막대 상단 연결(전년 대비 %)</small></h2>
+        <div class="db-card-head"><h2 id="ct">소재·부품·장비 매출 추이와 영업이익률 <small>매출과 영업이익률은 따로 표시합니다</small></h2>
           <label class="gc-mode" id="w-base" hidden><span>국내 기준</span><select id="f-base"><option value="sep">개별</option><option value="cons">연결</option></select></label>
           <label class="gc-mode"><span>값</span><select id="f-mode"><option value="idx">매출지수(2023=100)</option><option value="sum">매출액 합계</option><option value="avg">기업당 평균 매출</option></select></label>
-          <ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>국내</li><li><i class="sq" style="background:var(--orange)"></i>해외(공시기업·한국 내 외국계)</li></ul></div>
-        <div class="db-chart" id="chart" role="img" aria-label="국내·해외 소재·부품·장비 매출과 영업이익률 비교 차트"></div>
+          <ul class="db-legend" id="legend"></ul></div>
+        <p class="gc-result" id="result" aria-live="polite"></p>
+        <p class="gc-note" id="detail-note" hidden role="status"></p>
+        <div class="db-chart" id="chart" role="group" aria-label="국내·해외계 소재·부품·장비 매출과 영업이익률 비교 차트"></div>
+        <div class="gc-influence" id="influence" hidden></div>
       </section>
+      <section class="db-card" id="profit-card" aria-labelledby="pt"><div class="db-card-head"><h2 id="pt">수익성 변화(%p) <small>영업이익률 = 영업이익 합계 ÷ 매출 합계, 변화·격차는 %p</small></h2></div><div class="db-tbl-wrap"><table class="db-tbl" id="ptbl"></table></div></section>
       <section class="db-card" id="table-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">표로 보기</h2></div><div class="db-tbl-wrap"><table class="db-tbl" id="tbl"></table></div></section>
       <section class="db-card" id="notes-card" aria-labelledby="nt"><div class="db-card-head"><h2 id="nt">산출 기준과 한계</h2></div><ul class="gc-notes" id="notes"></ul><div id="cov"></div></section>
     </div>
@@ -78,6 +83,6 @@
   <script src="data/status.js?v=202611011230"></script>
   <script src="data-status.js?v=202611021500"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="growth-comparison.js?v=2"></script>
+  <script src="growth-comparison.js?v=3"></script>
 </body>
 </html>

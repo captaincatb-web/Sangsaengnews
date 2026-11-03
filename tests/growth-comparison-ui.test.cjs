@@ -68,9 +68,9 @@ test("필터·값 전환·테마 전환", async () => {
   const { page, ctx, errs } = await open(1200);
   const row = await page.evaluate(() => { const ys = [...document.querySelectorAll("#filters select")].map((s) => Math.round(s.closest("label").getBoundingClientRect().top)); return new Set(ys).size; });
   assert.equal(row, 1, "필터 6개가 한 줄");
-  const before = await page.locator("#chart svg").count();
+  const before = await page.locator("#chart .gc-panel").count();
   await page.selectOption("#f-chart", { index: 1 }); await page.waitForTimeout(250);
-  assert.equal(await page.locator("#chart svg").count(), 1, "분류 선택 시 패널 1개");
+  assert.equal(await page.locator("#chart .gc-panel").count(), 1, "분류 선택 시 패널 1개");
   assert.ok(before > 1, "전체는 여러 패널");
   const d1 = page.locator("#f-d1");
   if (!(await d1.isDisabled())) {
