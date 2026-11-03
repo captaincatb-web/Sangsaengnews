@@ -15,6 +15,9 @@ YEARS = A.YEARS
 EOK = 1e8
 
 
+ALIAS_ID = {"O:veecoinstruments": "O:veeco", "O:besemiconductorindustries": "O:besemiconductor"}  # 같은 법인의 표기 차이(수집기 키 ↔ 조사 CSV 목록표기)를 한 법인으로 합친다
+
+
 def rd(p):
     return list(csv.DictReader(open(p, encoding="utf-8-sig"))) if Path(p).exists() else []
 
@@ -52,7 +55,7 @@ def build_entities(priv, csv_universe):
         fin[f["corp_no"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
     for fname in ("overseas_financials.csv", "overseas_financials_ext.csv"):  # SEC 수집분 + 조사 CSV(ingest_overseas_csv.py)분. 법인 본인 실적이 공식 자료로 확인된 법인만(원화 환산 완료)
         for f in rd(priv / fname):
-            fin[f["entity_id"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
+            fin[ALIAS_ID.get(f["entity_id"], f["entity_id"])][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
     ovm = {m["corp_no"]: m for m in rd(priv / "ovkr_match.csv")}; ovf = defaultdict(dict)
     for fname in ("ovkr_financials.csv", "ovkr_audit_financials.csv"):  # 사업보고서 XBRL(collect_domestic.py) + 감사·사업보고서(collect_audit.py)
         for f_ in rd(priv / fname):
@@ -112,7 +115,7 @@ def build_entities(priv, csv_universe):
     # 사용자가 추가한 소부장 후보(원본 목록에 없던 해외 기업): 적격으로 보고 대표 업종 지정. 실적이 확인된 경우에만 집계에 들어온다.
     have = {e["id"] for e in ents}
     for x in rd(priv / "extra_candidates.csv"):
-        eid = "O:" + x["entity_key"]
+        eid = ALIAS_ID.get("O:" + x["entity_key"], "O:" + x["entity_key"])
         if eid in have: continue
         f = {y: v for y, v in fin.get(eid, {}).items() if v.get("rev") is not None or v.get("op") is not None}
         ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}]})
