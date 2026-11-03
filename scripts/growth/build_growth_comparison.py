@@ -50,10 +50,14 @@ def build_entities(priv, csv_universe):
     fin = defaultdict(dict)
     for f in rd(priv / "domestic_financials.csv"):
         fin[f["corp_no"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
-    for f in rd(priv / "overseas_financials.csv"):  # 개별 법인 실적이 공식 자료로 확인된 해외 법인(원화 환산 완료)만
-        fin[f["entity_id"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
+    for fname in ("overseas_financials.csv", "overseas_financials_ext.csv"):  # SEC 수집분 + 조사 CSV(ingest_overseas_csv.py)분. 법인 본인 실적이 공식 자료로 확인된 법인만(원화 환산 완료)
+        for f in rd(priv / fname):
+            fin[f["entity_id"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
     ovm = {m["corp_no"]: m for m in rd(priv / "ovkr_match.csv")}; ovf = defaultdict(dict)
-    for f_ in rd(priv / "ovkr_financials.csv"): ovf[f_["corp_no"]][int(f_["year"])] = {"rev": num(f_["revenue_krw"]), "op": num(f_["op_income_krw"])}
+    for fname in ("ovkr_financials.csv", "ovkr_audit_financials.csv"):  # 사업보고서 XBRL(collect_domestic.py) + 감사·사업보고서(collect_audit.py)
+        for f_ in rd(priv / fname):
+            v = {"rev": num(f_["revenue_krw"]), "op": num(f_["op_income_krw"])}; y_ = int(f_["year"])
+            if v["rev"] is not None or v["op"] is not None: ovf[f_["corp_no"]].setdefault(y_, v)
     univ = {r["stock_code"]: r for r in csv_universe}; ov_rows = {r["entity_id"]: r for r in rd(priv / "eligibility_overrides.csv")}; over = {k: v["eligible"] for k, v in ov_rows.items()}
     groups = defaultdict(list)
     for r in rows:
@@ -99,7 +103,7 @@ def build_entities(priv, csv_universe):
             if u and u["implementation_group"].startswith("SEPARATE"): st = "EXCLUDED"
             f = {y: v for y, v in fin.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
         else:  # 해외: SEC 등록 법인 본인(이름 정확 일치)의 연결 실적이 확인된 법인만 대상. 나머지는 실적 미확인(REVIEW)
-            f = {y: v for y, v in fin.get(key, {}).items() if v.get("rev") is not None or v.get("op") is not None}; st = "REVIEW"  # 사업 적격성은 재무 확보 여부와 별개: 검토로 확정된 override(eligibility_overrides.csv)만 ELIGIBLE
+            f = {y: v for y, v in fin.get(key, {}).items() if v.get("rev") is not None or v.get("op") is not None}; st = "ELIGIBLE" if f else "REVIEW"  # 사용자 결정: 제공 목록의 기업은 적격(비반도체로 제외하기로 한 법인은 eligibility_overrides.csv 의 EXCLUDED). 재무가 확인된 법인만 집계에 들어온다
         st = over.get(eid, st)
         mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
         rep = (ov_rows.get(eid) or {}).get("rep_chart")
