@@ -23,6 +23,16 @@ def num(x):
     except ValueError: return None
 
 
+def load_roster(priv):
+    """소부장 경영 정보(대시보드)와 같은 기업군: 재무 분석 명단(build_financials.py 결과)에서 대시보드 제외 업종(수요·IT·서비스)을 뺀 법인.
+    값 단위는 억 원. 업종(소재·부품·장비·미분류)은 대시보드와 같은 classifyCompany 결과(roster_class.json)."""
+    f, c = Path(priv) / "roster_financials.js", Path(priv) / "roster_class.json"
+    if not (f.exists() and c.exists()): return None
+    t = f.read_text(encoding="utf-8"); a = t.index("window.COMPANY_FINANCIALS = ") + len("window.COMPANY_FINANCIALS = ")
+    recs = json.loads(t[a:t.index(";\nwindow.COMPANY_FINANCIALS_META")]); kind = {x["c"]: x for x in json.loads(c.read_text(encoding="utf-8"))}
+    return [(r, kind[r["c"]]["kind"]) for r in recs if kind.get(r["c"], {}).get("kind") not in ("수요", "IT·서비스")]
+
+
 def build_entities(priv, csv_universe):
     rows = rd(priv / "master_rows.csv"); match = {m["corp_no"]: m for m in rd(priv / "domestic_match.csv")}
     fin = defaultdict(dict)
@@ -36,6 +46,16 @@ def build_entities(priv, csv_universe):
         key = ("D:" + (r["corp_no"] or "NOID-" + r["row_id"])) if r["region"] == "국내" else ("O:" + (r["name_key"] or "NOKEY-" + r["row_id"]))
         groups[key].append(r)
     ents = []
+    roster = load_roster(priv)
+    if roster is not None:  # 국내 = 대시보드와 같은 기업군(DART 고유번호 기준). 상세구분1~5는 사용자 목록과 법인등록번호로 연결된 경우에만 붙인다.
+        cc2no = {m["dart_corp_code"]: k for k, m in match.items() if m.get("dart_corp_code")}
+        for r, kind in roster:
+            f = {int(y): {"rev": (None if r["s"][i] is None else r["s"][i] * EOK), "op": (None if r["o"][i] is None else r["o"][i] * EOK)} for i, y in enumerate(r["y"])}
+            rs = groups.get("D:" + cc2no.get(r["c"], ""), [])
+            mem = [{"chart": kind, **{k: (x[k] or None) for k in A.DEPTH_KEYS}} for x in rs] or [{"chart": kind, **{k: None for k in A.DEPTH_KEYS}}]
+            mem = [dict(m_, chart=kind) for m_ in mem]
+            ents.append({"id": "D:" + r["c"], "region": "국내", "eligible": "ELIGIBLE", "fin": f, "memberships": mem})
+        groups = {k: v for k, v in groups.items() if not k.startswith("D:")}
     for key, rs in groups.items():
         region = rs[0]["region"]; eid = key
         if region == "국내":
@@ -76,7 +96,7 @@ def build(ents, k=5, generated=None):
            "with_3y_financials": {r: sum(1 for e in ents if e["region"] == r and all(e["fin"].get(y, {}).get("rev") is not None and e["fin"].get(y, {}).get("op") is not None for y in YEARS)) for r in ("국내", "해외")},
            "balanced_panel": {r: usable(r) for r in ("국내", "해외")}}
     return {"version": 1, "generatedAt": generated or dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "years": list(YEARS), "unit": "억 원", "k_min_per_side": k,
-            "basis": {"revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내는 해당 법인의 개별(별도) 재무, 해외는 SEC 등록 법인 본인의 연결 재무(10-K). 자회사 실적을 모회사 실적으로 대체하지 않음. 두 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
+            "basis": {"population": "국내는 소부장 경영 정보와 같은 기업군(수요기업·IT·서비스 제외)이며 업종은 그 화면과 같은 기준. 해외는 사용자 목록 중 SEC 등록 법인 본인으로 확인되고 소부장 적격으로 판정된 법인", "revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내는 해당 법인의 개별(별도) 재무, 해외는 SEC 등록 법인 본인의 연결 재무(10-K). 자회사 실적을 모회사 실적으로 대체하지 않음. 두 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
                       "margin": "영업이익 합계 ÷ 매출 합계", "growth": "전년 대비, 2023년은 2022년 매출이 전원 확인될 때만", "fx": "해외 USD→원화 환산: ECB 일별 교차환율의 해당 연도 평균(2025년은 확보된 일자까지)", "nonexclusive": "한 기업이 여러 분류에 속할 수 있어 분류별 합계가 전체와 다를 수 있음"},
             "coverage": cov, "cells": out}
 
