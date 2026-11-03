@@ -1,6 +1,6 @@
 .gc-filters{display:flex;flex-wrap:wrap;gap:8px}
 .gc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
-#chart svg{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}#chart text{fill:var(--text-2);font-size:12px}#chart text[font-weight]{fill:var(--text)}
+#chart svg{width:100%;max-width:420px;height:auto;display:block;margin:0 auto}#chart svg{font-size:12px}#chart text{fill:var(--text-2)}#chart text[font-weight]{fill:var(--text)}
 .bar-dom{fill:var(--blue);background:var(--blue)}.bar-ov{fill:var(--orange);background:var(--orange)}.bar-fo{fill:var(--teal);background:var(--teal)}
 #chart rect{transform-box:fill-box;transform-origin:bottom;animation:gc-grow .6s ease-out both;transition:opacity .15s}
 #chart svg:hover rect{opacity:.55}#chart svg rect:hover{opacity:1}
