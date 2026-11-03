@@ -26,7 +26,7 @@ function draw(){
    let pts='';s.margin.forEach((val,yi)=>{if(val==null)return;const cx=x0+bw*(yi*2+1),cy=60+(1-val/mm)*70;pts+=`${cx},${cy} `;svg.append(svgEl('circle',{cx,cy,r:3,class:'bar-'+r}));svg.append(svgEl('text',{x:cx,y:cy+(ri?-7:14),'text-anchor':'middle','font-size':'10'},pct(val)))});
    svg.append(svgEl('polyline',{points:pts,fill:'none',stroke:r==='dom'?'var(--blue)':'var(--orange)','stroke-width':2}))});
   Y.forEach((y,yi)=>svg.append(svgEl('text',{x:x0+bw*(yi*2+1.5),y:H-18,'text-anchor':'middle'},String(y))));grid.append(svg)});
- box.append(grid);tbl(data)}
+ box.append(grid);if(!data.some(d=>d.x&&d.x.ov&&d.x.ov.n)){const n=document.createElement('p');n.className='gc-empty';n.textContent='해외: 개별 법인 실적이 공식 자료로 확인된 비교 가능 기업이 아직 없어 표시하지 않습니다(추정·모회사 실적 대체 없음).';box.append(n)}tbl(data)}
 function tbl(data){const t=$('tbl');t.textContent='';if(!data.length)return;
  const h=t.createTHead().insertRow();['분류','구분','기업 수',...Y.map(y=>y+' 매출(억 원)'),'2025 영업이익률'].forEach(x=>{const c=document.createElement('th');c.textContent=x;h.append(c)});
  const b=t.createTBody();data.forEach(d=>['dom','ov'].forEach(r=>{const s=d.x&&d.x[r];if(!s||!s.n)return;const row=b.insertRow();[d.c,r==='dom'?'국내':'해외',s.n,...s.rev.map(fmt),pct(s.margin[2])].forEach(v=>row.insertCell().textContent=v)}))}
