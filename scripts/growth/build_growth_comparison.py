@@ -2,7 +2,7 @@
 공개 파일에는 집계값·건수·필터 조합만 담는다: 기업명·등록번호·개별 재무·품목 매핑·원본 행은 넣지 않는다.
 사용: GROWTH_PRIVATE_DIR=<저장소 밖> python scripts/growth/build_growth_comparison.py [--k 5]
 입력(비공개 폴더): master_rows.csv, domestic_match.csv, domestic_financials.csv, [overseas_financials.csv], [eligibility_overrides.csv]
-적격성: 국내는 검증된 핵심 모집단(scripts/data/semi_universe_final_*.csv)의 감사 상태가 '포함'이면 ELIGIBLE, '조건부'는 REVIEW, '제외'·별도 관리는 EXCLUDED.
+적격성: 국내는 사용자 목록 전체를 대상으로 하고, 검증된 모집단(scripts/data/semi_universe_final_*.csv)에서 별도 관리(제외·OSAT·유통)로 확정된 법인만 EXCLUDED.
 확정되지 않은 기업(REVIEW)은 기본 집계에서 빠진다. 해외는 개별 법인 실적이 확인된 자료(overseas_financials.csv)가 있어야 들어온다."""
 import csv, datetime as dt, json, os, sys
 from collections import Counter, defaultdict
@@ -40,10 +40,8 @@ def build_entities(priv, csv_universe):
         region = rs[0]["region"]; eid = key
         if region == "국내":
             m = match.get(key[2:], {}); u = univ.get(m.get("stock_code", ""))
-            st = "REVIEW"
-            if u:
-                g, a = u["implementation_group"], u["audit_status_original"]
-                st = "EXCLUDED" if g.startswith("SEPARATE") else "ELIGIBLE" if g.startswith("CORE") and a == "포함" else "REVIEW"
+            st = "ELIGIBLE"  # 사용자 목록의 국내 법인은 모두 대상. 검증된 160 모집단에서 '별도 관리(제외·OSAT·유통)'로 확정된 법인만 뺀다.
+            if u and u["implementation_group"].startswith("SEPARATE"): st = "EXCLUDED"
             f = {y: v for y, v in fin.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
         else:
             st, f = "REVIEW", fin.get(key, {})
