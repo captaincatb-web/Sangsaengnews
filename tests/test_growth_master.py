@@ -51,3 +51,13 @@ class T(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr); self.assertTrue(os.path.exists(os.path.join(out, "master_rows.csv")))
         self.assertNotIn("GANADA", r.stdout)  # 표준 출력에는 기업명이 없다
 if __name__ == "__main__": unittest.main(verbosity=2)
+
+
+class PlantKey(unittest.TestCase):
+    def test_branch_and_plant_suffix_removed(self):
+        import build_growth_comparison as B
+        self.assertEqual(B.plant_key("(주)테이팩스 팔탄공장"), B.plant_key("테이팩스"))
+        self.assertEqual(B.plant_key("고려아연(주) 온산제련소"), B.plant_key("고려아연"))
+        self.assertEqual(B.plant_key("(주)원익큐엔씨 안성지점"), B.plant_key("원익큐엔씨"))
+        self.assertEqual(B.plant_key("(주)두산전자사업김천공장"), B.plant_key("두산"))
+        self.assertNotEqual(B.plant_key("에스에프에이반도체"), B.plant_key("에스에프에이"))

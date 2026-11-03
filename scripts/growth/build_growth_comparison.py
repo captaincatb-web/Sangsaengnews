@@ -4,11 +4,12 @@
 입력(비공개 폴더): master_rows.csv, domestic_match.csv, domestic_financials.csv, [overseas_financials.csv], [eligibility_overrides.csv: entity_id, eligible, rep_chart, 판정 근거]
 적격성: 국내는 사용자 목록 전체를 대상으로 하고, 검증된 모집단(scripts/data/semi_universe_final_*.csv)에서 별도 관리(제외·OSAT·유통)로 확정된 법인만 EXCLUDED.
 확정되지 않은 기업(REVIEW)은 기본 집계에서 빠진다. 해외는 개별 법인 실적이 확인된 자료(overseas_financials.csv)가 있어야 들어온다."""
-import csv, datetime as dt, json, os, sys
+import csv, datetime as dt, json, os, re, sys
 from collections import Counter, defaultdict
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aggregate as A
+from common import name_key
 REPO = Path(__file__).resolve().parent.parent.parent
 YEARS = A.YEARS
 EOK = 1e8
@@ -21,6 +22,17 @@ def rd(p):
 def num(x):
     try: return float(x) if x not in (None, "") else None
     except ValueError: return None
+
+
+_PLANT = re.compile(r"(\s+\S*(공장|사업장|지점|제련소)|\s+\S*사업부.*)$")
+NAME_ALIAS = {"두산전자사업김천공장": "두산"}  # 지점·사업부 이름 → 법인 대표 이름(수동 확정, 보고서에 명시)
+
+
+def plant_key(name):
+    """원본의 지점·공장·사업부 표기를 떼고 정규화한 이름 열쇠. 같은 법인의 다른 표기를 이름으로 잇는 데만 쓴다(DART 고유번호·법인등록번호로 못 이은 경우의 보조)."""
+    full = name_key(name)
+    if full in NAME_ALIAS: return NAME_ALIAS[full]
+    return name_key(_PLANT.sub("", (name or "").strip()))
 
 
 def load_roster(priv):
@@ -49,6 +61,17 @@ def build_entities(priv, csv_universe):
     roster = load_roster(priv)
     if roster is not None:  # 국내 = 대시보드와 같은 기업군(DART 고유번호 기준). 상세구분1~5는 사용자 목록과 법인등록번호로 연결된 경우에만 붙인다.
         cc2no = {m["dart_corp_code"]: k for k, m in match.items() if m.get("dart_corp_code")}
+        # 보조 연결: 법인등록번호·DART 고유번호로 못 이은 원본 법인은 이름(지점·사업부 표기 제거)이 같은 대시보드 법인에 잇는다. 동명이 둘 이상이면 잇지 않는다.
+        used = set(cc2no.values()); pool = {}
+        for k, m in match.items():
+            if not m.get("dart_corp_code") and ("D:" + k) in groups:
+                for x in groups["D:" + k]: pool.setdefault(plant_key(x["name_local"]), set()).add(k)
+        link_by_name = 0
+        for r, kind in roster:
+            if r["c"] in cc2no: continue
+            ks = pool.get(plant_key(r["n"]), set()) - used
+            if len(ks) == 1: k = next(iter(ks)); cc2no[r["c"]] = k; used.add(k); link_by_name += 1
+        print(f"상세 연결: 번호 일치 {len(roster) - link_by_name - sum(1 for r, _ in roster if r['c'] not in cc2no)}곳 + 이름 보조 {link_by_name}곳, 미연결 {sum(1 for r, _ in roster if r['c'] not in cc2no)}곳", file=sys.stderr)
         for r, kind in roster:
             f = {int(y): {"rev": (None if r["s"][i] is None else r["s"][i] * EOK), "op": (None if r["o"][i] is None else r["o"][i] * EOK)} for i, y in enumerate(r["y"])}
             rs = groups.get("D:" + cc2no.get(r["c"], ""), [])
