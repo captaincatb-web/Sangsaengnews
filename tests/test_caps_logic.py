@@ -28,6 +28,10 @@ class Run(unittest.TestCase):
         shutil.copy(ROOT / "scripts" / "update_semi_caps.py", self.t / "scripts"); shutil.copy(ROOT / "scripts" / "restore_lastgood.py", self.t / "scripts")
         for n in ("semi_caps.js", "semi_share.js"): shutil.copy(ROOT / "site" / "data" / n, self.t / "site" / "data" / n)
         self.fx = self.t / "krx"; self.fx.mkdir(); self.caps = load(self.t / "site/data/semi_caps.js"); self.share = load(self.t / "site/data/semi_share.js")
+        # 저장소·배포 중인 실제 값의 기준일과 무관하게 시험하도록 임시 사본의 기준일을 아주 오래전으로 되돌린다
+        self.caps["asOf"] = "2000-01-01"; self.caps.pop("fresh", None); self.write_caps()
+    def write_caps(self):
+        (self.t / "site/data/semi_caps.js").write_text("// x\nwindow.SEMI_CAPS = " + json.dumps(self.caps, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
     def tearDown(self): shutil.rmtree(self.t, ignore_errors=True)
     def day(self, ymd, drop=0):
         """가짜 KRX 일별매매정보: 명단 종목 + 시장 전체 시가총액을 맞추는 합성 행."""
