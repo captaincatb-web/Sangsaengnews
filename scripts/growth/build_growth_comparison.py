@@ -52,10 +52,14 @@ def build_entities(priv, csv_universe):
         fin[f["corp_no"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
     for f in rd(priv / "overseas_financials.csv"):  # 개별 법인 실적이 공식 자료로 확인된 해외 법인(원화 환산 완료)만
         fin[f["entity_id"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
+    ovm = {m["corp_no"]: m for m in rd(priv / "ovkr_match.csv")}; ovf = defaultdict(dict)
+    for f_ in rd(priv / "ovkr_financials.csv"): ovf[f_["corp_no"]][int(f_["year"])] = {"rev": num(f_["revenue_krw"]), "op": num(f_["op_income_krw"])}
     univ = {r["stock_code"]: r for r in csv_universe}; ov_rows = {r["entity_id"]: r for r in rd(priv / "eligibility_overrides.csv")}; over = {k: v["eligible"] for k, v in ov_rows.items()}
     groups = defaultdict(list)
     for r in rows:
-        key = ("D:" + (r["corp_no"] or "NOID-" + r["row_id"])) if r["region"] == "국내" else ("O:" + (r["name_key"] or "NOKEY-" + r["row_id"]))
+        if r["region"] == "국내": key = "D:" + (r["corp_no"] or "NOID-" + r["row_id"])
+        elif re.fullmatch(r"\d{13}", r["corp_no"] or ""): key = "F:" + r["corp_no"]  # 한국에 설립된 외국계 법인(원본 '해외' 표기) — 법인등록번호로 같은 법인(지점·공장 행)을 묶는다
+        else: key = "O:" + (r["name_key"] or "NOKEY-" + r["row_id"])
         groups[key].append(r)
     ents = []
     roster = load_roster(priv); det_over = {x["name"]: x for x in rd(priv / "roster_detail_overrides.csv")}
@@ -80,8 +84,15 @@ def build_entities(priv, csv_universe):
             mem = [dict(m_, chart=kind) for m_ in mem]
             ents.append({"id": "D:" + r["c"], "region": "국내", "eligible": "ELIGIBLE", "fin": f, "memberships": mem})
         groups = {k: v for k, v in groups.items() if not k.startswith("D:")}
+    dom_codes = {r["c"] for r, _ in roster} if roster is not None else {m["dart_corp_code"] for m in match.values() if m.get("dart_corp_code")}
     for key, rs in groups.items():
         region = rs[0]["region"]; eid = key
+        if key.startswith("F:"):  # 국내 소재 외국계: 해외 집계와 합산하지 않고 따로 집계. 이미 국내 기업군에 있는 법인(상장사 등)은 중복이므로 뺀다.
+            m = ovm.get(key[2:], {})
+            if m.get("dart_corp_code") in dom_codes: continue
+            f = {y: v for y, v in ovf.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
+            mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
+            ents.append({"id": eid, "region": "외국계", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": mem}); continue
         if region == "국내":
             m = match.get(key[2:], {}); u = univ.get(m.get("stock_code", ""))
             st = "ELIGIBLE"  # 사용자 목록의 국내 법인은 모두 대상. 검증된 160 모집단에서 '별도 관리(제외·OSAT·유통)'로 확정된 법인만 뺀다.
@@ -109,16 +120,16 @@ def build(ents, k=5, generated=None):
     for (chart, path), sides in ok.items():
         sub = [by[i] for reg in sides for i in sides[reg]]
         res = A.compare(sub); cell = {}
-        for reg, name in (("국내", "dom"), ("해외", "ov")):
-            if reg in sides: cell[name] = fmt(res["dom" if reg == "국내" else "ov"])
+        for reg, name in (("국내", "dom"), ("해외", "ov"), ("외국계", "fo")):
+            if reg in sides: cell[name] = fmt(res[name])
         if "dom" in cell and "ov" in cell: cell["gap_pp"] = [None if res["margin_gap_pp"][y] is None else round(res["margin_gap_pp"][y], 2) for y in YEARS]
         out[json.dumps([chart, list(path)], ensure_ascii=False, separators=(",", ":"))] = cell
     c = Counter((e["region"], e["eligible"]) for e in ents)
     usable = lambda reg: sum(1 for e in ents if e["region"] == reg and A.usable(e))
-    cov = {"entities": {r: sum(1 for e in ents if e["region"] == r) for r in ("국내", "해외")},
-           "eligibility": {r: {s: c.get((r, s), 0) for s in ("ELIGIBLE", "REVIEW", "EXCLUDED")} for r in ("국내", "해외")},
-           "with_3y_financials": {r: sum(1 for e in ents if e["region"] == r and all(e["fin"].get(y, {}).get("rev") is not None and e["fin"].get(y, {}).get("op") is not None for y in YEARS)) for r in ("국내", "해외")},
-           "balanced_panel": {r: usable(r) for r in ("국내", "해외")}}
+    cov = {"entities": {r: sum(1 for e in ents if e["region"] == r) for r in ("국내", "해외", "외국계")},
+           "eligibility": {r: {s: c.get((r, s), 0) for s in ("ELIGIBLE", "REVIEW", "EXCLUDED")} for r in ("국내", "해외", "외국계")},
+           "with_3y_financials": {r: sum(1 for e in ents if e["region"] == r and all(e["fin"].get(y, {}).get("rev") is not None and e["fin"].get(y, {}).get("op") is not None for y in YEARS)) for r in ("국내", "해외", "외국계")},
+           "balanced_panel": {r: usable(r) for r in ("국내", "해외", "외국계")}}
     return {"version": 1, "generatedAt": generated or dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "years": list(YEARS), "unit": "억 원", "k_min_per_side": k,
             "basis": {"population": "국내는 소부장 경영 정보와 같은 기업군(수요기업·IT·서비스 제외)이며 업종은 그 화면과 같은 기준. 해외는 사용자 목록 중 SEC 등록 법인 본인으로 확인되고 소부장 적격으로 판정된 법인", "revenue": "기업 전체 매출액(반도체 사업 매출이 아님)", "scope": "국내는 해당 법인의 개별(별도) 재무, 해외는 SEC 등록 법인 본인의 연결 재무(10-K). 자회사 실적을 모회사 실적으로 대체하지 않음. 두 기준이 달라 직접 비교에 한계가 있음", "panel": "2023·2024·2025년 매출·영업이익이 모두 확인된 적격 법인(동일 기업군)",
                       "margin": "영업이익 합계 ÷ 매출 합계", "growth": "전년 대비, 2023년은 2022년 매출이 전원 확인될 때만", "fx": "해외 USD→원화 환산: ECB 일별 교차환율의 해당 연도 평균(2025년은 확보된 일자까지)", "nonexclusive": "한 기업이 여러 분류에 속할 수 있어 분류별 합계가 전체와 다를 수 있음"},

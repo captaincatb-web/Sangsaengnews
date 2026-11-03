@@ -7,6 +7,7 @@ from itertools import chain
 
 YEARS = (2023, 2024, 2025)
 DEPTH_KEYS = ("d1", "d2", "d3", "d4", "d5")
+REGIONS = ("국내", "해외", "외국계")  # 외국계 = 한국에 설립된 외국계 법인(원본 목록에서 '해외'로 표기, 한국 법인등록번호 보유). 해외 집계와 합산하지 않고 따로 집계
 
 
 def usable(e, years=YEARS):
@@ -31,9 +32,9 @@ def side(entities):
 
 def compare(entities):
     """국내·해외 나란히 + 영업이익률 격차(%p, 국내 − 해외)."""
-    dom = side([e for e in entities if e["region"] == "국내"]); ov = side([e for e in entities if e["region"] == "해외"])
+    dom = side([e for e in entities if e["region"] == "국내"]); ov = side([e for e in entities if e["region"] == "해외"]); fo = side([e for e in entities if e["region"] == "외국계"])
     gap = {y: (dom["margin"][y] - ov["margin"][y]) if dom.get("n") and ov.get("n") and dom["margin"][y] is not None and ov["margin"][y] is not None else None for y in YEARS}
-    return {"dom": dom, "ov": ov, "margin_gap_pp": gap}
+    return {"dom": dom, "ov": ov, "fo": fo, "margin_gap_pp": gap}
 
 
 BLANK_LABEL = "(해당 없음)"
@@ -67,14 +68,14 @@ def publishable(entities, k=5):
     by = {e["id"]: e for e in entities}; allc = cells(entities); ok = {}
     for key, ids in allc.items():
         sides = {}
-        for reg in ("국내", "해외"):
+        for reg in REGIONS:
             u = {i for i in ids if by[i]["region"] == reg and usable(by[i])}
             if len(u) >= k: sides[reg] = u
         if sides: ok[key] = sides
     changed = True
     while changed:
         changed = False
-        for reg in ("국내", "해외"):
+        for reg in REGIONS:
             keys = [kk for kk in ok if reg in ok[kk]]
             for x in keys:
                 for y in keys:
