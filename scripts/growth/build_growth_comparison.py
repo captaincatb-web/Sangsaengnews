@@ -58,7 +58,7 @@ def build_entities(priv, csv_universe):
         key = ("D:" + (r["corp_no"] or "NOID-" + r["row_id"])) if r["region"] == "국내" else ("O:" + (r["name_key"] or "NOKEY-" + r["row_id"]))
         groups[key].append(r)
     ents = []
-    roster = load_roster(priv)
+    roster = load_roster(priv); det_over = {x["name"]: x for x in rd(priv / "roster_detail_overrides.csv")}
     if roster is not None:  # 국내 = 대시보드와 같은 기업군(DART 고유번호 기준). 상세구분1~5는 사용자 목록과 법인등록번호로 연결된 경우에만 붙인다.
         cc2no = {m["dart_corp_code"]: k for k, m in match.items() if m.get("dart_corp_code")}
         # 보조 연결: 법인등록번호·DART 고유번호로 못 이은 원본 법인은 이름(지점·사업부 표기 제거)이 같은 대시보드 법인에 잇는다. 동명이 둘 이상이면 잇지 않는다.
@@ -75,7 +75,8 @@ def build_entities(priv, csv_universe):
         for r, kind in roster:
             f = {int(y): {"rev": (None if r["s"][i] is None else r["s"][i] * EOK), "op": (None if r["o"][i] is None else r["o"][i] * EOK)} for i, y in enumerate(r["y"])}
             rs = groups.get("D:" + cc2no.get(r["c"], ""), [])
-            mem = [{"chart": kind, **{k: (x[k] or None) for k in A.DEPTH_KEYS}} for x in rs] or [{"chart": kind, **{k: None for k in A.DEPTH_KEYS}}]
+            ov_d = det_over.get(r["n"])  # 원본 목록에 행이 없는 법인: 승인된 상세구분 보충(비공개 파일)
+            mem = [{"chart": kind, **{k: (x[k] or None) for k in A.DEPTH_KEYS}} for x in rs] or [{"chart": kind, **{k: ((ov_d or {}).get(k) or None) for k in A.DEPTH_KEYS}}]
             mem = [dict(m_, chart=kind) for m_ in mem]
             ents.append({"id": "D:" + r["c"], "region": "국내", "eligible": "ELIGIBLE", "fin": f, "memberships": mem})
         groups = {k: v for k, v in groups.items() if not k.startswith("D:")}
