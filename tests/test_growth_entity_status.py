@@ -31,3 +31,18 @@ class EntityStatus(unittest.TestCase):
 
 
 if __name__ == "__main__": unittest.main()
+
+
+class GptAdapter(unittest.TestCase):
+    def test_gpt_headers_and_values_mapped_without_inventing_facts(self):
+        r = {"원본그룹": "B", "목록표기": "APCB", "직전판정": "미조사", "이번검증판정": "상장 본사", "공식법인명": "APCB Inc.", "거래소": "TWSE", "티커": "6108", "소부장판정": "보류(PCB 반도체 적용 매출 미확인)", "대표업종": "부품", "공식근거URL": "https://example.org/x", "확신도(높음/중간/낮음)": "높음", "검증일": "2026-11-04"}
+        ok, rej = S.convert([r]); self.assertEqual(ok[0]["법인상태"], "상장 본사"); self.assertEqual(ok[0]["소부장판정"], "보류"); self.assertEqual(ok[0]["확인일"], "2026-11-04")
+    def test_include_review_is_not_a_confirmed_inclusion(self):
+        r = {"목록표기": "X Corp", "이번검증판정": "비상장 자회사", "모회사": "Y Inc.", "소부장판정": "포함 검토(장비)", "대표업종": "장비", "공식근거URL": "https://example.org/x"}
+        ok, rej = S.convert([r]); self.assertEqual(ok[0]["소부장판정"], "보류")
+    def test_unclear_state_becomes_unconfirmed(self):
+        r = {"목록표기": "ASML US.", "이번검증판정": "그룹 자회사(정확한 법인 보류)", "소부장판정": "보류"}
+        ok, rej = S.convert([r]); self.assertEqual(ok[0]["법인상태"], "미확인")
+    def test_delisted_without_date_rejected(self):
+        r = {"목록표기": "FEI COMPANY", "이번검증판정": "상장폐지", "거래소": "NASDAQ", "소부장판정": "보류", "공식근거URL": "https://example.org/x"}
+        ok, rej = S.convert([r]); self.assertEqual(ok, []); self.assertIn("상장폐지일 없음/형식 오류", rej)

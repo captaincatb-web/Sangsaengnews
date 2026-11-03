@@ -21,11 +21,32 @@ OUT_COLS = ["entity_key", "원본그룹", "목록표기", "공식법인명", "�
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+# GPT 조사 파일의 머리글·값 표기를 이 스키마로 옮기는 어댑터(값을 임의로 확정하지 않는 쪽으로만 매핑한다).
+HEADER_ALIAS = {"이번검증판정": "법인상태", "공식근거URL": "근거URL", "모회사": "모회사공식명", "검증일": "확인일", "추가조사사항": "추가조사필요", "독립상장본사여부": "_독립상장본사여부", "직전판정": "_직전판정", "2023~2025 재무현황": "_재무현황"}
+STATE_MAP = {"상장 본사": "상장 본사", "상장 본사(목록 표기 보완)": "상장 본사", "비상장 자회사": "비상장 자회사", "비상장 자회사/사업": "비상장 자회사", "비상장 그룹회사": "비상장 자회사", "비상장 계열회사": "비상장 자회사",
+             "비상장 해외 그룹회사": "비상장 자회사", "비상장 그룹 사업/브랜드": "비상장 자회사", "상장폐지": "상장폐지", "상장폐지/비상장 자회사": "상장폐지", "상장폐지/인수법인": "상장폐지"}  # 그 밖의 표기(명칭 보완 필요·정확한 법인 보류·브랜드/유통 채널 등)는 미확인으로 둔다
+
+
+def normalize_row(r):
+    """머리글 별칭·값 표기 정규화. '포함 검토'·'제외 검토'는 확정이 아니므로 판정을 비우거나 보류로 둔다(확정은 '포함'·'제외'로 시작하는 표기만, 포함 검토는 상장 본사에 한해 포함 의견으로 취급하지 않고 보류)."""
+    out = {}
+    for k, v in r.items():
+        k = (k or "").strip(); out[HEADER_ALIAS.get(k, k)] = v
+    st = (out.get("법인상태") or "").strip(); gpt = any((k or "").strip() == "이번검증판정" for k in r)
+    if st and st not in STATES: out["법인상태"] = STATE_MAP.get(st, "미확인" if gpt else st)  # 표준 스키마의 잘못된 값은 거부(아래 검증), GPT 조사 파일의 자유 표기만 보수적으로 변환
+    jd = (out.get("소부장판정") or "").strip()
+    if jd and jd not in JUDGE:
+        head = jd.split("(")[0].strip(); out["소부장판정"] = head if head in ("제외", "포함") else ("보류" if head in ("보류", "포함 검토", "제외 검토") else "")
+    if not out.get("법인상태"): out["법인상태"] = "미확인"
+    return out
+
+
 def clean_listing(s):
     return re.sub(r"\s*\((SEC|참고|note)[^)]*\)\s*$", "", (s or "").strip(), flags=re.I)
 
 
 def convert(rows):
+    rows = [normalize_row(r) for r in rows]
     ok, rej = [], Counter()
     by_name = defaultdict(set)
     for r in rows:
