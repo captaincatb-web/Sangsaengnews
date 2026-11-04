@@ -142,7 +142,7 @@ def build_entities(priv, csv_universe):
             ov_d = det_over.get(r["n"])  # 원본 목록에 행이 없는 법인: 승인된 상세구분 보충(비공개 파일)
             mem = [{"chart": kind, **{k: (x[k] or None) for k in A.DEPTH_KEYS}} for x in rs] or [{"chart": kind, **{k: ((ov_d or {}).get(k) or None) for k in A.DEPTH_KEYS}}]
             mem = [dict(m_, chart=kind) for m_ in mem]
-            ents.append({"id": "D:" + r["c"], "region": "국내", "eligible": "ELIGIBLE", "fin": f, "memberships": mem})
+            ents.append({"id": "D:" + r["c"], "region": "국내", "eligible": "ELIGIBLE", "fin": f, "memberships": mem, "name": r["n"]})
         groups = {k: v for k, v in groups.items() if not k.startswith("D:")}
     dom_codes = {r["c"] for r, _ in roster} if roster is not None else {m["dart_corp_code"] for m in match.values() if m.get("dart_corp_code")}
     for key, rs in groups.items():
@@ -152,7 +152,7 @@ def build_entities(priv, csv_universe):
             if m.get("dart_corp_code") in dom_codes: continue
             f = {y: v for y, v in ovf.get(key[2:], {}).items() if v.get("rev") is not None or v.get("op") is not None}
             mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
-            ents.append({"id": eid, "region": "외국계", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": mem, "_nk": rs[0]["name_key"]}); continue
+            ents.append({"id": eid, "region": "외국계", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": mem, "_nk": rs[0]["name_key"], "name": rs[0]["name_local"], "_scope": "별도"}); continue
         if region == "국내":
             m = match.get(key[2:], {}); u = univ.get(m.get("stock_code", ""))
             st = "ELIGIBLE"  # 사용자 목록의 국내 법인은 모두 대상. 검증된 160 모집단에서 '별도 관리(제외·OSAT·유통)'로 확정된 법인만 뺀다.
@@ -164,14 +164,15 @@ def build_entities(priv, csv_universe):
         mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
         rep = (ov_rows.get(eid) or {}).get("rep_chart")
         if rep: mem = [{"chart": rep, **{k: None for k in A.DEPTH_KEYS}}]  # 기업 전체 매출은 대표 업종 한 곳에만 반영(원본 품목 분류로 중복 배분하지 않음)
-        ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": mem})
+        nm_ = rs[0]["name_local"] if region == "국내" else (status.get(key[2:], {}).get("목록표기") or rs[0]["name_eng"] or rs[0]["name_local"])
+        ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": mem, "name": nm_, "_scope": next(iter(scopes.get(ALIAS_ID.get(eid, eid), {"개별"})))})
     # 사용자가 추가한 소부장 후보(원본 목록에 없던 해외 기업): 적격으로 보고 대표 업종 지정. 실적이 확인된 경우에만 집계에 들어온다.
     have = {e["id"] for e in ents}
     for x in rd(priv / "extra_candidates.csv"):
         eid = ALIAS_ID.get("O:" + x["entity_key"], "O:" + x["entity_key"])
         if eid in have: continue
         f = {y: v for y, v in fin.get(eid, {}).items() if v.get("rev") is not None or v.get("op") is not None}
-        ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}]})
+        ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}], "name": x["name"], "_scope": next(iter(scopes.get(eid, {"개별"})))})
     # 해외계 통합(사용자 결정): 한국에 설립된 외국계 법인을 해외 상장 본사와 한 집단으로 합친다.
     # 이중 집계 방지: 본사 실적이 연결 기준이고(자회사 포함) 본사가 3개년 균형 패널에 들어 있으며 본사-자회사 관계가 확인된 경우에만 한국 자회사를 뺀다.
     # 본사가 개별 기준이면 자회사는 본사 실적에 들어 있지 않으므로 빼지 않는다. 관계는 이름 접두 일치를 후보로만 쓰고 dedupe_overrides.csv(검토 결과)로 확정·부정한다.
@@ -286,6 +287,25 @@ def modes_entities(ents, priv):
     return mode
 
 
+def clean_name(s):
+    return re.sub(r"\s{2,}", " ", re.sub(r"\(주\)|㈜|주식회사|유한회사|\(유\)", " ", s or "")).strip(" ,")
+
+
+def company_rows(mid, ents):
+    """모드별 회사별 상세(사용자 승인 2026-11-04: 집계에 포함된 법인의 공시 수치를 회사별로 공개). 법인 식별번호·내부 id는 싣지 않는다. 금액은 억 원."""
+    rows = []
+    for e in ents:
+        if not A.usable(e) or not e.get("name"): continue
+        m = e["memberships"][0]; reg = "dom" if e["region"] == "국내" else "ov"
+        sc = {"cons_listed": "연결", "sep_kr": "별도" if reg == "ov" else "별도"}.get(mid) or ("별도" if reg == "dom" else e.get("_scope", "개별"))
+        if mid == "blend" and reg == "ov" and e.get("_scope") == "별도": sc = "별도"
+        det = " > ".join(str(m[k]).strip() for k in A.DEPTH_KEYS if m.get(k)) if reg == "dom" else ""
+        rows.append({"n": clean_name(e["name"]), "g": reg, "c": m["chart"], "d": det, "s": sc,
+                     "r": [round(e["fin"][y]["rev"] / EOK, 1) for y in YEARS], "o": [round(e["fin"][y]["op"] / EOK, 1) for y in YEARS]})
+    rows.sort(key=lambda x: (x["g"] != "dom", -x["r"][2]))
+    return rows
+
+
 MODE_META = {
     "blend": {"label": "국내 별도 vs 해외계 통합(참고용)", "dom": "국내(별도)", "ov": "해외계(공시 본사·한국 내 외국계)", "note": "국내는 별도 재무, 해외계는 개별 우선·미공시 시 연결이라 재무 범위가 서로 다름"},
     "cons_listed": {"label": "국내 연결 vs 해외 상장 본사 연결", "dom": "국내(연결)", "ov": "해외 상장 본사(연결)", "note": "양쪽 모두 연결 재무. 연결재무제표가 없는 기업은 별도로 대체하지 않고 제외. 해외 상장 본사 중 연결 3개년이 확인된 법인만"},
@@ -303,5 +323,8 @@ def main():
     summary = dict(built[0][1])
     summary["modes"] = [{"id": mid, "label": MODE_META[mid]["label"], "groups": [{"key": "dom", "label": MODE_META[mid]["dom"]}, {"key": "ov", "label": MODE_META[mid]["ov"]}], "note": MODE_META[mid]["note"], "coverage": b["coverage"], "cells": b["cells"]} for mid, b in built]
     p = REPO / "site" / "data" / "growth-comparison-summary.json"; p.write_text(json.dumps(summary, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    cp = REPO / "site" / "data" / "growth-companies.json"
+    cp.write_text(json.dumps({"version": 1, "generatedAt": summary["generatedAt"], "years": list(YEARS), "unit": "억 원", "note": "집계(동일 기업군)에 포함된 법인의 공시 수치. 매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아님.",
+                              "modes": [{"id": mid, "rows": company_rows(mid, e)} for mid, e in modes]}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(json.dumps({"entities": summary["coverage"]["entities"], "eligibility": summary["coverage"]["eligibility"], "with_3y": summary["coverage"]["with_3y_financials"], "balanced_panel": summary["coverage"]["balanced_panel"], "published_cells": len(summary["cells"])}, ensure_ascii=False))
 if __name__ == "__main__": main()
