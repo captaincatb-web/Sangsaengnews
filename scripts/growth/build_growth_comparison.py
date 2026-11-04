@@ -300,7 +300,14 @@ def company_rows(mid, ents):
         sc = {"cons_listed": "연결", "sep_kr": "별도" if reg == "ov" else "별도"}.get(mid) or ("별도" if reg == "dom" else e.get("_scope", "개별"))
         if mid == "blend" and reg == "ov" and e.get("_scope") == "별도": sc = "별도"
         det = " > ".join(str(m[k]).strip() for k in A.DEPTH_KEYS if m.get(k)) if reg == "dom" else ""
-        rows.append({"n": clean_name(e["name"]), "g": reg, "c": m["chart"], "d": det, "s": sc,
+        paths = []  # 상세구분 경로(집계 필터와 같은 규칙: 중간 빈칸은 '(해당 없음)', 끝쪽 빈칸은 생략). 한 법인이 여러 품목 행을 가지면 경로가 여럿
+        if reg == "dom":
+            for mm in e["memberships"]:
+                vals = [None if mm.get(k) in (None, "") else mm[k] for k in A.DEPTH_KEYS]  # 집계 필터 값(cell_keys)과 글자까지 같아야 선택값과 맞는다(공백도 그대로)
+                while vals and vals[-1] is None: vals.pop()
+                pth = [A.BLANK_LABEL if v is None else v for v in vals]
+                if pth not in paths: paths.append(pth)
+        rows.append({"n": clean_name(e["name"]), "g": reg, "c": m["chart"], "d": det, "p": paths, "s": sc,
                      "r": [round(e["fin"][y]["rev"] / EOK, 1) for y in YEARS], "o": [round(e["fin"][y]["op"] / EOK, 1) for y in YEARS]})
     rows.sort(key=lambda x: (x["g"] != "dom", -x["r"][2]))
     return rows
