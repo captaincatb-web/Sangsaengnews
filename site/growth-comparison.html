@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="sidebar.shared.css?v=202611031300">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611021500">
-  <link rel="stylesheet" href="growth-comparison.css?v=3">
+  <link rel="stylesheet" href="growth-comparison.css?v=4">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -47,6 +47,7 @@
         <li><a href="#chart-card"><i class="ph ph-chart-line-up" aria-hidden="true"></i><span class="l">매출·영업이익률</span><span class="s" aria-hidden="true">차트</span></a></li>
         <li><a href="#profit-card"><i class="ph ph-percent" aria-hidden="true"></i><span class="l">수익성 변화(%p)</span><span class="s" aria-hidden="true">수익성</span></a></li>
         <li><a href="#table-card"><i class="ph ph-table" aria-hidden="true"></i><span class="l">표로 보기</span><span class="s" aria-hidden="true">표</span></a></li>
+        <li><a href="#company-card"><i class="ph ph-buildings" aria-hidden="true"></i><span class="l">회사별 상세</span><span class="s" aria-hidden="true">회사</span></a></li>
         <li><a href="#notes-card"><i class="ph ph-info" aria-hidden="true"></i><span class="l">산출 기준·한계</span><span class="s" aria-hidden="true">기준</span></a></li>
       </ul>
     </nav>
@@ -79,6 +80,16 @@
       </section>
       <section class="db-card" id="profit-card" aria-labelledby="pt"><div class="db-card-head"><h2 id="pt">수익성 변화(%p) <small>영업이익률 = 영업이익 합계 ÷ 매출 합계, 변화·격차는 %p</small></h2></div><div class="db-tbl-wrap"><table class="db-tbl" id="ptbl"></table></div></section>
       <section class="db-card" id="table-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">표로 보기</h2></div><div class="db-tbl-wrap" style="overflow-x:auto"><table class="db-tbl" id="tbl"></table></div></section>
+      <section class="db-card" id="company-card" aria-labelledby="cot"><div class="db-card-head"><h2 id="cot">회사별 상세 <small>집계에 포함된 법인의 공시 수치</small></h2></div>
+        <div id="co-body">
+          <div class="gc-co-tools"><label class="db-sel"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span>회사·상세구분 검색</span><input id="co-q" type="search" placeholder="회사명 또는 품목" autocomplete="off"></label>
+            <label class="db-sel"><i class="ph ph-globe" aria-hidden="true"></i><span>구분</span><select id="co-g"><option value="">전체</option><option value="dom">국내</option><option value="ov">해외계</option></select></label>
+            <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>분류</span><select id="co-c"><option value="">전체</option></select></label></div>
+          <p class="gc-result" id="co-count" role="status"></p><p class="gc-note" id="co-note"></p>
+          <div class="db-tbl-wrap gc-co-wrap"><table class="db-tbl gc-co-tbl" id="co-tbl"></table></div>
+          <p class="gc-empty" id="co-empty" hidden>조건에 맞는 회사가 없습니다.</p>
+          <button type="button" class="gc-more" id="co-more" hidden></button>
+        </div></section>
       <section class="db-card" id="notes-card" aria-labelledby="nt"><div class="db-card-head"><h2 id="nt">산출 기준과 한계</h2></div><ul class="gc-notes" id="notes"></ul><div id="cov"></div></section>
     </div>
   </main>
@@ -87,5 +98,6 @@
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
   <script src="growth-comparison.js?v=5"></script>
+  <script src="growth-companies.js?v=1"></script>
 </body>
 </html>

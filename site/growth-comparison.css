@@ -18,3 +18,11 @@
 .gc-view select{max-width:min(100%,320px);text-overflow:ellipsis}
 .gc-modenote{margin:6px 0 2px;font-size:12.5px;color:var(--text-2);line-height:1.5}
 .gc-modecount{margin:0 0 6px;font-size:12.5px;color:var(--text-2)}
+
+.gc-co-tools{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px}.gc-co-tools input{width:100%;min-height:36px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);padding:0 10px;font:inherit}
+@media(max-width:640px){.gc-co-tools{grid-template-columns:1fr}}
+.gc-co-wrap{max-height:70vh;overflow:auto}.gc-co-tbl{min-width:1180px;font-variant-numeric:tabular-nums}.gc-co-tbl th,.gc-co-tbl td{text-align:right;white-space:nowrap}.gc-co-tbl .l{text-align:left}
+.gc-co-tbl thead th{position:sticky;top:0;z-index:2;background:var(--surface,var(--card))}.gc-co-tbl thead button{all:unset;cursor:pointer;font-weight:600;font-size:12.5px}.gc-co-tbl thead button:focus-visible{outline:2px solid var(--primary,#256ef4);outline-offset:2px}
+.gc-co-tbl tbody th.l{position:sticky;left:0;z-index:1;background:var(--card);font-weight:600;max-width:260px;white-space:normal;min-width:150px}.gc-co-tbl tbody th small{display:block;font-weight:400;color:var(--text-3);font-size:11px;line-height:1.35}
+.gc-more{display:block;margin:10px auto 0;min-height:38px;padding:0 16px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);cursor:pointer;font:inherit}
+.gc-co-tbl thead th:first-child{position:sticky;left:0;z-index:3}
