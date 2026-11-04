@@ -107,6 +107,7 @@ def build_entities(priv, csv_universe):
             if jd_ in ("포함", "제외", "보류"):
                 over[eid_] = {"포함": "ELIGIBLE", "제외": "EXCLUDED", "보류": "REVIEW"}[jd_]
                 if x_.get("대표업종"): ov_rows[eid_] = {"entity_id": eid_, "eligible": over[eid_], "rep_chart": x_["대표업종"]}
+    od = {x["entity_id"]: x for x in rd(priv / "overseas_detail.csv")}  # 해외 법인 상세구분(사용자 지정 2026-11-04, 비공개 파일): entity_id, name, d1~d5
     guard_log = []
     for k_, x_ in status.items():  # 모회사 수치를 자회사·지점에 대체 입력 금지: 자체 공시가 없는 비상장 자회사·지점으로 판정된 법인의 재무는 쓰지 않는다
         eid_ = "O:" + k_
@@ -164,15 +165,16 @@ def build_entities(priv, csv_universe):
         mem = [{"chart": r["chart_category"], **{k: (r[k] or None) for k in A.DEPTH_KEYS}} for r in rs]
         rep = (ov_rows.get(eid) or {}).get("rep_chart")
         if rep: mem = [{"chart": rep, **{k: None for k in A.DEPTH_KEYS}}]  # 기업 전체 매출은 대표 업종 한 곳에만 반영(원본 품목 분류로 중복 배분하지 않음)
+        if region != "국내" and eid in od: mem = [{"chart": rep or mem[0]["chart"], **{k: (od[eid].get(k) or None) for k in A.DEPTH_KEYS}}]  # 사용자 지정 상세구분
         nm_ = rs[0]["name_local"] if region == "국내" else (status.get(key[2:], {}).get("목록표기") or rs[0]["name_eng"] or rs[0]["name_local"])
-        ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": mem, "name": nm_, "_scope": next(iter(scopes.get(ALIAS_ID.get(eid, eid), {"개별"})))})
+        ents.append({"id": eid, "region": region, "eligible": st, "fin": f, "memberships": mem, "name": (od.get(eid, {}).get("name") or nm_), "_scope": next(iter(scopes.get(ALIAS_ID.get(eid, eid), {"개별"})))})
     # 사용자가 추가한 소부장 후보(원본 목록에 없던 해외 기업): 적격으로 보고 대표 업종 지정. 실적이 확인된 경우에만 집계에 들어온다.
     have = {e["id"] for e in ents}
     for x in rd(priv / "extra_candidates.csv"):
         eid = ALIAS_ID.get("O:" + x["entity_key"], "O:" + x["entity_key"])
         if eid in have: continue
         f = {y: v for y, v in fin.get(eid, {}).items() if v.get("rev") is not None or v.get("op") is not None}
-        ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: None for k in A.DEPTH_KEYS}}], "name": x["name"], "_scope": next(iter(scopes.get(eid, {"개별"})))})
+        ents.append({"id": eid, "region": "해외", "eligible": over.get(eid, "ELIGIBLE"), "fin": f, "memberships": [{"chart": x["rep_chart"], **{k: (od.get(eid, {}).get(k) or None) for k in A.DEPTH_KEYS}}], "name": (od.get(eid, {}).get("name") or x["name"]), "_scope": next(iter(scopes.get(eid, {"개별"})))})
     # 해외계 통합(사용자 결정): 한국에 설립된 외국계 법인을 해외 상장 본사와 한 집단으로 합친다.
     # 이중 집계 방지: 본사 실적이 연결 기준이고(자회사 포함) 본사가 3개년 균형 패널에 들어 있으며 본사-자회사 관계가 확인된 경우에만 한국 자회사를 뺀다.
     # 본사가 개별 기준이면 자회사는 본사 실적에 들어 있지 않으므로 빼지 않는다. 관계는 이름 접두 일치를 후보로만 쓰고 dedupe_overrides.csv(검토 결과)로 확정·부정한다.
@@ -299,14 +301,13 @@ def company_rows(mid, ents):
         m = e["memberships"][0]; reg = "dom" if e["region"] == "국내" else "ov"
         sc = {"cons_listed": "연결", "sep_kr": "별도" if reg == "ov" else "별도"}.get(mid) or ("별도" if reg == "dom" else e.get("_scope", "개별"))
         if mid == "blend" and reg == "ov" and e.get("_scope") == "별도": sc = "별도"
-        det = " > ".join(str(m[k]).strip() for k in A.DEPTH_KEYS if m.get(k)) if reg == "dom" else ""
+        det = " > ".join(str(m[k]).strip() for k in A.DEPTH_KEYS if m.get(k))
         paths = []  # 상세구분 경로(집계 필터와 같은 규칙: 중간 빈칸은 '(해당 없음)', 끝쪽 빈칸은 생략). 한 법인이 여러 품목 행을 가지면 경로가 여럿
-        if reg == "dom":
-            for mm in e["memberships"]:
-                vals = [None if mm.get(k) in (None, "") else mm[k] for k in A.DEPTH_KEYS]  # 집계 필터 값(cell_keys)과 글자까지 같아야 선택값과 맞는다(공백도 그대로)
-                while vals and vals[-1] is None: vals.pop()
-                pth = [A.BLANK_LABEL if v is None else v for v in vals]
-                if pth not in paths: paths.append(pth)
+        for mm in e["memberships"]:
+            vals = [None if mm.get(k) in (None, "") else mm[k] for k in A.DEPTH_KEYS]  # 집계 필터 값(cell_keys)과 글자까지 같아야 선택값과 맞는다(공백도 그대로)
+            while vals and vals[-1] is None: vals.pop()
+            pth = [A.BLANK_LABEL if v is None else v for v in vals]
+            if pth and pth not in paths: paths.append(pth)  # 상세구분이 없는 법인(경로 빈 값)은 경로 목록에 넣지 않는다
         rows.append({"n": clean_name(e["name"]), "g": reg, "c": m["chart"], "d": det, "p": paths, "s": sc,
                      "r": [round(e["fin"][y]["rev"] / EOK, 1) for y in YEARS], "o": [round(e["fin"][y]["op"] / EOK, 1) for y in YEARS]})
     rows.sort(key=lambda x: (x["g"] != "dom", -x["r"][2]))

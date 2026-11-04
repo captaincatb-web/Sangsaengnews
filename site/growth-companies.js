@@ -24,6 +24,7 @@ function render(){
  $('co-empty').hidden=rows.length>0;
 }
 fetch('data/growth-companies.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{D=j;
+ window.GC_ROWS=j.modes.flatMap(m=>m.rows.map(x=>({c:x.c,p:x.p})));if(window.gcSync)window.gcSync();  // 상단 상세구분 선택지에 회사별 상세의 경로를 보탠다
  $('co-note').textContent=(j.note||'')+' 금액 단위: '+j.unit+'. 재무 기준은 비교 기준에 따라 다릅니다(별도·연결·개별).';
  const cs=[...new Set(j.modes.flatMap(m=>m.rows.map(x=>x.c)))].sort();$('co-c').innerHTML='<option value="">전체</option>'+cs.map(c=>'<option>'+esc(c)+'</option>').join('');
  ['co-q','co-g','co-c'].forEach(id=>$(id).addEventListener(id==='co-q'?'input':'change',()=>{shown=60;render()}));
