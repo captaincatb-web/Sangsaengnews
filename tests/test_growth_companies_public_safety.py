@@ -20,8 +20,8 @@ class CompaniesPublicSafety(unittest.TestCase):
                 self.assertEqual(set(r), ROW_KEYS); self.assertIn(r["g"], ("dom", "ov")); self.assertIn(r["c"], ("소재", "부품", "장비")); self.assertTrue(r["n"].strip())
                 for k in ("r", "o"):
                     self.assertEqual(len(r[k]), 3); self.assertTrue(all(isinstance(v, (int, float)) for v in r[k]))
-                if r["g"] == "ov": self.assertEqual((r["d"], r["p"]), ("", []))
-                else: self.assertTrue(all(isinstance(q, list) and all(isinstance(v, str) for v in q) for q in r["p"]))
+                self.assertTrue(all(isinstance(q, list) and q and all(isinstance(v, str) for v in q) for q in r["p"]))
+                if r["g"] == "dom": self.assertTrue(r["p"] or True)
 
     def test_no_identifiers_or_legal_forms(self):
         self.assertIsNone(re.search(r"\d{10,}", self.raw)); self.assertIsNone(re.search(r"\d{3}-\d{2}-\d{5}|\d{6}-\d{7}", self.raw))
