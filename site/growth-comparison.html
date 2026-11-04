@@ -78,13 +78,14 @@
         <div class="gc-influence" id="influence" hidden></div>
       </section>
       <section class="db-card" id="profit-card" aria-labelledby="pt"><div class="db-card-head"><h2 id="pt">수익성 변화(%p) <small>영업이익률 = 영업이익 합계 ÷ 매출 합계, 변화·격차는 %p</small></h2></div><div class="db-tbl-wrap"><table class="db-tbl" id="ptbl"></table></div></section>
-      <section class="db-card" id="table-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">표로 보기</h2></div><div class="db-tbl-wrap"><table class="db-tbl" id="tbl"></table></div></section>
+      <section class="db-card" id="table-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">표로 보기</h2></div><div class="db-tbl-wrap" style="overflow-x:auto"><table class="db-tbl" id="tbl"></table></div></section>
       <section class="db-card" id="notes-card" aria-labelledby="nt"><div class="db-card-head"><h2 id="nt">산출 기준과 한계</h2></div><ul class="gc-notes" id="notes"></ul><div id="cov"></div></section>
     </div>
   </main>
   <script src="data/status.js?v=202611011230"></script>
-  <script src="data-status.js?v=202611021500"></script>
+  <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"성장 비교 집계",updated:"",note:"집계 파일 불러오는 중"}};</script>
+  <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="growth-comparison.js?v=4"></script>
+  <script src="growth-comparison.js?v=5"></script>
 </body>
 </html>

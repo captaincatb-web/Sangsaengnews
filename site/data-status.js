@@ -17,7 +17,9 @@
   };
   const stateText = { fresh: "최근 수집 완료", cached: "이전 수집 데이터 표시 중", stale: "최신 데이터 갱신 지연", missing: "데이터 기준일을 확인할 수 없습니다", unknown: "상태 확인 중" };
   const stateClass = { fresh: "is-fresh", cached: "is-cached", stale: "is-missing", missing: "is-missing", unknown: "" };
-  const keys = ["profiles", "financials", "peers", "market", "caps"];
+  // 페이지가 자기 데이터만 표시하도록 지정할 수 있다(window.SITE_DATA_STATUS_KEYS, window.SITE_DATA_STATUS_EXTRA).
+  Object.assign(fallback, window.SITE_DATA_STATUS_EXTRA || {});
+  const keys = window.SITE_DATA_STATUS_KEYS || ["profiles", "financials", "peers", "market", "caps"];
   const items = keys.map((key) => {
     const item = sources[key] || fallback[key] || {};
     const state = item.status || (item.updated ? "unknown" : "missing");
