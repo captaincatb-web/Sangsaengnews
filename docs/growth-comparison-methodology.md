@@ -36,7 +36,12 @@
 규칙: 확정 판정(미확인 외 상태, 포함·제외)은 http 근거 URL 필수, 상장 본사·상장폐지는 거래소·티커·식별자 필요, 상장폐지는 상장폐지일, 자회사·지점은 모회사 공식명, 포함은 대표업종. 같은 목록표기에 공식법인명이 둘 이상이면 식별 충돌로 거부합니다(이름이 비슷하다고 합치지 않음). 조사 CSV에 없는 법인은 '미확인'으로 남기며 임의로 상장·비상장으로 확정하지 않습니다. 사용자 결정(`eligibility_overrides.csv`)이 판정 CSV보다 우선하고, 판정 CSV가 '비상장 자회사·지점'으로 본 법인의 재무 수치는 쓰지 않습니다(모회사 수치 대체 금지, `fin_guard_log.csv`).
 
 ## 2-3. 국가별 공시 수집기 (`scripts/growth/collectors/`)
-모듈마다 `CAPABILITY`(implemented / live_verified / fixture_tested)를 가집니다. `live_verified`는 실제 Actions 실행으로 확인되기 전에는 False입니다. 접근 점검은 `probe_collectors.py`(소스당 GET 1회, 403·429는 기록 후 중단)로 하며 결과는 비공개 `collector_status.json`입니다. 2026-11-03 점검: 미국 SEC 접근 가능(인증 불필요, 기존 수집기는 실제 동작 확인), 일본 EDINET API 접근 가능하나 구독 키 필요(키 미보유, 수집 미검증), 대만 TWSE OpenAPI 접근 가능(최신 분기 한 건만 제공 → 3개년 이력 불가), 중국 CNINFO 호출 시 서버 오류(수집 불가·미검증), 유럽은 국가별 공시 소스가 달라 자리표시만 있고 수집 미구현.
+모듈마다 `CAPABILITY`(implemented / live_verified / fixture_tested)를 가집니다. `live_verified`는 실제 Actions 실행으로 확인되기 전에는 False입니다. 접근 점검은 `probe_collectors.py`(소스당 GET 1회, 403·429는 기록 후 중단)로 하며 결과는 비공개 `collector_status.json`입니다. 2026-11-03 점검: 미국 SEC 접근 가능(인증 불필요, 기존 수집기는 실제 동작 확인), 일본 EDINET API v2는 구독 키(`EDINET_API_KEY`, 저장소 secret)로 실제 수집을 확인했습니다(`collect_edinet.py`: 유가증권보고서 재무 CSV에서 개별 우선 매출·영업이익 추출, 3·6·9·12월 제출 창 탐색). 2026-11-04 실행에서 대상 40곳 중 39곳의 문서를 받고 37곳이 3개년을 채웠으며, 조사 CSV와 겹친 56행은 값이 모두 일치했습니다, 대만 TWSE OpenAPI 접근 가능(최신 분기 한 건만 제공 → 3개년 이력 불가), 중국 CNINFO 호출 시 서버 오류(수집 불가·미검증), 유럽은 국가별 공시 소스가 달라 자리표시만 있고 수집 미구현.
+
+### 다각화 기업 포함 기준 (2026-11-04 결정)
+- 반도체 관련 매출이 법인 전체 매출의 **50% 이상**임이 공식 자료로 확인된 법인만 소부장 집계에 포함한다.
+- 확인 전에는 "보류"로 두고 집계에서 제외한다(현재 Sumitomo Heavy, LINTEC, Kurita, Hamamatsu). 재무가 확보돼 있어도 같다.
+- 반입 시 `eligibility_overrides.csv` 의 사용자 결정이 `entity_status.csv` 판정보다 우선한다.
 
 ## 3. 데이터 출처
 - **국내**: DART 개별(별도, OFS) 재무제표. 대시보드와 같은 수집기(`scripts/build_financials.py`)를 비공개 Actions에서 돌려 얻습니다.
