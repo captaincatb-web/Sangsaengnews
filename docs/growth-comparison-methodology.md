@@ -38,6 +38,11 @@
 ## 2-3. 국가별 공시 수집기 (`scripts/growth/collectors/`)
 모듈마다 `CAPABILITY`(implemented / live_verified / fixture_tested)를 가집니다. `live_verified`는 실제 Actions 실행으로 확인되기 전에는 False입니다. 접근 점검은 `probe_collectors.py`(소스당 GET 1회, 403·429는 기록 후 중단)로 하며 결과는 비공개 `collector_status.json`입니다. 2026-11-03 점검: 미국 SEC 접근 가능(인증 불필요, 기존 수집기는 실제 동작 확인), 일본 EDINET API v2는 구독 키(`EDINET_API_KEY`, 저장소 secret)로 실제 수집을 확인했습니다(`collect_edinet.py`: 유가증권보고서 재무 CSV에서 개별 우선 매출·영업이익 추출, 3·6·9·12월 제출 창 탐색). 2026-11-04 실행에서 대상 40곳 중 39곳의 문서를 받고 37곳이 3개년을 채웠으며, 조사 CSV와 겹친 56행은 값이 모두 일치했습니다, 대만 TWSE OpenAPI 접근 가능(최신 분기 한 건만 제공 → 3개년 이력 불가), 중국 CNINFO 호출 시 서버 오류(수집 불가·미검증), 유럽은 국가별 공시 소스가 달라 자리표시만 있고 수집 미구현.
 
+### 다각화 기업 포함 기준 (2026-11-04 결정)
+- 반도체 관련 매출이 법인 전체 매출의 **50% 이상**임이 공식 자료로 확인된 법인만 소부장 집계에 포함한다.
+- 확인 전에는 "보류"로 두고 집계에서 제외한다(현재 Sumitomo Heavy, LINTEC, Kurita, Hamamatsu). 재무가 확보돼 있어도 같다.
+- 반입 시 `eligibility_overrides.csv` 의 사용자 결정이 `entity_status.csv` 판정보다 우선한다.
+
 ## 3. 데이터 출처
 - **국내**: DART 개별(별도, OFS) 재무제표. 대시보드와 같은 수집기(`scripts/build_financials.py`)를 비공개 Actions에서 돌려 얻습니다.
 - **국내 소재 외국계**: DART 사업보고서 개별 재무 → 없으면 감사보고서 원문(`scripts/growth/collect_audit.py`). 감사보고서 값은 억 원 단위로 반올림되어 있습니다.
