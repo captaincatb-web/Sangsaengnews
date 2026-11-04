@@ -680,3 +680,9 @@ details.db-foot p { margin: 6px 0 0; }
 body[data-view="company"] .db-filters, body[data-view="company"] .db-filter-toggle { display: none !important; }
 
 .cm-page .slot { outline: none; } .cm-page .slot:focus-visible .colbg { opacity: .15; stroke: var(--brand); stroke-width: 1.5; stroke-opacity: .55; }
+
+/* 해외 비교 개요: 회사별 표의 인라인 막대 */
+.cm-mini{display:block;height:4px;margin-top:3px;border-radius:2px;background:var(--line);overflow:hidden}.cm-mini i{display:block;height:100%;border-radius:2px;background:var(--blue,#256ef4)}.cm-mini.neg i{background:var(--red,#d63d4a)}
+#c-ocv .cm-tbl td{min-width:96px}#c-ocv .cm-tbl{min-width:820px}
+.cm-cty{display:none}
+@media(max-width:640px){#c-ocv .cm-hm{display:none}#c-ocv .cm-tbl{min-width:0}#c-ocv .cm-cty{display:block;font-weight:400}#c-ocv .cm-tbl td{min-width:0}}
