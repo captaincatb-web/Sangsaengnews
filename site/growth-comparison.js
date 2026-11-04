@@ -127,7 +127,9 @@ function notes(){
   h+='. '}
  h+='확인되지 않은 법인은 집계에서 제외하며 수치를 추정하지 않습니다.</p>';
  $('cov').innerHTML=h;
- $('updated').textContent=(S.generatedAt||'').slice(0,10)}
+ $('updated').textContent=(S.generatedAt||'').slice(0,10);
+ const ds=document.querySelector('.site-data-status__item');if(ds&&S.generatedAt){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');
+  n.textContent=S.generatedAt.slice(0,10)+' 기준 · 국내 '+(bp['국내']!=null?bp['국내']:'–')+'곳 · 해외계 '+(bp['해외']!=null?bp['해외']:'–')+'곳';t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
 function legend(){$('legend').innerHTML=GR.map(g=>'<li><i class="sq" style="background:'+g.color+'"></i>'+esc(g.full)+'</li>').join('')}
 
 /* ---------- 초기화 ---------- */
