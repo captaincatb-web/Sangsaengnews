@@ -1,0 +1,191 @@
+{
+ "topic": "환율이 오르면 내 돈은 어떻게 될까",
+ "cover": {
+  "label": "환율 해부",
+  "lines": [
+   "환율이 오르면",
+   "내 돈은 어떻게 될까?"
+  ],
+  "highlight": [
+   "환율",
+   "내 돈"
+  ],
+  "series": "환율 · EP.01",
+  "scene": 1
+ },
+ "caption": "환율이 올랐다는 뉴스, 매일 듣지만\n그래서 내 돈엔 무슨 일이 생길까요?\n\n1달러가 1,300원에서 1,400원이 되면\n100달러짜리 물건은 1만 원 비싸집니다.\n\n누가 손해 보고, 누가 웃을까요?\n오늘은 환율의 속을 해부해봅니다.",
+ "hashtags": [
+  "#환율",
+  "#달러",
+  "#경제공부",
+  "#재테크"
+ ],
+ "note": "※ 영상 속 환율은 이해를 돕기 위한 예시입니다.",
+ "say": {
+  "수입 원자재값도 오르니": "수입 원자재 값도 오르니",
+  "물건을 해외에 파는 수출 기업들이죠.": "물건을 해외에 파는, 수출 기업들이죠."
+ },
+ "scenes": [
+  {
+   "lines": [
+    "뉴스에서 환율이 올랐다는 말, 자주 들리죠?",
+    "그런데 이게 내 지갑과 무슨 상관일까요?"
+   ],
+   "image": "the girl stands on a busy Myeongdong street in Seoul in front of a currency exchange shop, looking up curiously at the shop's exchange rate board",
+   "screen_text": [
+    "원/달러 환율",
+    "▲ 상승"
+   ],
+   "screen_where": "on the currency exchange shop's LED rate board",
+   "motion": "slow push-in toward the character, pedestrians walking by in the background",
+   "cast": [
+    "girl"
+   ]
+  },
+  {
+   "lines": [
+    "환율이 오른다는 건",
+    "1달러를 사는 데 더 많은 원화가 든다는 뜻입니다."
+   ],
+   "image": "the girl at a bank counter placing a stack of Korean won banknotes next to a single US dollar bill, close medium shot",
+   "screen_text": [
+    "1달러 = 더 많은 원화"
+   ],
+   "screen_where": "on a small digital sign on the bank counter",
+   "motion": "camera slowly tilts down from the character's face to the banknotes",
+   "cast": [
+    "girl"
+   ]
+  },
+  {
+   "lines": [
+    "예를 들어 1달러가 1,300원에서 1,400원이 되면,"
+   ],
+   "image": "close-up of a large exchange rate display inside a bright bank lobby, the number on the display just changed, nobody in frame",
+   "screen_text": [
+    "1달러",
+    "1,300원 → 1,400원"
+   ],
+   "screen_where": "on the bank lobby's large exchange rate display",
+   "motion": "quick push-in on the display as the number flips",
+   "cast": []
+  },
+  {
+   "lines": [
+    "100달러짜리 물건값은 13만 원에서 14만 원이 됩니다."
+   ],
+   "image": "the girl sits at a cozy home desk shopping online on a laptop, surprised expression, the laptop screen is visible",
+   "screen_text": [
+    "$100",
+    "130,000원 → 140,000원"
+   ],
+   "screen_where": "on the laptop screen",
+   "motion": "slow push-in on the laptop screen as the character leans back in surprise",
+   "cast": [
+    "girl"
+   ]
+  },
+  {
+   "lines": [
+    "해외 직구나 여행 경비가 비싸지는 이유죠."
+   ],
+   "image": "the two characters pull small suitcases through the bright departure hall of Incheon International Airport, looking up at a large flight information board",
+   "screen_text": [
+    "해외여행 경비 ▲"
+   ],
+   "screen_where": "on the airport's large digital board",
+   "motion": "tracking shot following the character walking with the suitcase",
+   "cast": [
+    "girl",
+    "boy"
+   ]
+  },
+  {
+   "lines": [
+    "수입 원자재값도 오르니",
+    "기름값과 장바구니 물가까지 오를 수 있습니다."
+   ],
+   "image": "the boy stands at a Korean gas station at dusk holding a fuel nozzle, looking worriedly at the tall price sign",
+   "screen_text": [
+    "휘발유 ▲"
+   ],
+   "screen_where": "on the gas station's tall price sign",
+   "motion": "slow crane up from the character to the price sign",
+   "cast": [
+    "boy"
+   ]
+  },
+  {
+   "lines": [
+    "반대로 웃는 쪽도 있습니다.",
+    "물건을 해외에 파는 수출 기업들이죠."
+   ],
+   "image": "wide aerial shot of a huge container port in Busan at golden hour, a giant cargo ship stacked with colorful containers, cranes working",
+   "screen_text": [
+    "수출 ▲"
+   ],
+   "screen_where": "on a large digital sign at the port",
+   "motion": "wide aerial pull-back revealing the busy port",
+   "cast": []
+  },
+  {
+   "lines": [
+    "같은 1달러를 벌어도",
+    "원화로 바꾸면 손에 쥐는 돈이 더 많아지기 때문입니다."
+   ],
+   "image": "the boy in a modern factory office holds up a giant shiny golden coin with a dollar sign, smiling, factory floor visible through the glass",
+   "screen_text": [
+    "1달러 = 1,400원"
+   ],
+   "screen_where": "on a wall-mounted monitor in the office",
+   "motion": "slow orbit around the character holding the coin",
+   "cast": [
+    "boy"
+   ]
+  },
+  {
+   "lines": [
+    "달러로 자산을 가진 사람도",
+    "원화로 따진 평가액이 늘어납니다."
+   ],
+   "image": "the girl sits in a sunny cafe by the window checking a US stock app on a smartphone, a latte on the table",
+   "screen_text": [
+    "미국 주식 평가액 ▲"
+   ],
+   "screen_where": "on the smartphone screen",
+   "motion": "slow push-in on the smartphone screen",
+   "cast": [
+    "girl"
+   ]
+  },
+  {
+   "lines": [
+    "그래서 환율 뉴스는",
+    "내 물가, 내 월급, 내 투자까지 연결된 신호입니다."
+   ],
+   "image": "wide shot of the Seoul skyline from a Han River bridge at blue hour, glowing towers, a large digital billboard on a building",
+   "screen_text": [
+    "환율 = 내 지갑 신호"
+   ],
+   "screen_where": "on the building's large digital billboard",
+   "motion": "slow pan across the skyline ending on the character",
+   "cast": []
+  },
+  {
+   "lines": [
+    "오늘 장바구니 가격표를 보면,",
+    "환율이 먼저 보일지도 모릅니다."
+   ],
+   "image": "the two characters in a bright Korean supermarket aisle, the girl holds a shopping basket and the boy looks closely at a price tag on imported fruit",
+   "screen_text": [
+    "수입 과일"
+   ],
+   "screen_where": "on the shelf price sign",
+   "motion": "gentle push-in as the character looks at the price tag and smiles knowingly",
+   "cast": [
+    "girl",
+    "boy"
+   ]
+  }
+ ]
+}
