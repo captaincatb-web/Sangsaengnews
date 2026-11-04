@@ -16,7 +16,7 @@
   });
   const CATS = [...SOBU, REF];
   const tagOf = (p) => p.seg1 || p.cat;
-  const state = { kind: "sobu", ctry: "all", sortP: { k: "s1", d: -1 }, sortS: { k: "cap", d: -1 }, co: null };
+  const state = { kind: "sobu", ctry: "all", sortP: { k: "s1", d: -1 }, sortO: { k: "m", d: -1 }, sortS: { k: "cap", d: -1 }, co: null };
 
   // ---------- 표기 ----------
   const nf = (v, d = 0) => v.toLocaleString("ko-KR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -141,6 +141,28 @@
     $("c-bg").innerHTML = group("매출 증감률", "g", (v) => sgn(v), () => "전년 매출이 없어 증감률 계산 불가");
     $("c-gm").innerHTML = distro(rows.filter((r) => r.g != null && r.m != null));
     $("c-kb").innerHTML = kindBubbles();
+    drawCompanyList();
+  }
+
+  // 회사별 영업이익률·매출 증감률(개요): 위 중앙값 막대와 같은 값을 기업별로 펼친 표. 막대 길이는 상위 이상치에 눌리지 않게 90분위 수의 1.5배에서 자른다.
+  function drawCompanyList() {
+    const cap = (key) => { const v = rows.map((r) => r[key]).filter((x) => x != null).map(Math.abs).sort((a, b) => a - b); return v.length ? Math.max(v[Math.floor((v.length - 1) * 0.9)] * 1.5, 1e-9) : 1; };
+    const cm = cap("m"), cg = cap("g");
+    const mini = (v, c) => (v == null ? "" : `<span class="cm-mini ${v < 0 ? "neg" : ""}" aria-hidden="true"><i style="width:${Math.min(100, (Math.abs(v) / c) * 100)}%"></i></span>`);
+    const co = (r) => `<a href="#company" data-co="${r.p.k}">${esc(r.p.n)}</a><small class="cm-cty">${esc(CTRY[r.p.ctry] || r.p.ctry)} · ${esc(r.p.cat)}</small>`, why = (r, w) => `${r.p.n}: ${w}`;
+    const cols = [
+      { k: "n", t: "회사", l: 1, f: co }, { k: "ctry", t: "국가", l: 1, f: (r) => CTRY[r.p.ctry] || r.p.ctry },
+      { k: "cat", t: "구분", l: 1, f: (r) => `${esc(r.p.cat)}${r.p.seg1 ? `<small>${esc(r.p.seg1)}</small>` : ""}` },
+      { k: "s1", t: "매출", f: (r) => cell(won(r.s1), srcPeer(r.p, "매출", r.L), why(r, "매출 값을 받지 못함")) },
+      { k: "g", t: "매출 증감률", f: (r) => cell(sgn(r.g), srcPeer(r.p, "매출 증감률(전년 대비)", r.L), why(r, "전년 매출이 없어 계산 불가")) + mini(r.g, cg) },
+      { k: "m", t: "영업이익률", f: (r) => cell(r.m == null ? null : mgf(r.m), srcPeer(r.p, "영업이익률(영업이익÷매출)", r.L), why(r, "영업이익이 없어 계산 불가")) + mini(r.m, cm) },
+      { k: "dm", t: "전년 대비(%p)", f: (r) => cell(ppp(r.dm), srcPeer(r.p, "영업이익률 전년 대비 변화(%p)", r.L), why(r, "전년 영업이익률을 알 수 없음")) },
+      { k: "mt", t: "결산", f: (r) => `${r.p.mt}월<small>${r.fy}년</small>` },
+    ];
+    $("ov-co-sub").textContent = `${rows.length}곳 · 연결 · 원화 환산 · 열 제목을 누르면 정렬 · 회사명을 누르면 기업 상세`;
+    $("c-ocv").innerHTML = table(cols, sortBy(rows, state.sortO), state.sortO);
+    $("c-ocv").querySelectorAll("tr").forEach((tr) => [1, 2, 3, 7].forEach((i) => tr.children[i] && tr.children[i].classList.add("cm-hm"))); // 좁은 화면에서는 국가·구분·매출·결산 열을 숨겨 핵심 열이 한 화면에 보이게 한다
+    $("c-ocv").onclick = (e) => { const b = e.target.closest("button[data-k]"); if (b) { state.sortO = { k: b.dataset.k, d: state.sortO.k === b.dataset.k ? -state.sortO.d : (b.dataset.k === "n" || b.dataset.k === "ctry" || b.dataset.k === "cat" ? 1 : -1) }; drawCompanyList(); } };
   }
 
   // 매출·영업이익 막대 + 영업이익률 선(위 띠). 대시보드 경영 개요와 같은 차트: 왼쪽 축=매출, 오른쪽 축=영업이익, 위 띠=이익률
