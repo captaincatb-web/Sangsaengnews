@@ -182,7 +182,9 @@
   const pc2 = (v) => (v == null || !isFinite(v) ? "-" : `${nf(v * 100, 2)}%`);
   const bigInc = {}; // 시장별 대형 겸업 기업 포함 여부(기본 포함)
   // 시장 비중 필터: ①대기업 제외(삼성전기 등, 목록은 고르거나 더할 수 있음) ②프로필 기업 현황의 그룹(1·2·3그룹 등)만 보기. 둘 다 시총 합계를 종목 단위로 다시 계산한다.
-  const DEFAULT_BIG = ["삼성전기", "고려아연", "LG이노텍", "LG화학", "두산"];
+  // 기본 제외 대기업: 공정거래위원회 공시대상기업집단(대기업집단) 계열사 또는 사용자가 지정한 대형 겸업 기업. 그룹은 언론 보도·공시 기준 확인(공정위 지정 목록으로 재확인 권장)
+  const BIG_GROUP = { 삼성전기: "삼성", 레인보우로보틱스: "삼성(삼성전자 최대주주)", LG이노텍: "LG", LG화학: "LG", 두산: "두산", 고려아연: "고려아연(사용자 지정)", 한화비전: "한화", 롯데정밀화학: "롯데", OCI: "OCI" };
+  const DEFAULT_BIG = ["삼성전기", "고려아연", "LG이노텍", "LG화학", "두산", "한화비전", "롯데정밀화학", "레인보우로보틱스", "OCI"];
   const sf = { exclOn: false, excl: new Set(DEFAULT_BIG), groups: new Set() };
   const sfActive = () => sf.exclOn || sf.groups.size > 0;
   const grpCodes = () => { const m = {}; (window.COMPANY_GROUPS || []).forEach((g) => g.companies.forEach((c) => { if (c[2]) (m[c[2]] = m[c[2]] || []).push(g.id); })); return m; };
@@ -211,7 +213,7 @@
     const addOpts = (CP0 && CP0.rows ? CP0.rows : []).filter((r) => r.cap && !candNames.includes(r.n)).sort((a, b) => b.cap - a.cap).slice(0, 40).map((r) => `<option value="${esc(r.n)}">${esc(r.n)} (${won(r.cap)})</option>`).join("");
     const filt = `<section class="db-card ms-flt" aria-labelledby="ms-tf"><div class="db-card-head"><h2 id="ms-tf">보기 조건<small>업종 현황·코스피/코스닥 상세에 함께 적용</small></h2></div>
       <div class="ms-flt-row"><label class="ms-tg"><input type="checkbox" id="ms-excl-on"${sf.exclOn ? " checked" : ""}><span>대기업 제외</span></label>
-        <div class="ms-chips" role="group" aria-label="제외할 대기업">${candNames.map((n) => `<label class="ms-chip${sf.exclOn ? "" : " off"}"><input type="checkbox" data-excl="${esc(n)}"${sf.excl.has(n) ? " checked" : ""}><span>${esc(n)}<small>${capByName[n] && capByName[n].cap ? won(capByName[n].cap) : ""}</small></span></label>`).join("")}
+        <div class="ms-chips" role="group" aria-label="제외할 대기업">${candNames.map((n) => `<label class="ms-chip${sf.exclOn ? "" : " off"}"><input type="checkbox" data-excl="${esc(n)}"${sf.excl.has(n) ? " checked" : ""}><span title="${esc(BIG_GROUP[n] || "사용자 추가")}">${esc(n)}<small>${capByName[n] && capByName[n].cap ? won(capByName[n].cap) : ""}</small></span></label>`).join("")}
           <label class="ms-add"><span class="sr-only">제외할 기업 더하기</span><select id="ms-excl-add"><option value="">+ 기업 더하기</option>${addOpts}</select></label></div></div>
       <div class="ms-flt-row"><span class="ms-flt-l">프로필 기업 현황 그룹</span>
         <div class="ms-chips" role="group" aria-label="프로필 그룹 선택">${grpDefs.map((g) => `<label class="ms-chip"><input type="checkbox" data-grp="${esc(g.id)}"${sf.groups.has(g.id) ? " checked" : ""}><span>${esc(g.label)}<small>상장 ${g.listed}/${g.all}곳</small></span></label>`).join("")}</div></div>
@@ -220,7 +222,7 @@
     const fres = (() => {
       if (!active) return "";
       const gAll = G.전체, gF = GF.전체, bits = [];
-      if (sf.exclOn && sf.excl.size) bits.push(`대기업 제외: ${[...sf.excl].filter((n) => capByName[n]).map(esc).join("·")}`);
+      if (sf.exclOn && sf.excl.size) { const ex = [...sf.excl].filter((n) => capByName[n] && capByName[n].cap); bits.push(`대기업 ${ex.length}곳 제외(${won(ex.reduce((t, n) => t + capByName[n].cap, 0))}): ${ex.map(esc).join("·")}`); }
       if (sf.groups.size) bits.push(`프로필 그룹: ${grpDefs.filter((g) => sf.groups.has(g.id)).map((g) => g.label).join("·")}`);
       const perGroup = sf.groups.size ? grpDefs.filter((g) => sf.groups.has(g.id)).map((g) => { const codes = (window.COMPANY_GROUPS.find((x) => x.id === g.id) || { companies: [] }).companies.filter((c) => c[2]).map((c) => c[2]); const rs = popF.filter((r) => codes.includes(r.c)); const t = rs.reduce((a, r) => a + (r.cap || 0), 0); return `<li><b>${esc(g.label)}</b> ${nf(rs.length)}곳 · ${t ? won(t) : "-"}</li>`; }).join("") : "";
       const unlisted = sf.groups.size ? grpDefs.filter((g) => sf.groups.has(g.id)).reduce((t, g) => t + (g.all - g.listed), 0) : 0;
