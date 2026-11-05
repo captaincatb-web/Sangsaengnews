@@ -102,3 +102,14 @@ body[data-view="caps"] .db-filters, body[data-view="caps"] #filter-toggle, body[
 .cm-popu { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .cm-popu li { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); } .cm-popu b { font-size: 18px; } .cm-popu span { font-size: 12.5px; color: var(--text-3); }
 .cm-covtbl th { position: relative; } /* sr-only(absolute)가 표 밖 스크롤 폭을 만들지 않게 */
+
+/* 시장 비중 보기 조건(대기업 제외·프로필 그룹) */
+.ms-flt-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:8px 0}.ms-flt-l{font-size:13.5px;font-weight:600;color:var(--text-2)}
+.ms-chips{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}.ms-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px;cursor:pointer}
+.ms-chip input{width:15px;height:15px;accent-color:var(--brand);margin:0}.ms-chip small{margin-left:4px;color:var(--text-3)}.ms-chip.off{opacity:.55}.ms-chip:has(input:focus-visible){outline:2px solid var(--brand);outline-offset:2px}
+.ms-add select{min-height:32px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);padding:0 10px;font:inherit;font-size:13px}
+.ms-hint2{margin:4px 0 0;font-size:12.5px;color:var(--text-3)}
+.ms-res{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--bg)}.ms-res-h{margin:0 0 4px;font-size:15px}.ms-res .ms-mut{margin:2px 0}
+.ms-res-g{margin:6px 0;padding-left:18px;font-size:13.5px}.ms-res-d summary{cursor:pointer;font-size:13.5px;margin-top:6px}
+.ms-res-l{margin:6px 0 0;padding-left:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px 18px;font-size:13px}.ms-res-l li{padding:3px 0}.ms-res-l li span{display:inline-block;min-width:130px}.ms-res-l small{margin-left:6px;color:var(--text-3)}.ms-res-l b{float:right;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.ms-res-l{grid-template-columns:1fr}}

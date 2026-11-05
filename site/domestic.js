@@ -181,20 +181,58 @@
   const KCOL = { 소재: "var(--blue)", 부품: "var(--teal, var(--green))", 장비: "var(--orange)" };
   const pc2 = (v) => (v == null || !isFinite(v) ? "-" : `${nf(v * 100, 2)}%`);
   const bigInc = {}; // 시장별 대형 겸업 기업 포함 여부(기본 포함)
+  // 시장 비중 필터: ①대기업 제외(삼성전기 등, 목록은 고르거나 더할 수 있음) ②프로필 기업 현황의 그룹(1·2·3그룹 등)만 보기. 둘 다 시총 합계를 종목 단위로 다시 계산한다.
+  const DEFAULT_BIG = ["삼성전기", "고려아연", "LG이노텍", "LG화학", "두산"];
+  const sf = { exclOn: false, excl: new Set(DEFAULT_BIG), groups: new Set() };
+  const sfActive = () => sf.exclOn || sf.groups.size > 0;
+  const grpCodes = () => { const m = {}; (window.COMPANY_GROUPS || []).forEach((g) => g.companies.forEach((c) => { if (c[2]) (m[c[2]] = m[c[2]] || []).push(g.id); })); return m; };
   function drawShare() {
     const root = $("c-share"); if (!root) return;
     const D = window.SEMI_SHARE;
     if (!D || !D.groups) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>시가총액·시장 비중 자료가 아직 없습니다.</p></section>`; return; }
-    const G = D.groups, maxSh = Math.max(0, ...Object.values(G).map((g) => g.share || 0));
+    const G = D.groups, CP0 = window.SEMI_CAPS, active = sfActive() && CP0 && CP0.rows, GC = grpCodes();
+    const passF = (r) => !(sf.exclOn && sf.excl.has(r.n)) && (!sf.groups.size || (GC[r.c] || []).some((id) => sf.groups.has(id)));
+    const den = (D.marketTotal.KOSPI || 0) + (D.marketTotal.KOSDAQ || 0);
+    const aggF = (fs) => { const have = fs.filter((f) => f.cap).sort((a, b) => b.cap - a.cap), cap = have.reduce((t, f) => t + f.cap, 0); return { n: fs.length, nCap: have.length, cap, share: den ? cap / den : null, top: have.slice(0, 3).map((f) => ({ n: f.n, cap: f.cap })) }; };
+    const popF = active ? CP0.rows.filter(passF) : [];
+    const GF = active ? { 전체: aggF(popF), 소재: aggF(popF.filter((r) => r.k === "소재")), 부품: aggF(popF.filter((r) => r.k === "부품")), 장비: aggF(popF.filter((r) => r.k === "장비")) } : G;
+    const maxSh = Math.max(0, ...Object.values(GF).map((g) => g.share || 0));
     const tops = (g) => (g.top && g.top.length ? g.top.map((f) => `<span class="ms-co">${esc(f.n)}<small>${won(f.cap)}</small></span>`).join("") : '<span class="ms-na">-</span>');
     const row = (k, nm, cls, col) => {
-      const g = G[k]; if (!g) return "";
+      const g = GF[k]; if (!g) return "";
       const w = maxSh && g.share != null ? Math.max(2, (g.share / maxSh) * 100) : 0;
       return `<tr class="${cls}"><th scope="row">${col ? `<i class="sq" style="background:${col}"></i>` : ""}${nm}</th><td class="r">${g.nCap ? won(g.cap) : "-"}${g.nCap && g.nCap < g.n ? `<small class="ms-sub">${g.nCap}곳 합산</small>` : ""}</td>`
         + `<td class="r ms-sh">${g.share != null ? `<span class="ms-bar" aria-hidden="true"><i style="width:${w}%;${col ? `background:${col}` : ""}"></i></span><b>${pc2(g.share)}</b>` : "-"}</td><td class="r">${nf(g.n)}</td><td><div class="ms-tops">${tops(g)}</div></td></tr>`;
     };
     const kinds = ["소재", "부품", "장비"];
-    const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${esc(D.asOf)} 종가 기준 · 검토용</small></h2></div>
+    const grpDefs = (window.COMPANY_GROUPS || []).map((g) => ({ id: g.id, label: g.label, listed: g.companies.filter((c) => c[2]).length, all: g.companies.length }));
+    const capByName = {}; (CP0 && CP0.rows ? CP0.rows : []).forEach((r) => { capByName[r.n] = r; });
+    const candNames = [...new Set([...DEFAULT_BIG, ...sf.excl])].filter((n) => capByName[n]);
+    const addOpts = (CP0 && CP0.rows ? CP0.rows : []).filter((r) => r.cap && !candNames.includes(r.n)).sort((a, b) => b.cap - a.cap).slice(0, 40).map((r) => `<option value="${esc(r.n)}">${esc(r.n)} (${won(r.cap)})</option>`).join("");
+    const filt = `<section class="db-card ms-flt" aria-labelledby="ms-tf"><div class="db-card-head"><h2 id="ms-tf">보기 조건<small>업종 현황·코스피/코스닥 상세에 함께 적용</small></h2></div>
+      <div class="ms-flt-row"><label class="ms-tg"><input type="checkbox" id="ms-excl-on"${sf.exclOn ? " checked" : ""}><span>대기업 제외</span></label>
+        <div class="ms-chips" role="group" aria-label="제외할 대기업">${candNames.map((n) => `<label class="ms-chip${sf.exclOn ? "" : " off"}"><input type="checkbox" data-excl="${esc(n)}"${sf.excl.has(n) ? " checked" : ""}><span>${esc(n)}<small>${capByName[n] && capByName[n].cap ? won(capByName[n].cap) : ""}</small></span></label>`).join("")}
+          <label class="ms-add"><span class="sr-only">제외할 기업 더하기</span><select id="ms-excl-add"><option value="">+ 기업 더하기</option>${addOpts}</select></label></div></div>
+      <div class="ms-flt-row"><span class="ms-flt-l">프로필 기업 현황 그룹</span>
+        <div class="ms-chips" role="group" aria-label="프로필 그룹 선택">${grpDefs.map((g) => `<label class="ms-chip"><input type="checkbox" data-grp="${esc(g.id)}"${sf.groups.has(g.id) ? " checked" : ""}><span>${esc(g.label)}<small>상장 ${g.listed}/${g.all}곳</small></span></label>`).join("")}</div></div>
+      ${active ? "" : `<p class="ms-hint2">조건을 고르면 선택한 기업만으로 시가총액·시장 비중을 다시 계산합니다.</p>`}
+      <div id="ms-flt-res"></div></section>`;
+    const fres = (() => {
+      if (!active) return "";
+      const gAll = G.전체, gF = GF.전체, bits = [];
+      if (sf.exclOn && sf.excl.size) bits.push(`대기업 제외: ${[...sf.excl].filter((n) => capByName[n]).map(esc).join("·")}`);
+      if (sf.groups.size) bits.push(`프로필 그룹: ${grpDefs.filter((g) => sf.groups.has(g.id)).map((g) => g.label).join("·")}`);
+      const perGroup = sf.groups.size ? grpDefs.filter((g) => sf.groups.has(g.id)).map((g) => { const codes = (window.COMPANY_GROUPS.find((x) => x.id === g.id) || { companies: [] }).companies.filter((c) => c[2]).map((c) => c[2]); const rs = popF.filter((r) => codes.includes(r.c)); const t = rs.reduce((a, r) => a + (r.cap || 0), 0); return `<li><b>${esc(g.label)}</b> ${nf(rs.length)}곳 · ${t ? won(t) : "-"}</li>`; }).join("") : "";
+      const unlisted = sf.groups.size ? grpDefs.filter((g) => sf.groups.has(g.id)).reduce((t, g) => t + (g.all - g.listed), 0) : 0;
+      const missing = sf.groups.size ? (window.COMPANY_GROUPS || []).filter((g) => sf.groups.has(g.id)).flatMap((g) => g.companies.filter((c) => c[2] && !(CP0.rows.find((r) => r.c === c[2]) && CP0.rows.find((r) => r.c === c[2]).cap)).map((c) => c[0])) : [];
+      const list = popF.filter((r) => r.cap).sort((a, b) => b.cap - a.cap);
+      return `<div class="ms-res" role="status" aria-live="polite"><p class="ms-res-h"><b>선택 조건 시가총액 합계 ${gF.nCap ? won(gF.cap) : "-"}</b> · 시장 비중 <b>${pc2(gF.share)}</b> · ${nf(gF.n)}곳(시가총액 확인 ${nf(gF.nCap)}곳)</p>
+        <p class="ms-mut">${bits.join(" · ")} · 전체 소부장 ${won(gAll.cap)} 대비 ${gAll.cap ? nf((gF.cap / gAll.cap) * 100, 1) : "-"}%</p>
+        ${perGroup ? `<ul class="ms-res-g">${perGroup}</ul>` : ""}
+        ${unlisted ? `<p class="ms-mut">선택 그룹 중 비상장 ${nf(unlisted)}곳은 시가총액이 없어 합계에 포함하지 않습니다.</p>` : ""}${missing.length ? `<p class="ms-mut">소부장 핵심 모집단(시가총액 집계 대상)에 없어 합계에서 빠진 상장 기업: ${missing.map(esc).join("·")}</p>` : ""}
+        <details class="ms-res-d"><summary>포함 기업 ${nf(list.length)}곳 보기</summary><ol class="ms-res-l">${list.map((r) => `<li><span>${esc(r.n)}<small>${esc(MKN[r.m] || r.m)} · ${esc(r.k)}</small></span><b>${won(r.cap)}</b></li>`).join("")}</ol></details></div>`;
+    })();
+    const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${esc(D.asOf)} 종가 기준 · 검토용${active ? " · 조건 적용 중" : ""}</small></h2></div>
       <div class="ms-scroll"><table class="ms-tbl"><caption class="sr-only">업종별 시가총액, 시장 비중, 종목 수, 주요 종목</caption><thead><tr><th scope="col">업종</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">시장 비중</th><th scope="col" class="r">종목 수</th><th scope="col">주요 종목 <small>(시가총액 상위)</small></th></tr></thead><tbody>`
       + row("전체", "반도체 국내 소부장", "ms-total") + kinds.map((k) => row(k, k, "ms-kind", KCOL[k])).join("") + `</tbody></table></div>
       <p class="ms-hint" aria-hidden="true"><i class="ph ph-arrows-horizontal"></i> 표를 좌우로 밀어 더 볼 수 있습니다</p>
@@ -204,7 +242,7 @@
     const mkCard = (m) => {
       let g = D.markets[m]; if (!g) return "";
       const bg = bigs(m), inc = bigInc[m] !== false;
-      if (!inc && bg.length) { const den = D.marketTotal[m], fs = CP.rows.filter((r) => r.m === m && !r.d); g = { ...agg(fs, den), mcap: den, kinds: Object.fromEntries(kinds.map((k) => [k, agg(fs.filter((r) => r.k === k), den)])) }; }
+      if ((!inc && bg.length) || active) { const den = D.marketTotal[m], fs = CP.rows.filter((r) => r.m === m && passF(r) && (inc || !r.d)); g = { ...agg(fs, den), mcap: den, kinds: Object.fromEntries(kinds.map((k) => [k, agg(fs.filter((r) => r.k === k), den)])) }; }
       const tg = `<label class="ms-tg${bg.length ? "" : " off"}"><input type="checkbox" data-big="${m}"${inc ? " checked" : ""}${bg.length ? "" : " disabled"}><span>대형 겸업 기업 포함<small>${bg.length ? `(${bg.map((r) => esc(r.n)).join("·")})` : "(해당 기업 없음)"}</small></span></label>`;
       const rows = kinds.filter((k) => g.kinds && g.kinds[k]).map((k) => { const x = g.kinds[k]; return `<tr><th scope="row"><i class="sq" style="background:${KCOL[k]}"></i>${k}</th><td class="r">${nf(x.n)}</td><td class="r">${x.nCap ? won(x.cap) : "-"}</td><td class="r">${pc2(x.share)}</td><td><div class="ms-tops">${tops(x)}</div></td></tr>`; }).join("");
       return `<article class="ms-mk"><header><div class="ms-mk-h"><h3>${MKN[m]}</h3>${tg}</div><p><b>${g.nCap ? won(g.cap) : "-"}</b> · 시장 비중 <b>${pc2(g.share)}</b> · ${nf(g.n)}개 종목</p><p class="ms-mut">${MKN[m]} 전체 시가총액 ${won(g.mcap)} 중 소부장 비중</p></header>`
@@ -218,8 +256,13 @@
       <li><b>명단·분류</b> ${D.universe ? `핵심 모집단 ${nf(D.universe.core)}개사(기존 ${nf(D.universe.existing)} + 신규 ${nf(D.universe.new)})의 소재·부품·장비 구분이며 확정 전입니다. 보류 ${nf(D.universe.hold)}·OSAT ${nf(D.universe.osat)}·유통 ${nf(D.universe.distribution)}곳은 별도 관리로 핵심 통계에서 제외했습니다.` : "검토 중인 소부장의 소재·부품·장비 구분이며 확정 전입니다."} 대형 겸업 기업(고려아연·LG화학·두산 등)의 포함 여부에 따라 업종 시가총액이 크게 달라집니다.</li>
       ${(() => { const d = G["전체"].cap - kinds.reduce((t, k) => t + (G[k] ? G[k].cap : 0), 0); return d ? `<li><b>집계 검산</b> 업종별 시가총액 합계가 전체 합계보다 ${nf(Math.abs(d))}억 원 ${d > 0 ? "작" : "큽"}니다. 원자료 확인 전까지 차이를 그대로 공개합니다.</li>` : ""; })()}
       <li><b>범위</b> 상단 실적 필터와 무관합니다. ${D.konexIncluded ? `코넥스 ${D.konexN}곳도 시가총액에 포함했습니다.` : `코넥스 ${D.konexN}곳은 상장주식 수를 확인하지 못해 시가총액·비중에서 빠지고 종목 수에만 들어갑니다.`}</li></ul></details>`;
-    root.innerHTML = `${main}<section class="db-card" aria-labelledby="ms-t2"><div class="db-card-head"><h2 id="ms-t2">코스피·코스닥별 상세</h2></div><div class="ms-mks">${mkCard("KOSPI")}${mkCard("KOSDAQ")}</div></section>${notes}`;
+    root.innerHTML = `${filt}${main}<section class="db-card" aria-labelledby="ms-t2"><div class="db-card-head"><h2 id="ms-t2">코스피·코스닥별 상세</h2></div><div class="ms-mks">${mkCard("KOSPI")}${mkCard("KOSDAQ")}</div></section>${notes}`;
     root.querySelectorAll("input[data-big]").forEach((el) => el.addEventListener("change", () => { bigInc[el.dataset.big] = el.checked; drawShare(); }));
+    const rs = $("ms-flt-res"); if (rs) rs.innerHTML = fres;
+    $("ms-excl-on").addEventListener("change", (e) => { sf.exclOn = e.target.checked; drawShare(); });
+    root.querySelectorAll("input[data-excl]").forEach((el) => el.addEventListener("change", () => { el.checked ? sf.excl.add(el.dataset.excl) : sf.excl.delete(el.dataset.excl); if (el.checked) sf.exclOn = true; drawShare(); }));
+    root.querySelectorAll("input[data-grp]").forEach((el) => el.addEventListener("change", () => { el.checked ? sf.groups.add(el.dataset.grp) : sf.groups.delete(el.dataset.grp); drawShare(); }));
+    $("ms-excl-add").addEventListener("change", (e) => { if (e.target.value) { sf.excl.add(e.target.value); sf.exclOn = true; drawShare(); } });
   }
 
   // ---------- 기업별 시가총액·주가 상세 ----------
