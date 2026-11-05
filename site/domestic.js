@@ -183,8 +183,8 @@
   const bigInc = {}; // 시장별 대형 겸업 기업 포함 여부(기본 포함)
   // 시장 비중 필터: ①대기업 제외(삼성전기 등, 목록은 고르거나 더할 수 있음) ②프로필 기업 현황의 그룹(1·2·3그룹 등)만 보기. 둘 다 시총 합계를 종목 단위로 다시 계산한다.
   // 기본 제외 대기업: 공정거래위원회 공시대상기업집단(대기업집단) 계열사 또는 사용자가 지정한 대형 겸업 기업. 그룹은 언론 보도·공시 기준 확인(공정위 지정 목록으로 재확인 권장)
-  const BIG_GROUP = { 삼성전기: "삼성", 레인보우로보틱스: "삼성(삼성전자 최대주주)", LG이노텍: "LG", LG화학: "LG", 두산: "두산", 고려아연: "고려아연(사용자 지정)", 한화비전: "한화", 롯데정밀화학: "롯데", OCI: "OCI" };
-  const DEFAULT_BIG = ["삼성전기", "고려아연", "LG이노텍", "LG화학", "두산", "한화비전", "롯데정밀화학", "레인보우로보틱스", "OCI"];
+  const BIG_GROUP = { 삼성전기: "삼성", LG이노텍: "LG", LG화학: "LG", 두산: "두산", 고려아연: "고려아연(사용자 지정)", 한화비전: "한화", 롯데정밀화학: "롯데", OCI: "OCI" };
+  const DEFAULT_BIG = ["삼성전기", "고려아연", "LG이노텍", "LG화학", "두산", "한화비전", "롯데정밀화학", "OCI"];
   const sf = { exclOn: false, excl: new Set(DEFAULT_BIG), groups: new Set() };
   const sfActive = () => sf.exclOn || sf.groups.size > 0;
   const grpCodes = () => { const m = {}; (window.COMPANY_GROUPS || []).forEach((g) => g.companies.forEach((c) => { if (c[2]) (m[c[2]] = m[c[2]] || []).push(g.id); })); return m; };
