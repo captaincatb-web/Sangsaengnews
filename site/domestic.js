@@ -270,7 +270,9 @@
   // ---------- 기업별 시가총액·주가 상세 ----------
   // data/semi_caps.js(시장 비중 표와 같은 기준·시점). 검색·시장·업종·구분·속성·공정 필터, 정렬. 상단 실적 필터와 무관하다.
   // 모바일(860px 이하)은 카드 목록, PC는 표. 두 보기는 같은 rows 를 쓰며 계산을 따로 하지 않는다.
-  const cst = { q: "", m: "", k: "", g: "", at: "", pa: "", sort: "cap", dir: -1 };
+  const cst = { q: "", m: "", k: "", g: "", at: "", pa: "", grp: new Set(), sort: "cap", dir: -1 }; // grp: 프로필 기업 현황의 그룹(1·2·3그룹·추가 기업) 선택 — 여러 개 고를 수 있음
+  const grpLabel = {}; (window.COMPANY_GROUPS || []).forEach((g) => { grpLabel[g.id] = g.label; });
+  const grpOf = (c) => { const m = {}; (window.COMPANY_GROUPS || []).forEach((g) => g.companies.forEach((x) => { if (x[2]) (m[x[2]] = m[x[2]] || []).push(g.id); })); return m[c] || []; };
   const pcs = (v) => (v == null || !isFinite(v) ? "-" : `<span class="${v > 0 ? "ms-up" : v < 0 ? "ms-dn" : ""}">${v > 0 ? "▲" : v < 0 ? "▼" : ""}${nf(Math.abs(v) * 100, 1)}%</span>`);
   const CCOL = [
     ["rank", "순위", 0], ["n", "기업", 1], ["m", "시장", 1], ["k", "업종", 1], ["p", "종가(원)", 0], ["d1", "분기말 대비", 0], ["d2", "반기말 대비", 0],
@@ -278,14 +280,15 @@
   ];
   const SORTS = [["cap", -1, "시가총액 큰 순"], ["cap", 1, "시가총액 작은 순"], ["d1", -1, "분기말 대비 높은 순"], ["d1", 1, "분기말 대비 낮은 순"], ["n", 1, "기업명 순"]];
   const isInfra = (r) => /인프라/.test(r.x || ""), isBig = (r) => !!r.d;
-  const tagsOf = (r) => [r.g === "N" ? ["new", "신규"] : null, r.k2 ? ["k2", `보조 ${r.k2}`] : null, isInfra(r) ? ["infra", "인프라"] : null, isBig(r) ? ["big", "대형 겸업"] : null, r.rv ? ["rv", "재검토"] : null].filter(Boolean)
+  const tagsOf = (r) => [r.g === "N" ? ["new", "신규"] : null, r.k2 ? ["k2", `보조 ${r.k2}`] : null, isInfra(r) ? ["infra", "인프라"] : null, isBig(r) ? ["big", "대형 겸업"] : null, r.rv ? ["rv", "재검토"] : null, ...(r.grp || []).map((id) => ["grp", `프로필 ${grpLabel[id] || id}`])].filter(Boolean)
     .map(([c, t]) => `<span class="cp-tag cp-tag-${c}">${t}</span>`).join("");
   function capsRows(D) {
     const MT = (window.SEMI_SHARE && window.SEMI_SHARE.marketTotal) || {}, kindCap = {};
     D.rows.forEach((r) => { if (r.cap) kindCap[r.k] = (kindCap[r.k] || 0) + r.cap; });
     const rk = [...D.rows].filter((r) => r.cap).sort((a, b) => b.cap - a.cap).map((r) => r.c);
     const M = window.SEMI_MASTER, corp = {}; if (M) M.rows.forEach((x) => { if (x.corp) corp[x.c] = x.corp; });
-    return D.rows.map((r) => ({ ...r, corp: corp[r.c] || "", rank: r.cap ? rk.indexOf(r.c) + 1 : null, d1: r.p && r.q1 ? r.p / r.q1 - 1 : null, d2: r.p && r.q2 ? r.p / r.q2 - 1 : null,
+    const GM = {}; (window.COMPANY_GROUPS || []).forEach((g) => g.companies.forEach((x) => { if (x[2]) (GM[x[2]] = GM[x[2]] || []).push(g.id); }));
+    return D.rows.map((r) => ({ ...r, grp: GM[r.c] || [], corp: corp[r.c] || "", rank: r.cap ? rk.indexOf(r.c) + 1 : null, d1: r.p && r.q1 ? r.p / r.q1 - 1 : null, d2: r.p && r.q2 ? r.p / r.q2 - 1 : null,
       inK: r.cap ? r.cap / kindCap[r.k] : null, inM: r.cap && MT[r.m] ? r.cap / MT[r.m] : null }));
   }
   // 같은 기업임을 종목코드로 확인할 수 있을 때만 상세 화면으로 연결한다(이름이 비슷해도 연결하지 않음)
@@ -302,7 +305,7 @@
     if (!D || !D.rows) { root.innerHTML = `<section class="db-card ms-empty"><i class="ph ph-hourglass-medium" aria-hidden="true"></i><p>기업별 시가총액 자료가 아직 없습니다.</p></section>`; return; }
     const all = capsRows(D), q = cst.q.trim().toLowerCase();
     let rows = all.filter((r) => (!cst.m || r.m === cst.m) && (!cst.k || r.k === cst.k) && (!cst.g || r.g === cst.g) && (!q || r.n.toLowerCase().includes(q) || r.c.includes(q))
-      && (!cst.at || (cst.at === "k2" ? !!r.k2 : cst.at === "infra" ? isInfra(r) : cst.at === "big" ? isBig(r) : cst.at === "rv" ? !!r.rv : true)) && (!cst.pa || (r.pa || "").startsWith(cst.pa)));
+      && (!cst.at || (cst.at === "k2" ? !!r.k2 : cst.at === "infra" ? isInfra(r) : cst.at === "big" ? isBig(r) : cst.at === "rv" ? !!r.rv : true)) && (!cst.pa || (r.pa || "").startsWith(cst.pa)) && (!cst.grp.size || r.grp.some((id) => cst.grp.has(id))));
     const key = cst.sort, dir = cst.dir;
     rows.sort((a, b) => { const x = a[key], y = b[key]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === "string" ? x.localeCompare(y, "ko") : x - y) * dir; });
     const sumCap = rows.reduce((t, r) => t + (r.cap || 0), 0), nCap = rows.filter((r) => r.cap).length;
@@ -326,6 +329,7 @@
         <label class="db-sel"><i class="ph ph-tag" aria-hidden="true"></i><span>속성</span><select id="cp-at">${opt("", "전체", cst.at)}${opt("k2", "보조분류 있음", cst.at)}${opt("infra", "인프라", cst.at)}${opt("big", "대형 겸업", cst.at)}${opt("rv", "재검토 표시", cst.at)}</select></label>
         <label class="db-sel"><i class="ph ph-flow-arrow" aria-hidden="true"></i><span>적용 공정</span><select id="cp-pa">${opt("", "전체", cst.pa)}${opt("FAB", "FAB 전체", cst.pa)}${fabs.map((x) => opt(x, x, cst.pa)).join("")}${opt("P&T", "P&T 전체", cst.pa)}${pts.map((x) => opt(x, x, cst.pa)).join("")}</select></label>
         <label class="db-sel cp-sortsel"><i class="ph ph-sort-descending" aria-hidden="true"></i><span>정렬</span><select id="cp-sort">${SORTS.map(([k, d, l]) => opt(`${k}|${d}`, l, `${cst.sort}|${cst.dir}`)).join("")}</select></label>
+        <div class="cp-grp" role="group" aria-label="프로필 기업 현황 그룹"><span class="cp-grp-l">프로필 그룹</span>${(window.COMPANY_GROUPS || []).map((g) => { const n = D.rows.filter((r) => grpOf(r.c).includes(g.id)).length; return `<label class="ms-chip"><input type="checkbox" data-cgrp="${esc(g.id)}"${cst.grp.has(g.id) ? " checked" : ""}><span>${esc(g.label)}<small>${nf(n)}곳</small></span></label>`; }).join("")}${cst.grp.size ? `<button type="button" class="cp-grp-x" id="cp-grp-x">선택 해제</button>` : ""}</div>
         <button type="button" class="db-btn cp-csv" id="cp-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button>
         <p class="cp-sum" aria-live="polite"><b>${nf(rows.length)}</b>개 기업 · 시총 확인 ${nf(nCap)}곳 합계 <b>${won(sumCap) || "-"}</b></p></div>
       <div class="ms-scroll cp-tblwrap" tabindex="0" role="region" aria-label="기업별 시가총액 표(좌우로 스크롤)"><table class="ms-tbl cp-tbl"><caption class="sr-only">기업별 시가총액과 주가</caption><thead><tr>${th}</tr></thead><tbody>${body || `<tr><td colspan="11" class="ms-na">조건에 맞는 기업이 없습니다.</td></tr>`}</tbody></table></div>
@@ -335,6 +339,8 @@
       <p class="cp-xlink"><a href="compare.html">해외 기업 비교 보기 <i class="ph ph-arrow-right" aria-hidden="true"></i></a></p></section>${managedHtml(D)}`;
     root.querySelectorAll("[data-sort]").forEach((b) => b.addEventListener("click", () => { const k = b.dataset.sort; if (cst.sort === k) cst.dir = -cst.dir; else { cst.sort = k; cst.dir = ["n", "m", "k"].includes(k) ? 1 : -1; } drawCaps(); }));
     [["cp-m", "m"], ["cp-k", "k"], ["cp-g", "g"], ["cp-at", "at"], ["cp-pa", "pa"]].forEach(([id, k]) => $(id).addEventListener("change", (e) => { cst[k] = e.target.value; drawCaps(); }));
+    root.querySelectorAll("input[data-cgrp]").forEach((el) => el.addEventListener("change", () => { el.checked ? cst.grp.add(el.dataset.cgrp) : cst.grp.delete(el.dataset.cgrp); drawCaps(); }));
+    const gx = $("cp-grp-x"); if (gx) gx.addEventListener("click", () => { cst.grp.clear(); drawCaps(); });
     $("cp-sort").addEventListener("change", (e) => { const [k, d] = e.target.value.split("|"); cst.sort = k; cst.dir = Number(d); drawCaps(); });
     $("cp-csv").addEventListener("click", () => {
       const pr = (v) => (v == null || !isFinite(v) ? "" : +(v * 100).toFixed(2)), mk = { KOSPI: "코스피", KOSDAQ: "코스닥", KONEX: "코넥스" };

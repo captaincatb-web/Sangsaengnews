@@ -113,3 +113,8 @@ body[data-view="caps"] .db-filters, body[data-view="caps"] #filter-toggle, body[
 .ms-res-g{margin:6px 0;padding-left:18px;font-size:13.5px}.ms-res-d summary{cursor:pointer;font-size:13.5px;margin-top:6px}
 .ms-res-l{margin:6px 0 0;padding-left:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px 18px;font-size:13px}.ms-res-l li{padding:3px 0}.ms-res-l li span{display:inline-block;min-width:130px}.ms-res-l small{margin-left:6px;color:var(--text-3)}.ms-res-l b{float:right;font-variant-numeric:tabular-nums}
 @media(max-width:640px){.ms-res-l{grid-template-columns:1fr}}
+
+/* 기업별 시가총액: 프로필 그룹 필터 */
+.cp-grp{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;grid-column:1/-1}.cp-grp-l{font-size:13px;font-weight:600;color:var(--text-2)}
+.cp-grp-x{min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--text-2);font:inherit;font-size:12.5px;cursor:pointer}
+.cp-tag-grp{background:var(--bg);color:var(--text-2)}
