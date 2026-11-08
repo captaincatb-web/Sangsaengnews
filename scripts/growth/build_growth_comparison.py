@@ -82,13 +82,16 @@ def build_entities(priv, csv_universe):
         fin[f["corp_no"]][int(f["year"])] = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
     # 해외 법인 재무: 법인별로 기준(개별/연결)마다 따로 모은 뒤 한 기준만 고른다(3개년 기준 통일).
     # 개별 우선: 개별로 2023~2025 매출·영업이익이 모두 있으면 개별, 아니면 연결로 3개년이 모두 있을 때 연결, 둘 다 불완전하면 연도가 더 많은 쪽.
-    by_scope = defaultdict(lambda: defaultdict(dict)); scopes = {}
+    by_scope = defaultdict(lambda: defaultdict(dict)); scopes = {}; opcalc = defaultdict(lambda: defaultdict(set))
     for fname in ("overseas_financials.csv", "overseas_financials_ext.csv"):  # SEC 수집분 + 조사 CSV(ingest_overseas_csv.py)분. 법인 본인 실적이 공식 자료로 확인된 법인만(원화 환산 완료)
         for f in rd(priv / fname):
             eid_ = ALIAS_ID.get(f["entity_id"], f["entity_id"]); v_ = {"rev": num(f["revenue_krw"]), "op": num(f["op_income_krw"])}
             if v_["rev"] is None and v_["op"] is None: continue
             sc_ = "연결" if "연결" in (f.get("scope") or f.get("basis") or "") else "개별"
             by_scope[eid_][sc_][int(f["year"])] = v_
+            # 영업이익 계산값(손익계산서에 영업이익 줄이 없는 법인, 사용자 승인 2026-11-08): 공개 회사별 목록에 '계산값'으로 표시한다
+            if v_["op"] is not None and OP_CALC_MARK in (f.get("source_ref") or ""): opcalc[eid_][sc_].add(int(f["year"]))
+            elif eid_ in opcalc: opcalc[eid_][sc_].discard(int(f["year"]))
     for eid_, d in by_scope.items():
         full = lambda sc: all(d.get(sc, {}).get(y, {}).get("rev") is not None and d.get(sc, {}).get(y, {}).get("op") is not None for y in YEARS)
         pick = "개별" if full("개별") else "연결" if full("연결") else max(d, key=lambda sc: len(d[sc]))
@@ -185,7 +188,7 @@ def build_entities(priv, csv_universe):
             pk_ = off_key.get(name_key(x_["모회사공식명"])) or name_key(x_["모회사공식명"])
             dov[(k_, pk_)] = "confirmed"
     import copy
-    META["kr_entities"] = [dict(copy.deepcopy(e), region="외국계") for e in ents if e["region"] == "외국계"]; META["by_scope"] = by_scope
+    META["kr_entities"] = [dict(copy.deepcopy(e), region="외국계") for e in ents if e["region"] == "외국계"]; META["by_scope"] = by_scope; META["opcalc"] = opcalc
     keep, log, dropped = dedupe_kr_affiliates(ents, scopes, dov)
     if log:
         with open(priv / "dedupe_log.csv", "w", encoding="utf-8-sig", newline="") as fh:
@@ -251,7 +254,8 @@ def build(ents, k=5, generated=None, ok=None):
             "notes_list": ["국내 기업: 별도(개별)재무 기준(DART 사업보고서, 감사보고서)", "한국에 설립된 외국계 법인: 별도(개별)재무 기준(사업보고서·감사보고서, 억 원 단위 반올림)",
                            "해외 상장 본사: 개별재무 우선, 개별이 공시되지 않으면 연결재무(미국 SEC 등록 법인 등). 법인별 3개년은 같은 기준으로 통일",
                            "매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아님", "해외계는 공식 공시로 확인된 표본이며 해외 반도체 소부장 산업 전체를 대표하지 않음",
-                           "회계연도(회계기간 종료일 기준)·환율·재무 범위 차이로 직접 비교에 한계가 있음. 산출 방법은 방법론 문서 참고"]}
+                           "회계연도(회계기간 종료일 기준)·환율·재무 범위 차이로 직접 비교에 한계가 있음. 산출 방법은 방법론 문서 참고"]
+            + (["손익계산서에 영업이익 줄이 없는 해외 법인 일부(사용자 승인)는 영업이익을 매출−매출원가−연구개발비−판관비(따로 적힌 영업권·무형자산 손상은 차감)로 계산하고 세전이익으로 검산(회사별 목록에 '계산값' 표시)"] if any(ys for d in META.get("opcalc", {}).values() for ys in d.values()) else [])}
 
 
 def consolidated_variant(ents, priv):
@@ -308,10 +312,16 @@ def company_rows(mid, ents):
             while vals and vals[-1] is None: vals.pop()
             pth = [A.BLANK_LABEL if v is None else v for v in vals]
             if pth and pth not in paths: paths.append(pth)  # 상세구분이 없는 법인(경로 빈 값)은 경로 목록에 넣지 않는다
-        rows.append({"n": clean_name(e["name"]), "g": reg, "c": m["chart"], "d": det, "p": paths, "s": sc,
-                     "r": [round(e["fin"][y]["rev"] / EOK, 1) for y in YEARS], "o": [round(e["fin"][y]["op"] / EOK, 1) for y in YEARS]})
+        row = {"n": clean_name(e["name"]), "g": reg, "c": m["chart"], "d": det, "p": paths, "s": sc,
+               "r": [round(e["fin"][y]["rev"] / EOK, 1) for y in YEARS], "o": [round(e["fin"][y]["op"] / EOK, 1) for y in YEARS]}
+        if reg == "ov" and META.get("opcalc", {}).get(e["id"], {}).get("연결" if mid == "cons_listed" else e.get("_scope", "개별"), set()) & set(YEARS):
+            row["q"] = "calc"  # 영업이익 계산값(매출−매출원가−연구개발비−판관비) — 화면에 표시
+        rows.append(row)
     rows.sort(key=lambda x: (x["g"] != "dom", -x["r"][2]))
     return rows
+
+
+OP_CALC_MARK = "영업이익 계산값"  # collect_sec_tickers.CALC_LABEL·CALC_LABEL_IMP 의 공통 앞부분(반입 후 source_ref 에 남는다)
 
 
 MODE_META = {

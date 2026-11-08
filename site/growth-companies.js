@@ -18,10 +18,12 @@ function render(){
  const nd=rows.filter(x=>x.g==='dom').length,no=rows.length-nd;
  $('co-count').textContent='국내 '+nd+'곳 · 해외계 '+no+'곳 표시 (이 비교 기준에서 3개년 실적이 확인된 법인)'+(sel.length?' · 상세구분 필터 적용: '+sel.join(' > '):'');
  const head='<thead><tr>'+COLS.map(([k,l,s])=>'<th scope="col" class="'+(s?'l':'')+'" data-k="'+k+'" aria-sort="'+(sortKey===k?(sortDir>0?'ascending':'descending'):'none')+'"><button type="button">'+esc(l)+(sortKey===k?(sortDir>0?' ▲':' ▼'):'')+'</button></th>').join('')+'</tr></thead>';
- const body='<tbody>'+rows.slice(0,shown).map(x=>{const r=x.r,o=x.o;return '<tr><th scope="row" class="l"><span class="co-n">'+esc(x.n)+'</span>'+(x.d?'<small>'+esc(x.d)+'</small>':'')+'</th><td class="l">'+(x.g==='dom'?'국내':'해외계')+'</td><td class="l">'+esc(x.c)+'</td><td class="l">'+esc(x.s)+'</td><td>'+fmt(r[0])+'</td><td>'+fmt(r[1])+'</td><td>'+fmt(r[2])+'</td><td>'+fmt(o[2])+'</td><td>'+pct(margin(o[0],r[0]))+'</td><td>'+pct(margin(o[1],r[1]))+'</td><td>'+pct(margin(o[2],r[2]))+'</td><td>'+sg(grow(r,1))+'</td><td>'+sg(grow(r,2))+'</td></tr>'}).join('')+'</tbody>';
+ const body='<tbody>'+rows.slice(0,shown).map(x=>{const r=x.r,o=x.o;return '<tr><th scope="row" class="l"><span class="co-n">'+esc(x.n)+'</span>'+(x.d?'<small>'+esc(x.d)+'</small>':'')+(x.q==='calc'?'<small class="co-calc">영업이익 계산값</small>':'')+'</th><td class="l">'+(x.g==='dom'?'국내':'해외계')+'</td><td class="l">'+esc(x.c)+'</td><td class="l">'+esc(x.s)+'</td><td>'+fmt(r[0])+'</td><td>'+fmt(r[1])+'</td><td>'+fmt(r[2])+'</td><td>'+fmt(o[2])+'</td><td>'+pct(margin(o[0],r[0]))+'</td><td>'+pct(margin(o[1],r[1]))+'</td><td>'+pct(margin(o[2],r[2]))+'</td><td>'+sg(grow(r,1))+'</td><td>'+sg(grow(r,2))+'</td></tr>'}).join('')+'</tbody>';
  $('co-tbl').innerHTML=head+body;
  const more=$('co-more');more.hidden=rows.length<=shown;more.textContent='더 보기 ('+Math.min(shown,rows.length)+' / '+rows.length+')';
  $('co-empty').hidden=rows.length>0;
+ const cn=$('co-calc-note'),cq=m.rows.filter(x=>x.q==='calc').map(x=>x.n);  // 계산값 법인이 이 비교 기준에 있을 때만 설명을 보인다
+ if(cn){cn.hidden=!cq.length;cn.innerHTML=cq.length?'<b>영업이익 계산값</b>: 손익계산서에 영업이익 줄이 없는 기업('+cq.map(esc).join(', ')+')은 같은 연차보고서의 매출 − 매출원가 − 연구개발비 − 판관비로 계산하고, 영업권·무형자산 손상이 따로 적힌 해는 그 손상도 뺐습니다. 해마다 세전이익과 맞춰 검산했습니다.':''}
 }
 fetch('data/growth-companies.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{D=j;
  window.GC_ROWS=j.modes.flatMap(m=>m.rows.map(x=>({c:x.c,p:x.p})));if(window.gcSync)window.gcSync();  // 상단 상세구분 선택지에 회사별 상세의 경로를 보탠다
