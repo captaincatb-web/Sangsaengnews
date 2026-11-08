@@ -95,3 +95,30 @@ class Probe(unittest.TestCase):
 
 
 if __name__ == "__main__": unittest.main()
+
+
+class SecTickersCalcOp(unittest.TestCase):
+    """KLA처럼 손익계산서에 영업이익 줄이 없는 법인: 표시한 법인만, 같은 보고서·기간·통화의 4개 항목으로 계산(사용자 승인 2026-11-08)."""
+    def setUp(self):
+        import collect_sec_tickers as T
+        self.T = T
+    def facts(self, cogs_accn="A1", cogs_end="2025-06-30", cogs_cur="USD", extra=None):
+        e = lambda v, accn="A1", end="2025-06-30": {"start": "2024-07-01", "end": end, "val": v, "form": "10-K", "filed": "2025-08-01", "accn": accn}
+        g = {"Revenues": {"units": {"USD": [e(1000)]}}, "CostOfRevenue": {"units": {cogs_cur: [e(400, cogs_accn, cogs_end)]}},
+             "ResearchAndDevelopmentExpense": {"units": {"USD": [e(120)]}}, "SellingGeneralAndAdministrativeExpense": {"units": {"USD": [e(80)]}}}
+        g.update(extra or {})
+        return {"us-gaap": g}
+    def rv(self, f):
+        return self.T.annual(f, self.T.REV)[2025]
+    def test_calc_value_and_tags(self):
+        f = self.facts(); v, tags, other = self.T.calc_op(f, self.rv(f), 2025)
+        self.assertEqual(v, 400); self.assertEqual(tags, ["CostOfRevenue", "ResearchAndDevelopmentExpense", "SellingGeneralAndAdministrativeExpense"]); self.assertEqual(other, [])
+    def test_different_filing_period_or_currency_gives_none(self):
+        for kw in ({"cogs_accn": "A2"}, {"cogs_end": "2025-06-29"}, {"cogs_cur": "EUR"}):
+            f = self.facts(**kw); self.assertIsNone(self.T.calc_op(f, self.rv(f), 2025), kw)
+    def test_missing_component_gives_none(self):
+        f = self.facts(); del f["us-gaap"]["SellingGeneralAndAdministrativeExpense"]; self.assertIsNone(self.T.calc_op(f, self.rv(f), 2025))
+    def test_other_opex_is_reported_not_subtracted(self):
+        imp = {"GoodwillImpairmentLoss": {"units": {"USD": [{"start": "2024-07-01", "end": "2025-06-30", "val": 50, "form": "10-K", "filed": "2025-08-01", "accn": "A1"}]}}}
+        f = self.facts(extra=imp); v, _, other = self.T.calc_op(f, self.rv(f), 2025)
+        self.assertEqual(v, 400); self.assertEqual(other, [("GoodwillImpairmentLoss", 50)])
