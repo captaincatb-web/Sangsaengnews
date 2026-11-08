@@ -48,6 +48,61 @@ def fx_daily(raw=None):
     return out
 
 
+# ECB가 발표하지 않는 통화: 미국 연준 H.10 일별 환율(FRED 시리즈, 1달러당 해당 통화)과 ECB 기준 원/달러를 같은 날짜끼리 교차한다.
+# KRW/통화 = (원/달러, ECB 교차) ÷ (통화/달러, 연준 H.10). 두 출처 모두 공식 기관 고시값이며 날짜가 겹치는 날만 쓴다.
+FRED_SERIES = {"TWD": "DEXTAUS"}
+
+
+def fx_add_fred(fx, raw_by_cur=None):
+    """fx 에 FRED_SERIES 통화를 더한다(이미 있는 통화는 건드리지 않음). raw_by_cur 는 시험용 {통화: csv 텍스트}."""
+    usd = dict(fx.get("USD", []))
+    for cur, sid in FRED_SERIES.items():
+        if cur in fx: continue
+        if raw_by_cur is not None: text = raw_by_cur.get(cur, "")
+        else:
+            import requests, time
+            text = ""
+            for wait in (0,):  # 예비 출처: 한 번만 짧게 시도(GitHub 실행 환경에서 응답이 없을 때가 많음). 실패하면 이 통화만 환산을 비우고 나머지 반입은 계속한다
+                time.sleep(wait)
+                try:
+                    r = requests.get(f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}&cosd=2021-01-01", timeout=30, headers={"User-Agent": "Mozilla/5.0 (growth-ingest)"})
+                    if r.status_code in (403, 429): print(f"[FX] {cur} 환율 서버 {r.status_code}: 중단(환산 비움)"); break
+                    r.raise_for_status(); text = r.text; break
+                except requests.RequestException as e: print(f"[FX] {cur} 환율 받기 실패({type(e).__name__}) — 재시도")
+            if not text: print(f"[FX] {cur} 환율을 받지 못해 원화 환산을 비웁니다"); continue
+        ser = []
+        for x in csv.DictReader(io.StringIO(text)):
+            d_ = x.get("observation_date") or x.get("DATE"); v = x.get(sid)
+            try: d = dt.date.fromisoformat(d_); per_usd = float(v)
+            except (TypeError, ValueError): continue
+            if d in usd and per_usd: ser.append((d, usd[d] / per_usd))
+        if ser: fx[cur] = ser
+    return fx
+
+
+def fx_add_twd_finmind(fx, raw_json=None):
+    """TWD: 臺灣銀行 고시 달러 현물 매입·매도율의 중간값(1달러당 대만달러, FinMind TaiwanExchangeRate)과 ECB 원/달러를 같은 날짜끼리 교차한다.
+    키는 환경변수 FINMIND_API_TOKEN(헤더로만 전송, 없으면 키 없이 요청). raw_json 은 시험용 응답."""
+    if "TWD" in fx: return fx
+    if raw_json is None:
+        import requests
+        tok = os.environ.get("FINMIND_API_TOKEN", "").strip(); h = {"User-Agent": "growth-ingest"}
+        if tok: h["Authorization"] = "Bearer " + tok
+        try:
+            r = requests.get("https://api.finmindtrade.com/api/v4/data?dataset=TaiwanExchangeRate&data_id=USD&start_date=2021-01-01", headers=h, timeout=60)
+            if r.status_code in (402, 403, 429): print(f"[FX] TWD(FinMind) {r.status_code}: 중단"); return fx
+            r.raise_for_status(); raw_json = r.json()
+        except Exception as e: print(f"[FX] TWD(FinMind) 받기 실패({type(e).__name__})"); return fx
+    usd = dict(fx.get("USD", [])); ser = []
+    for x in (raw_json or {}).get("data", []):
+        try: d = dt.date.fromisoformat(x["date"]); b, s_ = float(x["spot_buy"]), float(x["spot_sell"])
+        except (KeyError, TypeError, ValueError): continue
+        if b <= 0 or s_ <= 0 or d not in usd: continue
+        ser.append((d, usd[d] / ((b + s_) / 2)))
+    if ser: fx["TWD"] = ser
+    return fx
+
+
 def fx_avg(series, start, end):
     v = [x for d, x in series if start <= d <= end]
     return (sum(v) / len(v), len(v)) if v else (None, 0)
@@ -90,7 +145,7 @@ def main():
     priv = os.environ.get("GROWTH_PRIVATE_DIR")
     if not priv or len(sys.argv) < 2: sys.exit("GROWTH_PRIVATE_DIR 와 입력 CSV 경로가 필요합니다")
     rows = list(csv.DictReader(open(sys.argv[1], encoding="utf-8-sig")))
-    ok, rej = convert(rows, fx_daily())
+    ok, rej = convert(rows, fx_add_fred(fx_add_twd_finmind(fx_daily())))
     with open(Path(priv) / "overseas_financials_ext.csv", "w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=OUT_COLS); w.writeheader(); w.writerows(ok)
     print(json.dumps({"input_rows": len(rows), "accepted": len(ok), "entities": len({x["entity_id"] for x in ok}), "rejected_reasons": dict(rej)}, ensure_ascii=False))
