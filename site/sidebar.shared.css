@@ -16,6 +16,12 @@ body.db, main.pg-page { font-family: var(--site-font); font-size: 16px; line-hei
   }
   body.db > .krds-header { grid-column: 1 / -1; grid-row: 1; }
   body.db > .site-side { grid-row: 2 / span 30; }
+  /* 사이드바 전체를 한 덩어리로 화면에 고정한다(소부장 경영 정보·국내 소부장·해외 비교·성장 분석).
+     예전에는 메뉴(nav)만 고정되어, 스크롤하면 그 아래 '확인 필요' 목록·최근 갱신이 메뉴 밑으로 밀려 들어가 글자가 겹쳤다.
+     높이를 화면 높이에 맞춰 오른쪽 경계선이 늘 끝까지 보이고, 내용이 길면 사이드바 안에서만 스크롤한다. */
+  body.db > .site-side { position: sticky; top: 0; align-self: start; height: 100vh; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  body.db > .site-side > nav { position: static; }
+  body.db > .site-side .db-refresh { position: static; margin-top: auto; }
   body.db > .db-main { grid-column: 2; grid-row: 2; }
   main.pg-page .site-side .pg-sticky, main.pg-page .an2-layout > .site-side .pg-sticky {
     position: sticky; top: 16px; display: grid; gap: 14px;
