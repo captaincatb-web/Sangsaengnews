@@ -139,10 +139,13 @@ function legend(){$('legend').innerHTML=GR.map(g=>'<li><i class="sq" style="back
 /* ---------- 초기화 ---------- */
 const tb=$('theme-btn');if(tb){const cur=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const paint=()=>{const d=cur()==='dark';tb.innerHTML='<i class="ph ph-'+(d?'sun':'moon')+'" aria-hidden="true"></i>';tb.title=d?'밝은 화면으로':'어두운 화면으로'};tb.addEventListener('click',()=>{const t=cur()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sobujang:theme',t)}catch(e){}paint()});paint()}
 fetch('data/growth-comparison-summary.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{S=j;
- const vs=$('f-view');modes().forEach((m,i)=>vs.add(new Option(m.label,m.id)));vs.parentElement.hidden=modes().length<2;
+ const vs=$('f-view'),one=modes().length<2;modes().forEach((m,i)=>vs.add(new Option(m.label,m.id)));
+ /* 모드가 하나뿐이면 전환 버튼과 제목만 숨기고 재무 범위 설명은 그대로 보인다 */
+ const mb=vs.parentElement;mb.hidden=false;mb.querySelector('legend').hidden=one;$('mode-seg').hidden=one;
  /* 비교 기준: 페이지 상단 라디오 버튼(화살표 키 이동은 브라우저 기본). 선택하면 숨긴 select 값을 바꾸고 change 를 보내 기존 처리(차트·표·회사별 상세)를 그대로 탄다 */
  const seg=$('mode-seg');if(seg){seg.innerHTML=modes().map((m,i)=>'<label class="gc-seg-o"><input type="radio" name="gc-mode" value="'+i+'"'+(i===Math.max(0,vs.selectedIndex)?' checked':'')+'><span>'+esc(m.label)+'</span></label>').join('');
-  seg.addEventListener('change',e=>{const i=+e.target.value;if(vs.selectedIndex!==i){vs.selectedIndex=i;vs.dispatchEvent(new Event('change'))}})}
+  seg.addEventListener('change',e=>{const i=+e.target.value;if(vs.selectedIndex!==i){vs.selectedIndex=i;vs.dispatchEvent(new Event('change'))}});
+  vs.addEventListener('change',()=>{const r=seg.querySelectorAll('input')[vs.selectedIndex];if(r&&!r.checked)r.checked=true})}  /* 다른 경로로 select 가 바뀌어도 버튼 표시를 맞춘다 */
  function refreshMode(){setGroups();const fc=$('f-chart');fc.length=1;fc.value='';for(let i=1;i<=5;i++)$('f-d'+i).value='';
   const cs=new Set();for(const k in base()){const c=JSON.parse(k)[0];if(c)cs.add(c)}CH.filter(c=>cs.has(c)).forEach(c=>fc.add(new Option(c,c)));
   legend();modeInfo();notes();sync();draw()}

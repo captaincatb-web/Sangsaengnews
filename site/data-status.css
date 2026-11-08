@@ -16,5 +16,5 @@ main > .site-data-status { margin: 28px 0 0; }
 main.pg-page > .site-data-status { margin-bottom: 40px; }
 
 /* 다크 모드: 상태 글자 대비(4.5:1 이상) */
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .site-data-status__state.is-fresh{color:#4cc794}:root:not([data-theme="light"]) .site-data-status__state.is-missing{color:#f08a78}}
-:root[data-theme="dark"] .site-data-status__state.is-fresh{color:#4cc794}:root[data-theme="dark"] .site-data-status__state.is-missing{color:#f08a78}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .site-data-status__state.is-fresh{color:#4cc794}:root:not([data-theme="light"]) .site-data-status__state.is-cached{color:#e3b04e}:root:not([data-theme="light"]) .site-data-status__state.is-missing{color:#f08a78}}
+:root[data-theme="dark"] .site-data-status__state.is-fresh{color:#4cc794}:root[data-theme="dark"] .site-data-status__state.is-cached{color:#e3b04e}:root[data-theme="dark"] .site-data-status__state.is-missing{color:#f08a78}

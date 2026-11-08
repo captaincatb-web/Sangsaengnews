@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="dashboard.theme.css?v=202611031300">
   <link rel="stylesheet" href="sidebar.shared.css?v=202611031300">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
-  <link rel="stylesheet" href="data-status.css?v=202611080900">
+  <link rel="stylesheet" href="data-status.css?v=202611081000">
   <link rel="stylesheet" href="growth-comparison.css?v=6">
 </head>
 <body class="db">
@@ -57,7 +57,7 @@
   <main class="db-main" id="main">
     <header class="db-top"><div><h1>국내·해외 소부장 성장 비교</h1>
       <p id="sub">2023~2025년 매출·영업이익이 모두 확인된 동일 기업군의 합계 비교</p></div></header>
-    <fieldset class="gc-modebar" hidden><legend class="gc-mb-l">비교 기준 <small>차트·표·회사별 상세에 모두 적용</small></legend>
+    <fieldset class="gc-modebar" hidden aria-describedby="mode-note"><legend class="gc-mb-l">비교 기준 <small>차트·표·회사별 상세에 모두 적용</small></legend>
       <div class="gc-seg" id="mode-seg"></div>
       <select id="f-view" hidden aria-hidden="true" tabindex="-1"></select>
       <p class="gc-modenote" id="mode-note" role="note"></p>
@@ -100,7 +100,7 @@
   <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"성장 비교 집계",updated:"",note:"집계 파일 불러오는 중"}};</script>
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="growth-comparison.js?v=8"></script>
+  <script src="growth-comparison.js?v=9"></script>
   <script src="growth-companies.js?v=3"></script>
 </body>
 </html>
