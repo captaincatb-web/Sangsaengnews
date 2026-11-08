@@ -89,17 +89,12 @@
     items.push({ name: SB.KINDS.includes(state.kind) ? `국내 ${state.kind}` : "국내 소부장 중앙값", tag: "국내", dom: true, v: dv,
       src: `국내 ${d.n}곳 ${metric} 중앙값 · DART 사업보고서 개별재무제표 · ${FY}년`, why: "국내 소부장에 해당 업종이 없음" });
     const ctrys = [...new Set(rows.map((r) => r.p.ctry))];
-    if (!state.each) { // 국가별 중앙값(기업이 많아도 30초 안에 읽히게). '기업별 보기'로 펼친다
-      items.push({ head: `해외 (연결 · 원화 환산 · 국가별 중앙값)` });
-      ctrys.map((c) => { const g = rows.filter((r) => r.p.ctry === c); return { c, n: g.length, v: med(g.map((r) => r[key])) }; })
-        .sort((a, b) => (b.v ?? -1e9) - (a.v ?? -1e9))
-        .forEach((x) => items.push({ name: CTRY[x.c] || x.c, tag: `${x.n}곳`, v: x.v, src: `${CTRY[x.c] || x.c} ${x.n}곳 ${metric} 중앙값 · 출처는 '기업별 보기'에서 회사별로 확인`, why: "값이 있는 기업이 없음" }));
-    } else ctrys.forEach((c) => {
-      const grp = rows.filter((r) => r.p.ctry === c).sort((a, b) => (b[key] ?? -1e9) - (a[key] ?? -1e9));
-      items.push({ head: `${CTRY[c] || c} (연결 · 원화 환산 · ${grp.length}곳)` });
-      grp.forEach((r) => items.push({ name: r.p.n, tag: tagOf(r.p), v: r[key], src: srcPeer(r.p, metric, r.L), why: whyNone(r) }));
-    });
-    return bars(items, fmt) + `<p class="db-more"><button class="db-link" type="button" data-each>${state.each ? "국가별 중앙값으로 접기" : `기업별 보기(${rows.length}곳)`}</button></p>`;
+    // 국가별 중앙값만 보인다(기업이 많아도 30초 안에 읽히게). 회사별 값은 바로 아래 '회사별 영업이익률 · 매출 증감률' 표 하나에서 본다(같은 값을 두 번 나열하지 않음)
+    items.push({ head: `해외 (연결 · 원화 환산 · 국가별 중앙값)` });
+    ctrys.map((c) => { const g = rows.filter((r) => r.p.ctry === c); return { c, n: g.length, v: med(g.map((r) => r[key])) }; })
+      .sort((a, b) => (b.v ?? -1e9) - (a.v ?? -1e9))
+      .forEach((x) => items.push({ name: CTRY[x.c] || x.c, tag: `${x.n}곳`, v: x.v, src: `${CTRY[x.c] || x.c} ${x.n}곳 ${metric} 중앙값 · 회사별 값과 출처는 아래 회사별 표에서 확인`, why: "값이 있는 기업이 없음" }));
+    return bars(items, fmt) + `<p class="db-more"><button class="db-link" type="button" data-cosort="${key}">회사별 ${metric} 보기(${rows.length}곳) <i class="ph ph-arrow-down" aria-hidden="true"></i></button></p>`;
   }
 
   // ---------- 화면 ----------
@@ -546,7 +541,8 @@
       "해외는 연결, 국내는 개별 재무제표라 같은 기준이 아닙니다. 해외 기업은 규모와 사업 구조가 커 국내 기업과 '업종 이름'만 같을 수 있습니다.",
       `결산월(해외 최근 ${fy}년 결산 vs 국내 ${FY}년)과 환율(평균환율 환산)이 달라 작은 차이는 의미가 없습니다. 비교 기업은 대표 기업을 고른 표본입니다.`,
       "해외 값은 공시·시세 API에서 받아 쪽 번호가 없고, 받지 못한 항목은 '-'로 두었습니다. 주가 지표는 비공식 출처(야후)를 포함합니다.",
-    ].map((t) => `<li>${esc(t)}</li>`).join("");
+    ].map((t) => `<li>${esc(t)}</li>`).join("")
+      + `<li>성장 분석 페이지의 '해외계'와는 대상이 다릅니다. 이 페이지는 시세·재무를 매일 받는 해외 동종 상장사 ${rows.length}곳의 최근 연도(연결)이고, 성장 분석은 2023~2025년 3개년 공시가 모두 확인된 해외 상장 본사와 한국에 설립된 외국계 법인을 합친 집단입니다. 그래서 기업 수와 수치가 서로 다릅니다. <a href="growth-comparison.html">성장 분석 보기</a></li>`;
   }
 
   // ---------- 필터·화면 전환 ----------
@@ -657,7 +653,11 @@
   document.addEventListener("click", (e) => { const pt = e.target.closest("[data-pt]"); if (pt) openCompany(pt.dataset.pt); });
   document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches("[data-pt]")) { e.preventDefault(); openCompany(e.target.dataset.pt); } });
   document.addEventListener("click", (e) => { if (e.target.closest("[data-checksort]")) { state.sortP = { k: "dm", d: 1 }; drawPerf(); } });
-  document.addEventListener("click", (e) => { if (e.target.closest("[data-each]")) { state.each = !state.each; drawOverview(); } if (e.target.closest("[data-retall]")) { state.retAll = !state.retAll; drawStock(); } });
+  document.addEventListener("click", (e) => {
+    const cs = e.target.closest("[data-cosort]");
+    if (cs) { state.sortO = { k: cs.dataset.cosort, d: -1 }; drawCompanyList(); const card = $("ov-co-card"); if (card) { card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); const h = card.querySelector("h2"); if (h) { h.tabIndex = -1; h.focus({ preventScroll: true }); } } }
+    if (e.target.closest("[data-retall]")) { state.retAll = !state.retAll; drawStock(); }
+  });
   // 기업 선택: 국내(소부장 경영 정보)와 같은 검색형 목록. 입력한 글자로 거르고 매출이 큰 순서로 보여 준다
   const coAll = () => all.map((r) => ({ r, key: r.p.n.replace(/\s/g, "").toLowerCase(), last: r.s1 || 0 }));
   let coHits = [], coIdx = -1;

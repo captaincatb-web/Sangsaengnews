@@ -132,6 +132,7 @@ function modeInfo(){
 function notes(){
  const nl=S.notes_list||[],m=curMode();
  $('notes').innerHTML=nl.map(x=>'<li>'+esc(x)+'</li>').join('')+(m.id!=='blend'?'<li><b>현재 비교 기준('+esc(m.label)+'):</b> '+esc(m.note||'')+'</li>':'')+
+  '<li>해외 비교 페이지의 해외 기업(시세·재무를 매일 받는 동종 상장사, 최근 연도 연결)과는 대상·기간·재무 기준이 달라 기업 수와 수치가 다릅니다. <a href="compare.html">해외 비교 보기</a></li>'+
   '<li class="gc-disc"><b>유의:</b> 기업별 연결 범위, 사업 구성, 회계기간 및 환율의 차이가 있어 매출 규모와 수익성을 동일한 기준의 직접 비교 결과로 해석하기 어렵습니다. 자세한 산출 방법은 방법론 문서(docs/growth-comparison-methodology.md)를 참고하세요.</li>';
  const c=m.coverage||S.coverage||{},cp=m.id==='blend'?(S.coverage||{}).composition:null,bp=c.balanced_panel||{},en=c.entities||{};
  const ov=GR.find(g=>g.key==='ov'),dm=GR.find(g=>g.key==='dom');
