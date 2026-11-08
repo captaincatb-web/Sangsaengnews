@@ -78,6 +78,7 @@ function draw(){
  const nt=$('detail-note');nt.hidden=true;nt.textContent='';
  if(p.length&&curMode().id==='blend'&&S.coverage&&S.coverage.detail_missing){const dm=S.coverage.detail_missing[sel||'전체']||{};const parts=GR.filter(g=>dm[g.key]&&dm[g.key].no_detail>0).map(g=>g.label+' '+dm[g.key].no_detail+'곳');
   if(parts.length){nt.hidden=false;nt.textContent='상세구분이 없는 기업('+parts.join(' · ')+')은 상세 필터에서 제외됩니다. 상세구분이 없는 기업을 임의로 분류하지 않습니다.'}}
+ keyline(cur,sel,p);
  if(!data.some(d=>d.x&&GR.some(g=>d.x[g.key]))){box.innerHTML='<p class="gc-empty">이 조건에서는 공개 기준(그룹별 5곳 이상, 3개년 실적 확인)을 충족하는 비교 대상이 없습니다.</p>';$('influence').hidden=true;tbl([]);ptbl([]);return}
  const mx=Math.max(1,...data.flatMap(d=>GR.flatMap(g=>(series(d.x&&d.x[g.key],mode)||[]).filter(v=>v!=null))));
  const allM=data.flatMap(d=>GR.flatMap(g=>((d.x&&d.x[g.key]&&d.x[g.key].margin)||[]).filter(v=>v!=null))),hi=Math.max(5,...allM)+3,lo=Math.min(0,...allM)-3;
@@ -100,10 +101,20 @@ function influence(data,sel){
 
 /* ---------- 표 ---------- */
 function th(t,cls){const c=document.createElement('th');c.textContent=t;if(cls)c.className=cls;return c}
-function tbl(data){const t=$('tbl');t.textContent='';if(!data.length)return;
- const h=t.createTHead().insertRow();['분류','구분','기업 수',...Y.map(y=>y+' 매출(억 원)'),'매출 성장 2024','매출 성장 2025',...Y.map(y=>y+' 영업이익률')].forEach(x=>h.append(th(x)));
+function tbl(data){const t=$('tbl');t.textContent='';if(!data.length)return;  /* 매출·성장 탭(영업이익률은 옆 탭) */
+ const h=t.createTHead().insertRow();['분류','구분','기업 수',...Y.map(y=>y+' 매출(억 원)'),'매출 성장 2024','매출 성장 2025','2023→2025 누적'].forEach(x=>h.append(th(x)));
  const b=t.createTBody();data.forEach(d=>GR.forEach(g=>{const s=d.x&&d.x[g.key];if(!s||!s.n)return;const gr=growthOf(s),row=b.insertRow();
-  [d.c,g.full,s.n,...s.rev.map(fmt),sg(gr[1]),sg(gr[2]),...s.margin.map(pct)].forEach(v=>row.insertCell().textContent=v)}))}
+  [d.c,g.full,s.n,...s.rev.map(fmt),sg(gr[1]),sg(gr[2]),sg(cum(s))].forEach(v=>row.insertCell().textContent=v)}))}
+const cum=s=>s&&s.n&&s.rev[0]?(s.rev[2]/s.rev[0]-1)*100:null;
+/* 한 줄 요약: 현재 조건의 2025년 영업이익률과 2023→2025 매출 누적 성장(두 그룹 모두 공개 기준을 충족할 때만) */
+const josa=w=>{const c=String(w).trim().slice(-1).charCodeAt(0)-0xAC00;return c>=0&&c<=11171&&c%28?'이':'가'};
+function keyline(cur,sel,p){const k=$('gc-key');if(!k)return;const a=GR[0],z=GR[1],sa=cur&&a&&cur[a.key],sz=cur&&z&&cur[z.key];
+ if(!(sa&&sa.n&&sz&&sz.n)||sa.margin[2]==null||sz.margin[2]==null){k.hidden=true;k.innerHTML='';return}
+ const gap=sz.margin[2]-sa.margin[2],hi=gap>=0?z:a,span=(g,t)=>'<span style="color:'+g.ink+'">'+esc(g.short)+' '+t+'</span>';
+ k.hidden=false;
+ k.innerHTML=(sel||p.length?'<span class="gc-key-c">'+esc([sel||'전체',...p].join(' › '))+'</span>':'')+
+  '<span><b>2025년 영업이익률</b> '+span(a,pct(sa.margin[2]))+' · '+span(z,pct(sz.margin[2]))+(Math.abs(gap)>=0.05?' <small>('+esc(hi.short)+josa(hi.short)+' '+Math.abs(gap).toFixed(1)+'%p 높음)</small>':'')+'</span>'+
+  '<span><b>2023→2025 매출</b> '+span(a,sg(cum(sa)))+' · '+span(z,sg(cum(sz)))+'</span>'}
 function ptbl(data){const t=$('ptbl');t.textContent='';if(!data.length)return;
  const h=t.createTHead().insertRow();['분류','구분',...Y.map(y=>y+' 영업이익률'),'변화 2024(%p)','변화 2025(%p)'].forEach(x=>h.append(th(x)));
  const b=t.createTBody(),a=GR[0],z=GR[1];
@@ -121,6 +132,7 @@ function modeInfo(){
 function notes(){
  const nl=S.notes_list||[],m=curMode();
  $('notes').innerHTML=nl.map(x=>'<li>'+esc(x)+'</li>').join('')+(m.id!=='blend'?'<li><b>현재 비교 기준('+esc(m.label)+'):</b> '+esc(m.note||'')+'</li>':'')+
+  '<li>해외 비교 페이지의 해외 기업(시세·재무를 매일 받는 동종 상장사, 최근 연도 연결)과는 대상·기간·재무 기준이 달라 기업 수와 수치가 다릅니다. <a href="compare.html">해외 비교 보기</a></li>'+
   '<li class="gc-disc"><b>유의:</b> 기업별 연결 범위, 사업 구성, 회계기간 및 환율의 차이가 있어 매출 규모와 수익성을 동일한 기준의 직접 비교 결과로 해석하기 어렵습니다. 자세한 산출 방법은 방법론 문서(docs/growth-comparison-methodology.md)를 참고하세요.</li>';
  const c=m.coverage||S.coverage||{},cp=m.id==='blend'?(S.coverage||{}).composition:null,bp=c.balanced_panel||{},en=c.entities||{};
  const ov=GR.find(g=>g.key==='ov'),dm=GR.find(g=>g.key==='dom');
@@ -135,6 +147,12 @@ function notes(){
  const ds=document.querySelector('.site-data-status__item');if(ds&&S.generatedAt){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');
   n.textContent=S.generatedAt.slice(0,10)+' 기준 · 국내 '+(bp['국내']!=null?bp['국내']:'–')+'곳 · 해외계 '+(bp['해외']!=null?bp['해외']:'–')+'곳';t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
 function legend(){$('legend').innerHTML=GR.map(g=>'<li><i class="sq" style="background:'+g.color+'"></i>'+esc(g.full)+'</li>').join('')}
+
+/* ---------- 표 탭(매출·성장 / 영업이익률 변화) ---------- */
+(function tabs(){const tl=document.querySelector('.gc-tabs');if(!tl)return;const ts=[...tl.querySelectorAll('[role=tab]')];
+ const pick=(t,focus)=>{ts.forEach(x=>{const on=x===t;x.setAttribute('aria-selected',on?'true':'false');x.tabIndex=on?0:-1;$(x.getAttribute('aria-controls')).hidden=!on});if(focus)t.focus()};
+ tl.addEventListener('click',e=>{const t=e.target.closest('[role=tab]');if(t)pick(t)});
+ tl.addEventListener('keydown',e=>{const i=ts.indexOf(document.activeElement);if(i<0)return;const n={ArrowRight:(i+1)%ts.length,ArrowLeft:(i-1+ts.length)%ts.length,Home:0,End:ts.length-1}[e.key];if(n==null)return;e.preventDefault();pick(ts[n],true)})})();
 
 /* ---------- 초기화 ---------- */
 const tb=$('theme-btn');if(tb){const cur=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const paint=()=>{const d=cur()==='dark';tb.innerHTML='<i class="ph ph-'+(d?'sun':'moon')+'" aria-hidden="true"></i>';tb.title=d?'밝은 화면으로':'어두운 화면으로'};tb.addEventListener('click',()=>{const t=cur()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sobujang:theme',t)}catch(e){}paint()});paint()}

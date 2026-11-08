@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="sidebar.shared.css?v=202611081200">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611081000">
-  <link rel="stylesheet" href="growth-comparison.css?v=7">
+  <link rel="stylesheet" href="growth-comparison.css?v=8">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -45,7 +45,6 @@
     <nav>
       <ul class="db-nav" id="views-nav">
         <li><a href="#chart-card"><i class="ph ph-chart-line-up" aria-hidden="true"></i><span class="l">매출·영업이익률</span><span class="s" aria-hidden="true">차트</span></a></li>
-        <li><a href="#profit-card"><i class="ph ph-percent" aria-hidden="true"></i><span class="l">수익성 변화(%p)</span><span class="s" aria-hidden="true">수익성</span></a></li>
         <li><a href="#table-card"><i class="ph ph-table" aria-hidden="true"></i><span class="l">표로 보기</span><span class="s" aria-hidden="true">표</span></a></li>
         <li><a href="#company-card"><i class="ph ph-buildings" aria-hidden="true"></i><span class="l">회사별 상세</span><span class="s" aria-hidden="true">회사</span></a></li>
         <li><a href="#notes-card"><i class="ph ph-info" aria-hidden="true"></i><span class="l">산출 기준·한계</span><span class="s" aria-hidden="true">기준</span></a></li>
@@ -56,7 +55,8 @@
 
   <main class="db-main" id="main">
     <header class="db-top"><div><h1>국내·해외 소부장 성장 비교</h1>
-      <p id="sub">2023~2025년 매출·영업이익이 모두 확인된 동일 기업군의 합계 비교</p></div></header>
+      <p id="sub">2023~2025년 매출·영업이익이 모두 확인된 동일 기업군의 합계 비교</p>
+      <p class="gc-key" id="gc-key" hidden></p></div></header>
     <fieldset class="gc-modebar" hidden aria-describedby="mode-note"><legend class="gc-mb-l">비교 기준 <small>차트·표·회사별 상세에 모두 적용</small></legend>
       <div class="gc-seg" id="mode-seg"></div>
       <select id="f-view" hidden aria-hidden="true" tabindex="-1"></select>
@@ -81,13 +81,20 @@
         <div class="db-chart" id="chart" role="group" aria-label="국내·해외계 소재·부품·장비 매출과 영업이익률 비교 차트"></div>
         <div class="gc-influence" id="influence" hidden></div>
       </section>
-      <section class="db-card" id="profit-card" aria-labelledby="pt"><div class="db-card-head"><h2 id="pt">수익성 변화(%p) <small>영업이익률 = 영업이익 합계 ÷ 매출 합계, 변화·격차는 %p</small></h2></div><div class="db-tbl-wrap"><table class="db-tbl" id="ptbl"></table></div></section>
-      <section class="db-card" id="table-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">표로 보기</h2></div><div class="db-tbl-wrap" style="overflow-x:auto"><table class="db-tbl" id="tbl"></table></div></section>
+      <section class="db-card" id="table-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">표로 보기 <small>영업이익률 = 영업이익 합계 ÷ 매출 합계, 변화·격차는 %p</small></h2></div>
+        <div class="gc-tabs" role="tablist" aria-label="표 종류">
+          <button type="button" role="tab" id="tab-rev" aria-controls="tp-rev" aria-selected="true">매출·성장</button>
+          <button type="button" role="tab" id="tab-pm" aria-controls="tp-pm" aria-selected="false" tabindex="-1">영업이익률 변화(%p)</button>
+        </div>
+        <div role="tabpanel" id="tp-rev" aria-labelledby="tab-rev" tabindex="0"><div class="db-tbl-wrap" style="overflow-x:auto"><table class="db-tbl" id="tbl"></table></div></div>
+        <div role="tabpanel" id="tp-pm" aria-labelledby="tab-pm" tabindex="0" hidden><div class="db-tbl-wrap" style="overflow-x:auto"><table class="db-tbl" id="ptbl"></table></div></div>
+      </section>
       <section class="db-card" id="company-card" aria-labelledby="cot"><div class="db-card-head"><h2 id="cot">회사별 상세 <small>집계에 포함된 법인의 공시 수치</small></h2></div>
         <div id="co-body">
           <div class="gc-co-tools"><label class="db-sel"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span>회사·상세구분 검색</span><input id="co-q" type="search" placeholder="회사명 또는 품목" autocomplete="off"></label>
             <label class="db-sel"><i class="ph ph-globe" aria-hidden="true"></i><span>구분</span><select id="co-g"><option value="">전체</option><option value="dom">국내</option><option value="ov">해외계</option></select></label>
-            <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>분류</span><select id="co-c"><option value="">전체</option></select></label></div>
+            <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>분류</span><select id="co-c"><option value="">전체</option></select></label>
+            <button type="button" class="db-btn ghost gc-csv" id="co-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button></div>
           <p class="gc-result" id="co-count" role="status"></p><p class="gc-note" id="co-note"></p>
           <p class="gc-note co-calc-note" id="co-calc-note" hidden></p>
           <div class="db-tbl-wrap gc-co-wrap"><table class="db-tbl gc-co-tbl" id="co-tbl"></table></div>
@@ -101,7 +108,7 @@
   <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"성장 비교 집계",updated:"",note:"집계 파일 불러오는 중"}};</script>
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="growth-comparison.js?v=9"></script>
-  <script src="growth-companies.js?v=6"></script>
+  <script src="growth-comparison.js?v=10"></script>
+  <script src="growth-companies.js?v=7"></script>
 </body>
 </html>

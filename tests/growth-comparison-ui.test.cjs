@@ -55,8 +55,15 @@ for (const w of [360, 1200]) {
     const txt = await page.evaluate(() => document.body.innerText);
     assert.ok(!/외국계 –|국내 소재 외국계/.test(txt), "3그룹 잔재(외국계 –) 없음");
     assert.ok(/현재 조건/.test(await page.locator("#result").innerText()), "결과 줄 표시");
+    assert.ok(await page.locator("#gc-key").isVisible(), "한 줄 요약 표시");
+    assert.match(await page.locator("#gc-key").innerText(), /2025년 영업이익률[\s\S]*2023→2025 매출/, "요약: 영업이익률·누적 매출 성장");
+    assert.ok(await page.locator("#tp-rev").isVisible() && !(await page.locator("#tp-pm").isVisible()), "표 탭 기본: 매출·성장");
+    await page.locator("#tab-rev").focus(); await page.keyboard.press("ArrowRight");
+    assert.equal(await page.locator("#tab-pm").getAttribute("aria-selected"), "true", "화살표 키로 탭 이동");
     assert.ok((await page.locator("#ptbl").innerText()).includes("%p"), "수익성 변화 표에 %p 표기");
     assert.ok((await page.locator("#ptbl tr.gc-gap").count()) >= 1, "격차 행");
+    const cols = await page.evaluate(() => getComputedStyle(document.querySelector("#chart .gc-grid")).gridTemplateColumns.split(" ").length);
+    assert.equal(cols, w <= 640 ? 1 : 2, "분류 차트 4개는 2열(2×2), 좁은 화면은 1열");
     assert.equal(await page.locator("#chart .gc-panel").first().locator("svg").count(), 2, "패널마다 매출·영업이익률 차트 분리");
     const groups = await page.evaluate(async () => (await (await fetch("data/growth-comparison-summary.json")).json()).groups.length);
     assert.equal(await page.locator("#legend li").count(), groups, "범례 수 = 그룹 수(데이터 기반)");

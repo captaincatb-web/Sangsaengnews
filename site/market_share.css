@@ -119,3 +119,8 @@ body[data-view="caps"] .db-filters, body[data-view="caps"] #filter-toggle, body[
 .cp-grp{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;grid-column:1/-1}.cp-grp-l{font-size:13px;font-weight:600;color:var(--text-2)}
 .cp-grp-x{min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--text-2);font:inherit;font-size:12.5px;cursor:pointer}
 .cp-tag-grp{background:var(--bg);color:var(--text-2)}
+.ms-excl-sum{margin:0;font-size:13px;line-height:1.6;color:var(--text-2)}.ms-excl-sum small{margin-left:4px;color:var(--text-3)}
+.ms-mk-on{font-size:12.5px;font-weight:600;color:var(--brand);padding:3px 10px;border:1px solid color-mix(in srgb,var(--brand) 35%,transparent);border-radius:999px}
+/* 시장별 카드: 두 카드가 나란히 놓이는 폭에서 주요 종목 열이 잘리지 않게 칸 여백을 줄이고, 좁으면 한 줄에 하나 */
+.ms-mk .ms-tbl th,.ms-mk .ms-tbl td{padding:11px 9px}
+@media (max-width: 1360px) { .ms-mks { grid-template-columns: minmax(0, 1fr); } }
