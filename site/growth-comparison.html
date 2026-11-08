@@ -14,8 +14,8 @@
   <link rel="stylesheet" href="dashboard.theme.css?v=202611031300">
   <link rel="stylesheet" href="sidebar.shared.css?v=202611031300">
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
-  <link rel="stylesheet" href="data-status.css?v=202611021500">
-  <link rel="stylesheet" href="growth-comparison.css?v=4">
+  <link rel="stylesheet" href="data-status.css?v=202611080900">
+  <link rel="stylesheet" href="growth-comparison.css?v=6">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -57,6 +57,11 @@
   <main class="db-main" id="main">
     <header class="db-top"><div><h1>국내·해외 소부장 성장 비교</h1>
       <p id="sub">2023~2025년 매출·영업이익이 모두 확인된 동일 기업군의 합계 비교</p></div></header>
+    <fieldset class="gc-modebar" hidden><legend class="gc-mb-l">비교 기준 <small>차트·표·회사별 상세에 모두 적용</small></legend>
+      <div class="gc-seg" id="mode-seg"></div>
+      <select id="f-view" hidden aria-hidden="true" tabindex="-1"></select>
+      <p class="gc-modenote" id="mode-note" role="note"></p>
+    </fieldset>
     <form class="db-filters gc-filters" id="filters" aria-label="분석 조건" onsubmit="return false">
       <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>그래프 분류</span><select id="f-chart"><option value="">전체</option></select></label>
       <label class="db-sel"><i class="ph ph-number-circle-one" aria-hidden="true"></i><span>상세구분1</span><select id="f-d1" disabled><option value="">전체</option></select></label>
@@ -68,10 +73,8 @@
     <div class="db-view">
       <section class="db-card" id="chart-card" aria-labelledby="ct">
         <div class="db-card-head"><h2 id="ct">소재·부품·장비 매출 추이와 영업이익률 <small>매출과 영업이익률은 따로 표시합니다</small></h2>
-          <label class="gc-mode gc-view"><span>비교 기준</span><select id="f-view" aria-describedby="mode-note"></select></label>
           <label class="gc-mode"><span>값</span><select id="f-mode"><option value="idx">매출지수(2023=100)</option><option value="sum">매출액 합계</option><option value="avg">기업당 평균 매출</option></select></label>
           <ul class="db-legend" id="legend"></ul></div>
-        <p class="gc-modenote" id="mode-note" role="note"></p>
         <p class="gc-modecount" id="mode-count"></p>
         <p class="gc-result" id="result" aria-live="polite"></p>
         <p class="gc-note" id="detail-note" hidden role="status"></p>
@@ -97,7 +100,7 @@
   <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"성장 비교 집계",updated:"",note:"집계 파일 불러오는 중"}};</script>
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="growth-comparison.js?v=6"></script>
+  <script src="growth-comparison.js?v=8"></script>
   <script src="growth-companies.js?v=3"></script>
 </body>
 </html>

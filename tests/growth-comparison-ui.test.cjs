@@ -96,11 +96,12 @@ for (const w of [360, 1200]) {
     const { page, ctx, errs } = await open(w);
     const modes = await page.evaluate(async () => (await (await fetch("data/growth-comparison-summary.json")).json()).modes || []);
     const opts = await page.locator("#f-view option").count();
+    assert.equal(await page.locator("#mode-seg label.gc-seg-o").count(), opts, "상단 비교 기준 버튼 수 = 선택지 수");
     assert.equal(opts, modes.length || 1, "비교 기준 선택지 수 = JSON 모드 수");
     if (modes.length >= 3) assert.equal(opts, 3, "모드 3종");
     const seen = new Set();
     for (let i = 0; i < Math.max(modes.length, 1); i++) {
-      if (modes.length) await page.selectOption("#f-view", { index: i }); await page.waitForTimeout(350);
+      if (modes.length) { const opt = page.locator("#mode-seg label.gc-seg-o").nth(i); await opt.click(); assert.ok(await opt.locator("input").isChecked(), `비교 기준 버튼 ${i} 선택됨`); } await page.waitForTimeout(350);
       const cap = await page.locator("#mode-note").innerText();
       assert.ok(/이 비교의 재무 범위/.test(cap) && cap.length > 20, "재무 범위 설명이 항상 보임");
       seen.add(cap);
