@@ -13,12 +13,13 @@ COLS = ["목록표기", "공식법인명", "상장여부", "거래소", "티커"
 log = {"calls": 0, "stopped": None}
 
 
-def windows():
+def windows(months=(3, 6, 9, 12)):
+    """유가증권보고서 제출 창: 결산월 + 3개월째 달의 8일부터 27일간(대부분 결산 후 3개월 안에 제출). months 는 제출 달 목록."""
     out = []
     for y in range(2023, 2027):
-        for m in (3, 6, 9, 12):
+        for m in sorted(set(months)):
             s = dt.date(y, m, 8); out += [s + dt.timedelta(days=i) for i in range(0, 27) if (s + dt.timedelta(days=i)) <= dt.date.today()]
-    return out
+    return sorted(set(out))
 
 
 def get(path, params=None, raw=False):
@@ -59,8 +60,11 @@ def choose_scope(per_year):
 def main():
     if not KEY or not os.environ.get("GROWTH_PRIVATE_DIR"): sys.exit("EDINET_API_KEY 와 GROWTH_PRIVATE_DIR 가 필요합니다")
     targets = {(r["티커"].strip() + "0"): r for r in csv.DictReader(open(OUT / "jp_targets.csv", encoding="utf-8-sig")) if r.get("티커", "").strip()}
+    only = {x.strip() for x in os.environ.get("EDINET_ONLY", "").split(",") if x.strip()}  # 일부 티커만 다시 수집(쉼표 구분)
+    if only: targets = {k: v for k, v in targets.items() if v["티커"].strip() in only}
     found = {}
-    for d in windows():
+    fm = {(int(r.get("결산월") or 3) + 2) % 12 + 1 for r in targets.values()}  # 결산월 → 제출 달(결산월+3). 1·2월 결산(4·5월 제출)도 포함
+    for d in windows(fm):
         res = get("/documents.json", {"date": d.isoformat(), "type": 2})
         for x in (res or {}).get("results", []):
             sc = x.get("secCode") or ""
@@ -74,7 +78,9 @@ def main():
         except Exception: continue
     rows = []; n_ent = n_full = 0
     for sc, per in sorted(data.items()):
-        t = targets[sc]; scope = choose_scope(per); n_ent += 1
+        t = targets[sc]; n_ent += 1
+        # 대상 목록의 '기준' 열(연결/개별)이 있으면 그 기준만 쓴다. 지주회사는 개별 재무가 지주 수익(배당 등) 위주라 사업 실적이 아니므로 연결로 지정한다
+        forced = (t.get("기준") or "").strip(); scope = forced if forced in ("연결", "개별") else choose_scope(per)
         if not scope: continue
         got = 0
         for pe, d in sorted(per.items()):
@@ -83,7 +89,7 @@ def main():
             got += v.get("rev") is not None and v.get("op") is not None
             rows.append({"목록표기": t["목록표기"], "공식법인명": t["공식법인명"], "상장여부": "상장 본사", "거래소": "TSE", "티커": t["티커"], "결산월": t.get("결산월", ""), "회계연도": pe[:4], "기간시작": x.get("periodStart", ""), "기간종료": pe, "통화": "JPY", "금액단위": "1",
                          "매출": "" if v.get("rev") is None else int(v["rev"]), "영업이익": "" if v.get("op") is None else int(v["op"]), "연결/개별": scope, "출처URL": f"{BASE}/documents/{x['docID']}?type=5", "쪽/표위치": f"EDINET API type=5 재무 CSV / {'NetSales·OperatingIncome(NonConsolidated)' if scope == '개별' else 'NetSales·OperatingIncome(연결)'}", "확신도(높음/중간/낮음)": "높음",
-                         "비고": "EDINET 자동 수집(유가증권보고서 120). 반도체 소부장 적격성·매출 비중은 별도 판정", "대표업종(소재/부품/장비)": t.get("대표업종", ""), "대표업종근거(반도체 관련 매출 비중과 출처)": ""})
+                         "비고": "EDINET 자동 수집(유가증권보고서 120). 반도체 소부장 적격성·매출 비중은 별도 판정" + (" · 지주회사라 연결 기준 지정" if (t.get("기준") or "").strip() == "연결" else ""), "대표업종(소재/부품/장비)": t.get("대표업종", ""), "대표업종근거(반도체 관련 매출 비중과 출처)": ""})
         n_full += got >= 3
     with open(OUT / "edinet_rows.csv", "w", encoding="utf-8-sig", newline="") as f:
         w = csv.DictWriter(f, fieldnames=COLS); w.writeheader(); w.writerows(rows)
