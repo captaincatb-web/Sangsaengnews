@@ -255,7 +255,7 @@ def build(ents, k=5, generated=None, ok=None):
                            "해외 상장 본사: 개별재무 우선, 개별이 공시되지 않으면 연결재무(미국 SEC 등록 법인 등). 법인별 3개년은 같은 기준으로 통일",
                            "매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아님", "해외계는 공식 공시로 확인된 표본이며 해외 반도체 소부장 산업 전체를 대표하지 않음",
                            "회계연도(회계기간 종료일 기준)·환율·재무 범위 차이로 직접 비교에 한계가 있음. 산출 방법은 방법론 문서 참고"]
-            + (["손익계산서에 영업이익 줄이 없는 해외 법인 일부(사용자 승인)는 영업이익을 매출−매출원가−연구개발비−판관비로 계산(회사별 목록에 '계산값' 표시)"] if any(ys for d in META.get("opcalc", {}).values() for ys in d.values()) else [])}
+            + (["손익계산서에 영업이익 줄이 없는 해외 법인 일부(사용자 승인)는 영업이익을 매출−매출원가−연구개발비−판관비(따로 적힌 영업권·무형자산 손상은 차감)로 계산하고 세전이익으로 검산(회사별 목록에 '계산값' 표시)"] if any(ys for d in META.get("opcalc", {}).values() for ys in d.values()) else [])}
 
 
 def consolidated_variant(ents, priv):
@@ -321,7 +321,7 @@ def company_rows(mid, ents):
     return rows
 
 
-OP_CALC_MARK = "영업이익 계산값"  # collect_sec_tickers.CALC_LABEL 의 앞부분(반입 후 source_ref 에 남는다)
+OP_CALC_MARK = "영업이익 계산값"  # collect_sec_tickers.CALC_LABEL·CALC_LABEL_IMP 의 공통 앞부분(반입 후 source_ref 에 남는다)
 
 
 MODE_META = {

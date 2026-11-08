@@ -3,7 +3,9 @@
 - 연도 = 회계기간(350~380일) 종료일의 연도. 매출·영업이익은 같은 회계기간·통화일 때만 함께 쓴다. 영업이익 항목(OperatingIncomeLoss 등)이 공시에 없으면 비워 둔다(다른 항목으로 계산·추정하지 않음).
 - 예외(사용자 승인 2026-11-08): 대상 파일의 '영업이익계산' 열에 표시한 법인만, 손익계산서에 영업이익 줄이 없을 때 '매출 − 매출원가 − 연구개발비 − 판관비'로 계산한다.
   네 항목이 모두 같은 보고서(접수번호)·같은 회계기간·같은 통화일 때만 계산하고, 하나라도 없거나 다르면 비워 둔다. 계산한 행은 쪽/표위치·비고에 '계산값'으로 표시한다.
-  같은 기간에 손상·구조조정 같은 다른 영업비용 항목이 따로 공시돼 있으면 계산에 넣지 않고 그 이름을 비고에 적는다.
+  영업권·무형자산 손상이 같은 보고서에 공시돼 있으면, 손익계산서에 따로 적힌 줄인지 세전이익으로 검산해 판별한다:
+  (매출 − 매출원가 − 연구개발비 − 판관비 − 손상 − 이자비용 + 사채상환손익 + 기타영업외손익)이 세전이익과 맞으면 손상이 별도 줄이므로 영업이익에서 뺀다.
+  손상을 빼지 않은 식이 세전이익과 맞으면(원가·판관비 안에 이미 포함) 빼지 않는다. 둘 다 맞지 않거나 세전이익이 없으면 빼지 않고 그 사실을 비고에 적는다(두 번 빼기 방지).
 - 출력 sec_rows.csv 는 조사 CSV 와 같은 20열(금액단위 1, 연결)이라 ingest_overseas_csv.py 로 반입한다(원화 환산은 반입기가 ECB 회계기간 평균 환율로 한다). 403·429 는 즉시 중단. 로그에는 건수만."""
 import csv, datetime as dt, json, os, sys, time
 from pathlib import Path
@@ -17,6 +19,12 @@ RND = [("us-gaap", t) for t in ("ResearchAndDevelopmentExpense", "ResearchAndDev
 SGA = [("us-gaap", "SellingGeneralAndAdministrativeExpense")]
 OTHER_OPEX = ("GoodwillImpairmentLoss", "ImpairmentOfIntangibleAssetsExcludingGoodwill", "GoodwillAndIntangibleAssetImpairment", "AssetImpairmentCharges", "RestructuringCharges", "RestructuringCosts")
 CALC_LABEL = "영업이익 계산값(매출−매출원가−연구개발비−판관비)"
+CALC_LABEL_IMP = "영업이익 계산값(매출−매출원가−연구개발비−판관비−영업권·무형자산 손상)"
+IMPAIR = [("us-gaap", t) for t in ("GoodwillAndIntangibleAssetImpairment", "AssetImpairmentCharges")]  # 손익계산서의 '영업권·무형자산 손상' 한 줄(합계 태그 우선)
+PRETAX = [("us-gaap", t) for t in ("IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments")]
+INTEREST = [("us-gaap", t) for t in ("InterestExpense", "InterestExpenseNonoperating", "InterestExpenseDebt")]
+EXTING = [("us-gaap", "GainsLossesOnExtinguishmentOfDebt")]  # 이익 +, 손실 −
+OTHER_NONOP = [("us-gaap", "OtherNonoperatingIncomeExpense")]  # 수익 +, 비용 −
 FORMS = ("10-K", "20-F", "40-F"); YEARS = (2022, 2023, 2024, 2025)
 
 
@@ -45,11 +53,29 @@ def annual(facts, tags):
 
 
 def calc_op(facts, rv, y):
-    """(영업이익 계산값, 쓴 태그들, 따로 공시된 다른 영업비용 태그들) 또는 None. 네 항목이 같은 접수번호·회계기간·통화일 때만."""
-    parts = [annual(facts, tg).get(y) for tg in (COGS, RND, SGA)]
-    if not all(parts) or any(p[1:5] != rv[1:5] for p in parts): return None
+    """영업이익 계산값 dict 또는 None. 네 항목(매출·매출원가·연구개발비·판관비)이 같은 접수번호·회계기간·통화일 때만.
+    {op, tags, other: [(태그, 값)], imp: (태그, 값)|None(뺀 손상), check: 검산 설명}"""
+    def same(tags):  # 매출과 같은 보고서(접수번호)·기간·통화로 공시된 값. 태그 이름이 해마다 달라도 같은 보고서에 쓴 태그를 찾는다(앞쪽 우선)
+        for tg in tags:
+            v = annual(facts, [tg]).get(y)
+            if v and v[1:5] == rv[1:5]: return v
+        return None
+    parts = [same(tg) for tg in (COGS, RND, SGA)]
+    if not all(parts): return None
+    base = rv[0] - sum(p[0] for p in parts)
     other = [(tg, o[0]) for tg in OTHER_OPEX if (o := annual(facts, [("us-gaap", tg)]).get(y)) and o[1:5] == rv[1:5] and o[0]]
-    return rv[0] - sum(p[0] for p in parts), [p[5] for p in parts], other
+    res = {"op": base, "tags": [p[5] for p in parts], "other": other, "imp": None, "check": ""}
+    imp, pre = same(IMPAIR), same(PRETAX)
+    if not imp or not imp[0]: res["check"] = "손상 공시 없음"; return res
+    if not pre: res["check"] = "세전이익이 없어 손상 위치를 검산하지 못함(손상 빼지 않음)"; return res
+    val = lambda tags: (same(tags) or (0,))[0]
+    nonop = -val(INTEREST) + val(EXTING) + val(OTHER_NONOP)
+    tol = abs(rv[0]) * 2e-4  # 공시 반올림(천·백만 단위) 여유
+    d_emb, d_sep = base + nonop - pre[0], base - imp[0] + nonop - pre[0]
+    if abs(d_sep) <= tol < abs(d_emb): res.update(op=base - imp[0], imp=(imp[5], imp[0]), check=f"세전이익 검산 일치(손상이 별도 줄, 차이 {int(d_sep):,})")
+    elif abs(d_emb) <= tol < abs(d_sep): res["check"] = f"세전이익 검산 일치(손상이 원가·판관비 안에 포함, 차이 {int(d_emb):,}) — 손상 빼지 않음"
+    else: res["check"] = f"세전이익 검산으로 손상 위치를 판별하지 못함(손상 별도 가정 차이 {int(d_sep):,}, 포함 가정 차이 {int(d_emb):,}) — 손상 빼지 않음"
+    return res
 
 
 def main():
@@ -76,9 +102,11 @@ def main():
             accn = rv[4].replace("-", "")
             if same: opv, ref, note, conf = int(ov[0]), f"영업이익 {ov[5]}", "", "높음"
             elif cv:
-                opv, ref, conf = int(cv[0]), f"{CALC_LABEL}: {' · '.join(cv[1])}", "중간"
-                note = f" · {CALC_LABEL}, 손익계산서에 영업이익 줄 없음(사용자 승인 2026-11-08)" + (" · 같은 보고서·기간에 공시된 손상·구조조정 항목(계산식에 더하거나 빼지 않음): " + ", ".join(f"{tg} {int(v):,}" for tg, v in cv[2]) if cv[2] else "")
-                res["calc_rows"] += 1; res["calc_other_opex"] += bool(cv[2])
+                lab = CALC_LABEL_IMP if cv["imp"] else CALC_LABEL
+                opv, ref, conf = int(cv["op"]), f"{lab}: {' · '.join(cv['tags'] + ([cv['imp'][0]] if cv['imp'] else []))}", "중간"
+                note = (f" · {lab}, 손익계산서에 영업이익 줄 없음(사용자 승인 2026-11-08)" + (f" · 뺀 손상 {cv['imp'][0]} {int(cv['imp'][1]):,}" if cv["imp"] else "")
+                        + f" · 검산: {cv['check']}" + (" · 같은 보고서·기간에 공시된 손상·구조조정 항목: " + ", ".join(f"{tg} {int(v):,}" for tg, v in cv["other"]) if cv["other"] else ""))
+                res["calc_rows"] += 1; res["calc_other_opex"] += bool(cv["other"]); res["calc_imp_subtracted"] = res.get("calc_imp_subtracted", 0) + bool(cv["imp"])
             else: opv, ref, note, conf = "", "영업이익 항목 없음", " · 영업이익 항목이 공시되지 않아 비움(계산·추정 안 함)", "중간"
             rows.append({"목록표기": t["목록표기"], "공식법인명": t["공식법인명"], "상장여부": "상장 본사", "거래소": t.get("거래소", "") or "US", "티커": t["티커"], "결산월": str(rv[2].month).zfill(2), "회계연도": y,
                          "기간시작": rv[1].isoformat(), "기간종료": rv[2].isoformat(), "통화": rv[3], "금액단위": "1", "매출": int(rv[0]), "영업이익": opv, "연결/개별": "연결",

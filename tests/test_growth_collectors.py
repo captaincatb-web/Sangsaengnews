@@ -98,27 +98,46 @@ if __name__ == "__main__": unittest.main()
 
 
 class SecTickersCalcOp(unittest.TestCase):
-    """KLA처럼 손익계산서에 영업이익 줄이 없는 법인: 표시한 법인만, 같은 보고서·기간·통화의 4개 항목으로 계산(사용자 승인 2026-11-08)."""
+    """KLA처럼 손익계산서에 영업이익 줄이 없는 법인: 표시한 법인만, 같은 보고서·기간·통화의 항목으로 계산(사용자 승인 2026-11-08).
+    영업권·무형자산 손상은 세전이익 검산으로 별도 줄임이 확인될 때만 뺀다(두 번 빼기 방지)."""
     def setUp(self):
         import collect_sec_tickers as T
         self.T = T
+    @staticmethod
+    def e(v, accn="A1", end="2025-06-30", cur="USD"):
+        return {"units": {cur: [{"start": "2024-07-01", "end": end, "val": v, "form": "10-K", "filed": "2025-08-01", "accn": accn}]}}
     def facts(self, cogs_accn="A1", cogs_end="2025-06-30", cogs_cur="USD", extra=None):
-        e = lambda v, accn="A1", end="2025-06-30": {"start": "2024-07-01", "end": end, "val": v, "form": "10-K", "filed": "2025-08-01", "accn": accn}
-        g = {"Revenues": {"units": {"USD": [e(1000)]}}, "CostOfRevenue": {"units": {cogs_cur: [e(400, cogs_accn, cogs_end)]}},
-             "ResearchAndDevelopmentExpense": {"units": {"USD": [e(120)]}}, "SellingGeneralAndAdministrativeExpense": {"units": {"USD": [e(80)]}}}
-        g.update(extra or {})
+        e = self.e
+        g = {"Revenues": e(1000), "CostOfRevenue": e(400, cogs_accn, cogs_end, cogs_cur), "ResearchAndDevelopmentExpense": e(120), "SellingGeneralAndAdministrativeExpense": e(80)}
+        g.update({k: e(v) for k, v in (extra or {}).items()})
         return {"us-gaap": g}
-    def rv(self, f):
-        return self.T.annual(f, self.T.REV)[2025]
+    def calc(self, f):
+        return self.T.calc_op(f, self.T.annual(f, self.T.REV)[2025], 2025)
     def test_calc_value_and_tags(self):
-        f = self.facts(); v, tags, other = self.T.calc_op(f, self.rv(f), 2025)
-        self.assertEqual(v, 400); self.assertEqual(tags, ["CostOfRevenue", "ResearchAndDevelopmentExpense", "SellingGeneralAndAdministrativeExpense"]); self.assertEqual(other, [])
+        r = self.calc(self.facts())
+        self.assertEqual(r["op"], 400); self.assertEqual(r["tags"], ["CostOfRevenue", "ResearchAndDevelopmentExpense", "SellingGeneralAndAdministrativeExpense"])
+        self.assertEqual((r["other"], r["imp"]), ([], None))
     def test_different_filing_period_or_currency_gives_none(self):
         for kw in ({"cogs_accn": "A2"}, {"cogs_end": "2025-06-29"}, {"cogs_cur": "EUR"}):
-            f = self.facts(**kw); self.assertIsNone(self.T.calc_op(f, self.rv(f), 2025), kw)
+            self.assertIsNone(self.calc(self.facts(**kw)), kw)
     def test_missing_component_gives_none(self):
-        f = self.facts(); del f["us-gaap"]["SellingGeneralAndAdministrativeExpense"]; self.assertIsNone(self.T.calc_op(f, self.rv(f), 2025))
-    def test_other_opex_is_reported_not_subtracted(self):
-        imp = {"GoodwillImpairmentLoss": {"units": {"USD": [{"start": "2024-07-01", "end": "2025-06-30", "val": 50, "form": "10-K", "filed": "2025-08-01", "accn": "A1"}]}}}
-        f = self.facts(extra=imp); v, _, other = self.T.calc_op(f, self.rv(f), 2025)
-        self.assertEqual(v, 400); self.assertEqual(other, [("GoodwillImpairmentLoss", 50)])
+        f = self.facts(); del f["us-gaap"]["SellingGeneralAndAdministrativeExpense"]; self.assertIsNone(self.calc(f))
+    def test_separate_impairment_line_reconciled_is_subtracted(self):
+        # 세전이익 = 1000 − 400 − 120 − 80 − 손상 50 − 이자 10 = 340 → 손상이 별도 줄
+        r = self.calc(self.facts(extra={"GoodwillAndIntangibleAssetImpairment": 50, "InterestExpense": 10, "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest": 340}))
+        self.assertEqual(r["op"], 350); self.assertEqual(r["imp"], ("GoodwillAndIntangibleAssetImpairment", 50)); self.assertIn("별도 줄", r["check"])
+    def test_embedded_impairment_not_subtracted_twice(self):
+        # 세전이익 = 400 − 이자 10 = 390 → 손상은 원가·판관비 안에 이미 포함
+        r = self.calc(self.facts(extra={"GoodwillAndIntangibleAssetImpairment": 50, "InterestExpense": 10, "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest": 390}))
+        self.assertEqual((r["op"], r["imp"]), (400, None)); self.assertIn("포함", r["check"])
+    def test_unverifiable_impairment_not_subtracted(self):
+        for extra in ({"GoodwillAndIntangibleAssetImpairment": 50}, {"GoodwillAndIntangibleAssetImpairment": 50, "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest": 100}):
+            r = self.calc(self.facts(extra=extra)); self.assertEqual((r["op"], r["imp"]), (400, None), extra)
+    def test_other_opex_reported_not_subtracted(self):
+        r = self.calc(self.facts(extra={"RestructuringCharges": 7}))
+        self.assertEqual(r["op"], 400); self.assertEqual(r["other"], [("RestructuringCharges", 7)])
+    def test_tag_used_in_same_filing_is_found(self):
+        # 이자비용이 예전 보고서에서는 InterestExpense, 같은 보고서에서는 InterestExpenseNonoperating 으로 공시된 경우에도 같은 보고서 값을 쓴다
+        f = self.facts(extra={"GoodwillAndIntangibleAssetImpairment": 50, "InterestExpenseNonoperating": 10, "IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest": 340})
+        f["us-gaap"]["InterestExpense"] = self.e(10, accn="OLD")
+        r = self.calc(f); self.assertEqual((r["op"], r["imp"][1]), (350, 50))
