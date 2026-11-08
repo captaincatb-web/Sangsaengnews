@@ -35,4 +35,30 @@ class Ingest(unittest.TestCase):
         ok, rej = I.convert(rows, fx()); self.assertEqual(ok, []); self.assertIn("연결/개별 혼재(법인 전체 거부)", rej)
 
 
+
+class FredCrossRate(unittest.TestCase):
+    """ECB에 없는 통화(TWD)는 연준 H.10(1달러당 통화)과 ECB 원/달러를 같은 날짜끼리 교차한다. 날짜가 겹치지 않거나 값이 '.'인 날은 쓰지 않는다."""
+    def test_cross(self):
+        import datetime as dt
+        fx = {"USD": [(dt.date(2024, 1, 2), 1300.0), (dt.date(2024, 1, 3), 1310.0), (dt.date(2024, 1, 4), 1320.0)]}
+        I.fx_add_fred(fx, {"TWD": "observation_date,DEXTAUS\n2024-01-02,30.0\n2024-01-03,.\n2024-01-04,33.0\n2024-01-05,32.0\n"})
+        self.assertEqual([d.isoformat() for d, _ in fx["TWD"]], ["2024-01-02", "2024-01-04"])
+        self.assertAlmostEqual(fx["TWD"][0][1], 1300.0 / 30.0); self.assertAlmostEqual(fx["TWD"][1][1], 40.0)
+
+    def test_existing_currency_untouched(self):
+        import datetime as dt
+        fx = {"USD": [(dt.date(2024, 1, 2), 1300.0)], "TWD": [(dt.date(2024, 1, 2), 41.0)]}
+        I.fx_add_fred(fx, {"TWD": "observation_date,DEXTAUS\n2024-01-02,30.0\n"})
+        self.assertEqual(fx["TWD"], [(dt.date(2024, 1, 2), 41.0)])
+
+
+class TwdFinmind(unittest.TestCase):
+    """TWD 환산: 臺灣銀行 달러 현물 매입·매도 중간값 × ECB 원/달러(같은 날짜). 값이 없거나(-1) 날짜가 겹치지 않으면 쓰지 않는다."""
+    def test_cross_mid(self):
+        fx = {"USD": [(dt.date(2024, 1, 2), 1300.0), (dt.date(2024, 1, 3), 1310.0)]}
+        raw = {"data": [{"date": "2024-01-02", "currency": "USD", "spot_buy": 30.5, "spot_sell": 30.7}, {"date": "2024-01-03", "currency": "USD", "spot_buy": -1, "spot_sell": 30.9},
+                        {"date": "2024-01-04", "currency": "USD", "spot_buy": 30.6, "spot_sell": 30.8}]}
+        I.fx_add_twd_finmind(fx, raw)
+        self.assertEqual([d.isoformat() for d, _ in fx["TWD"]], ["2024-01-02"]); self.assertAlmostEqual(fx["TWD"][0][1], 1300.0 / 30.6)
+
 if __name__ == "__main__": unittest.main()

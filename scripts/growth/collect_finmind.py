@@ -45,7 +45,7 @@ def main():
         res["with_data"] += bool(got); res["complete_3y"] += len(got) == 3
         for y in got:
             rv, op = ann[y]
-            rows.append({"목록표기": t["목록표기"], "공식법인명": t["공식법인명"], "상장여부": "상장", "거래소": "TWSE", "티커": t["티커"], "결산월": "12", "회계연도": y,
+            rows.append({"목록표기": t["목록표기"], "공식법인명": t["공식법인명"], "상장여부": "상장", "거래소": t.get("거래소") or "TWSE", "티커": t["티커"], "결산월": "12", "회계연도": y,
                          "기간시작": f"{y}-01-01", "기간종료": f"{y}-12-31", "통화": "TWD", "금액단위": "1", "매출": int(rv), "영업이익": int(op), "연결/개별": "연결",
                          "출처URL": f"https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockFinancialStatements&data_id={t['티커']}", "쪽/표위치": "분기 Revenue·OperatingIncome 4개 합계",
                          "확신도(높음/중간/낮음)": "중간", "비고": "FinMind 분기 합산(원 출처 TWSE 공시)", "대표업종(소재/부품/장비)": t.get("대표업종", ""), "대표업종근거(반도체 관련 매출 비중과 출처)": ""})
