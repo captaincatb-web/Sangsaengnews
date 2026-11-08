@@ -111,7 +111,8 @@ body[data-view="caps"] .db-filters, body[data-view="caps"] #filter-toggle, body[
 .ms-hint2{margin:4px 0 0;font-size:12.5px;color:var(--text-3)}
 .ms-res{margin-top:10px;padding:12px 14px;border-radius:10px;background:var(--bg)}.ms-res-h{margin:0 0 4px;font-size:15px}.ms-res .ms-mut{margin:2px 0}
 .ms-res-g{margin:6px 0;padding-left:18px;font-size:13.5px}.ms-res-d summary{cursor:pointer;font-size:13.5px;margin-top:6px}
-.ms-res-l{margin:6px 0 0;padding-left:22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px 18px;font-size:13px}.ms-res-l li{padding:3px 0}.ms-res-l li span{display:inline-block;min-width:130px}.ms-res-l small{margin-left:6px;color:var(--text-3)}.ms-res-l b{float:right;font-variant-numeric:tabular-nums}
+/* 포함 기업 목록: 순위 번호를 칸 안에 넣어(목록 기호를 칸 밖에 두지 않음) 옆 칸 금액과 겹치지 않게 한다. 이름이 길면 말줄임 */
+.ms-res-l{margin:8px 0 0;padding:0;list-style:none;counter-reset:msr;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2px 32px;font-size:13px}.ms-res-l li{counter-increment:msr;display:flex;align-items:baseline;gap:8px;min-width:0;padding:4px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent)}.ms-res-l li::before{content:counter(msr) ".";flex:0 0 2.2em;text-align:right;color:var(--text-3);font-variant-numeric:tabular-nums}.ms-res-l li span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ms-res-l small{margin-left:6px;color:var(--text-3)}.ms-res-l b{flex:0 0 auto;margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
 @media(max-width:640px){.ms-res-l{grid-template-columns:1fr}}
 
 /* 기업별 시가총액: 프로필 그룹 필터 */

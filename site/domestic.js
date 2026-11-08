@@ -232,7 +232,7 @@
         <p class="ms-mut">${bits.join(" · ")} · 전체 소부장 ${won(gAll.cap)} 대비 ${gAll.cap ? nf((gF.cap / gAll.cap) * 100, 1) : "-"}%</p>
         ${perGroup ? `<ul class="ms-res-g">${perGroup}</ul>` : ""}
         ${unlisted ? `<p class="ms-mut">선택 그룹 중 비상장 ${nf(unlisted)}곳은 시가총액이 없어 합계에 포함하지 않습니다.</p>` : ""}${missing.length ? `<p class="ms-mut">소부장 핵심 모집단(시가총액 집계 대상)에 없어 합계에서 빠진 상장 기업: ${missing.map(esc).join("·")}</p>` : ""}
-        <details class="ms-res-d"><summary>포함 기업 ${nf(list.length)}곳 보기</summary><ol class="ms-res-l">${list.map((r) => `<li><span>${esc(r.n)}<small>${esc(MKN[r.m] || r.m)} · ${esc(r.k)}</small></span><b>${won(r.cap)}</b></li>`).join("")}</ol></details></div>`;
+        <details class="ms-res-d"><summary>포함 기업 ${nf(list.length)}곳 보기</summary><ol class="ms-res-l" role="list">${list.map((r) => `<li><span>${esc(r.n)}<small>${esc(MKN[r.m] || r.m)} · ${esc(r.k)}</small></span><b>${won(r.cap)}</b></li>`).join("")}</ol></details></div>`;
     })();
     const main = `<section class="db-card ms-main" aria-labelledby="ms-t1"><div class="db-card-head"><h2 id="ms-t1">국내 반도체 소부장 업종 현황<small>${esc(D.asOf)} 종가 기준 · 검토용${active ? " · 조건 적용 중" : ""}</small></h2></div>
       <div class="ms-scroll"><table class="ms-tbl"><caption class="sr-only">업종별 시가총액, 시장 비중, 종목 수, 주요 종목</caption><thead><tr><th scope="col">업종</th><th scope="col" class="r">시가총액</th><th scope="col" class="r">시장 비중</th><th scope="col" class="r">종목 수</th><th scope="col">주요 종목 <small>(시가총액 상위)</small></th></tr></thead><tbody>`
