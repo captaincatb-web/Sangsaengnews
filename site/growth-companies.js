@@ -3,7 +3,7 @@
 'use strict';
 const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const box=$('co-body');if(!box)return;
-let D=null,sortKey='r2',sortDir=-1,shown=60;
+let D=null,sortKey='r2',sortDir=-1,shown=60,lastRows=[],lastMode=null;
 const fmt=v=>v==null?'–':Math.round(v).toLocaleString('ko-KR'),pct=v=>v==null?'–':v.toFixed(1)+'%',sg=v=>v==null?'–':(v>0?'+':'')+v.toFixed(1)+'%';
 const margin=(o,r)=>r?o/r*100:null,grow=(r,i)=>r[i-1]?(r[i]/r[i-1]-1)*100:null;
 const COLS=[['n','회사',1],['g','구분',1],['c','분류',1],['s','재무 기준',1],['r0','2023 매출(억 원)',0],['r1','2024 매출',0],['r2','2025 매출',0],['o2','2025 영업이익(억 원)',0],['m0','2023 영업이익률',0],['m1','2024 영업이익률',0],['m2','2025 영업이익률',0],['g1','매출 성장 2024',0],['g2','매출 성장 2025',0]];
@@ -15,6 +15,7 @@ function render(){
  const pathOk=x=>!sel.length||(x.p||[]).some(p=>sel.every((v,i)=>p[i]===v));  // 한 회사가 여러 품목 경로를 가지면 하나라도 맞으면 포함. 해외계는 상세구분이 없어 상세 선택 시 제외(상단 차트와 같은 기준)
  let rows=m.rows.filter(x=>(!g||x.g===g)&&(!c||x.c===c)&&pathOk(x)&&(!q||x.n.toLowerCase().includes(q)||(x.d||'').toLowerCase().includes(q)));
  rows=rows.slice().sort((a,b)=>{const A=val(a,sortKey),B=val(b,sortKey);if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return -1;return (typeof A==='string'?A.localeCompare(B,'ko'):A-B)*sortDir});
+ lastRows=rows;lastMode=m;
  const nd=rows.filter(x=>x.g==='dom').length,no=rows.length-nd;
  $('co-count').textContent='국내 '+nd+'곳 · 해외계 '+no+'곳 표시 (이 비교 기준에서 3개년 실적이 확인된 법인)'+(sel.length?' · 상세구분 필터 적용: '+sel.join(' > '):'');
  const head='<thead><tr>'+COLS.map(([k,l,s])=>'<th scope="col" class="'+(s?'l':'')+'" data-k="'+k+'" aria-sort="'+(sortKey===k?(sortDir>0?'ascending':'descending'):'none')+'"><button type="button">'+esc(l)+(sortKey===k?(sortDir>0?' ▲':' ▼'):'')+'</button></th>').join('')+'</tr></thead>';
@@ -31,6 +32,13 @@ fetch('data/growth-companies.json',{cache:'no-cache'}).then(r=>r.json()).then(j=
  ['f-view','f-chart','f-d1','f-d2','f-d3','f-d4','f-d5'].forEach(id=>{const e=$(id);if(e)e.addEventListener('change',()=>{shown=60;setTimeout(render,0)})});  // 상단 필터가 하위 선택을 비운 뒤(같은 change 이벤트 처리 후) 다시 그린다
  $('co-tbl').addEventListener('click',e=>{const t=e.target.closest('th[data-k]');if(!t)return;const k=t.dataset.k;if(sortKey===k)sortDir=-sortDir;else{sortKey=k;sortDir=(k==='n'||k==='g'||k==='c'||k==='s')?1:-1}render()});
  $('co-more').addEventListener('click',()=>{shown+=100;render()});
+ /* CSV: 지금 조건(비교 기준·분류·상세구분·검색)에 맞는 회사 전부(더 보기 전 행 포함). 엑셀에서 한글이 깨지지 않게 BOM을 붙인다 */
+ const csvBtn=$('co-csv');if(csvBtn)csvBtn.addEventListener('click',()=>{const Y=D.years||[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
+  const head=['회사','구분','분류','상세구분','재무 기준',...Y.map(y=>y+' 매출(억 원)'),...Y.map(y=>y+' 영업이익(억 원)'),...Y.map(y=>y+' 영업이익률(%)'),'매출 성장 '+Y[1]+'(%)','매출 성장 '+Y[2]+'(%)','비고'];
+  const lines=lastRows.map(x=>[x.n,x.g==='dom'?'국내':'해외계',x.c,x.d||'',x.s,...x.r.map(n1),...x.o.map(n1),...x.r.map((r,i)=>n1(margin(x.o[i],r))),n1(grow(x.r,1)),n1(grow(x.r,2)),x.q==='calc'?'영업이익 계산값(매출−매출원가−연구개발비−판관비)':'']);
+  const csv='\ufeff'+[head,...lines].map(a=>a.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='성장비교_회사별_'+((lastMode&&lastMode.id)||'')+'_'+String(D.generatedAt||'').slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)});
  render();
 }).catch(()=>{box.innerHTML='<p class="gc-empty">회사별 상세를 불러오지 못했습니다.</p>'});
 })();

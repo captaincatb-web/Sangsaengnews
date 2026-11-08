@@ -89,11 +89,15 @@ test("국내 소부장 기업별 시총: 모바일은 카드·PC는 표, 160곳,
   assert.equal(await d.page.evaluate(() => [getComputedStyle(document.querySelector(".cp-cards")).display, document.querySelectorAll(".cp-tbl tbody tr").length]).then((x) => x.join()), "none,160"); await d.ctx.close();
 });
 
-test("국내 소부장 시장 비중: 대형 겸업 포함 필터가 코스피 상자 값을 바꾸고 되돌림", async () => {
+test("국내 소부장 시장 비중: 상단 '대기업 제외' 하나로 코스피 상자 값을 바꾸고 되돌림(시장별 스위치 없음)", async () => {
   const { page, ctx } = await open(390, "domestic.html#share");
+  assert.equal(await page.locator("input[data-big]").count(), 0, "시장별 '대형 겸업 포함' 스위치 없음");
+  assert.equal(await page.locator("input[data-excl]").count(), 0, "꺼져 있을 때는 제외 칩 대신 요약 문장");
+  assert.match(await page.locator(".ms-excl-sum").innerText(), /켜면 대기업 \d+곳/);
   const head = () => page.locator(".ms-mk").first().locator("header p").first().innerText();
-  const a = await head(); await page.locator('input[data-big="KOSPI"]').uncheck(); const b = await head(); assert.notEqual(a, b);
-  await page.locator('input[data-big="KOSPI"]').check(); assert.equal(await head(), a); await ctx.close();
+  const a = await head(); await page.locator("#ms-excl-on").check(); const b = await head(); assert.notEqual(a, b);
+  assert.ok((await page.locator("input[data-excl]").count()) >= 1, "켜면 제외 칩 표시");
+  await page.locator("#ms-excl-on").uncheck(); assert.equal(await head(), a); await ctx.close();
 });
 
 test("해외 비교 수집 현황: KPI 6개·상세 펼침·국내 모집단 현황 분리·가로 넘침 없음", async () => {
