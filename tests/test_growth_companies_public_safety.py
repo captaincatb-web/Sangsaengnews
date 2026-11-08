@@ -3,6 +3,7 @@ import json, re, unittest
 from pathlib import Path
 SITE = Path(__file__).resolve().parent.parent / "site" / "data"
 ROW_KEYS = {"n", "g", "c", "d", "p", "s", "r", "o"}
+OPTIONAL_KEYS = {"q": ("calc",)}  # q=calc: 영업이익 계산값(손익계산서에 영업이익 줄이 없는 해외 법인, 사용자 승인 2026-11-08)
 
 
 class CompaniesPublicSafety(unittest.TestCase):
@@ -17,7 +18,10 @@ class CompaniesPublicSafety(unittest.TestCase):
     def test_row_fields_whitelist_and_values(self):
         for m in self.j["modes"]:
             for r in m["rows"]:
-                self.assertEqual(set(r), ROW_KEYS); self.assertIn(r["g"], ("dom", "ov")); self.assertIn(r["c"], ("소재", "부품", "장비")); self.assertTrue(r["n"].strip())
+                self.assertEqual(set(r) - set(OPTIONAL_KEYS), ROW_KEYS)
+                for k, allowed in OPTIONAL_KEYS.items():
+                    if k in r: self.assertIn(r[k], allowed); self.assertEqual(r["g"], "ov")  # 계산값 표시는 해외 법인만
+                self.assertIn(r["g"], ("dom", "ov")); self.assertIn(r["c"], ("소재", "부품", "장비")); self.assertTrue(r["n"].strip())
                 for k in ("r", "o"):
                     self.assertEqual(len(r[k]), 3); self.assertTrue(all(isinstance(v, (int, float)) for v in r[k]))
                 self.assertTrue(all(isinstance(q, list) and q and all(isinstance(v, str) for v in q) for q in r["p"]))

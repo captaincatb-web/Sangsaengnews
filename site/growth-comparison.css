@@ -53,3 +53,5 @@ body.db .db-main .db-top>div>p.gc-key{display:flex;-webkit-line-clamp:unset;line
 /* 표 머리글·검색 안내 글자 대비 */
 .db-tbl thead th{color:var(--text-2)}
 .gc-co-tools input::placeholder{color:var(--text-3);opacity:1}
+.gc-co-tbl tbody th small.co-calc{color:var(--gc-ink-2);font-weight:600}
+.co-calc-note b{color:var(--gc-ink-2)}
