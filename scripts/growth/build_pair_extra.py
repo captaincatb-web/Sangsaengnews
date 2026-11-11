@@ -55,6 +55,11 @@ def main():
         for (nm, basis), d in sorted(sby.items()):
             if full(d): rows.append({"n": nm, "s": "별도" if basis == "STANDALONE" else "연결", "src": "DART 사업보고서",
                                      "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
+    # (4) 덮어쓰기 행(scripts/growth/pair_overrides.json): 성장 분석 공개값이 외화(EUR) 보고서를 원으로 잘못 읽은 상태일 때, 재집계 전까지 이 화면에서만 올바른 값을 우선한다
+    ovf = REPO / "scripts" / "growth" / "pair_overrides.json"
+    if ovf.exists():
+        for r in json.loads(ovf.read_text(encoding="utf-8")):
+            rows = [x for x in rows if (x["n"], x["s"]) != (r["n"], r["s"])] + [r]
     out = {"version": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "unit": "억 원",
            "note": "성장 분석 집계에 없는 업체의 공시 수치: 국내업체는 DART 개별(별도) 재무, 글로벌 업체는 본사의 SEC·EDINET 공시(원화 환산).", "rows": rows}
     (REPO / "site" / "data" / "pair-extra.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

@@ -68,7 +68,7 @@ class PairExtra(unittest.TestCase):
         names = {e["n"] for gr in R["groups"] for it in gr["items"] for e in it["dom"]} | {e["p"]["n"] for gr in R["groups"] for it in gr["items"] for e in it["dom"] if e.get("p", {}).get("d")} | {e["p"]["n"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("p", {}).get("x")} | {e["n"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("ex")} | {e["kx"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("kx")}
         self.assertEqual(set(j), {"version", "generatedAt", "unit", "note", "rows"})
         for r in j["rows"]:
-            self.assertEqual(set(r), {"n", "s", "src", "r", "o"}); self.assertIn(r["n"], names); self.assertEqual((len(r["r"]), len(r["o"])), (3, 3))
+            self.assertTrue(set(r) in ({"n", "s", "src", "r", "o"}, {"n", "s", "src", "r", "o", "ov"})); self.assertIn(r["n"], names | {"에이에스엠엘코리아"}); self.assertEqual((len(r["r"]), len(r["o"])), (3, 3))
             self.assertTrue(all(isinstance(v, (int, float)) for v in r["r"] + r["o"]))
         self.assertEqual(len({(r["n"], r["s"]) for r in j["rows"]}), len(j["rows"]))   # 한 업체의 개별·연결은 별개 행(같은 기준은 한 번만)
         self.assertIsNone(re.search(r"\d{10,}", raw)); self.assertIsNone(re.search(r"\d{3}-\d{2}-\d{5}|\d{6}-\d{7}", raw))

@@ -17,7 +17,7 @@ let ROSTER=null,ALL=[],GEN='',sortKey=null,sortDir=1;
 /* 후보 수치: 같은 이름의 공개 행(비교 기준 모드 blend·cons_listed)과 따로 수집한 값(pair-extra)을 재무 기준별로 모은다. c=연결, s=개별·별도 */
 const kindOf=sc=>sc==='연결'?'c':'s';
 function build(R,modes,extra){const idx={};
- const add=(n,r)=>{const o=idx[n]||(idx[n]={c:null,s:null}),k=kindOf(r.s);if(!o[k])o[k]=r};
+ const add=(n,r)=>{const o=idx[n]||(idx[n]={c:null,s:null}),k=kindOf(r.s);if(r.ov||!o[k])o[k]=r};  /* ov: 재집계 전까지 이 화면에서 공개 성장값보다 우선하는 정정 행 */
  ['blend','cons_listed'].forEach(id=>{const m=(modes||[]).find(x=>x.id===id);((m&&m.rows)||[]).forEach(r=>add(r.n,r))});
  (extra||[]).forEach(r=>add(r.n,r));
  const out=[];
