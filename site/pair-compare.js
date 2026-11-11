@@ -55,7 +55,6 @@ function fillItems(){const it=$('f-item'),cur=it.value,g=$('f-grp').value;it.len
 function render(){
  applyBasis();const vis=visible(),items=[];vis.forEach(x=>{const k=x.g+'\u0000'+x.i;if(!items.some(a=>a.k===k))items.push({k,g:x.g,i:x.i})});
  const dm=vis.filter(x=>x.side==='dom'),gl=vis.filter(x=>x.side==='glo');
- $('pc-count').textContent='국내 '+dm.length+'곳 · 글로벌 '+gl.length+'곳 (수치 확인 국내 '+dm.filter(x=>x.row).length+'곳 · 글로벌 '+gl.filter(x=>x.row).length+'곳)';
  key(vis,dm,gl);trend(dm,gl);summary(items,vis);pairs(items,vis);detail(vis);
  try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));if(!incX())h.push('x=0');if(fbasis()!=='auto')h.push('b='+fbasis());if(fval()!=='sum')h.push('v='+fval());history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}}
 
@@ -183,5 +182,5 @@ Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get(
  $('pc-tbl').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;const k=b.dataset.k;if(sortKey===k)sortDir=-sortDir;else{sortKey=k;sortDir=(k==='n'||k==='side'||k==='s')?1:-1}render()});
  $('pc-csv').addEventListener('click',csv);
  render();
-}).catch(()=>{const m='<p class="gc-empty">업체 비교 자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.</p>';['pc-pairs'].forEach(id=>{const e=$(id);if(e)e.innerHTML=m});$('pc-count').textContent=''});
+}).catch(()=>{const m='<p class="gc-empty">업체 비교 자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.</p>';['pc-pairs'].forEach(id=>{const e=$(id);if(e)e.innerHTML=m})});
 })();
