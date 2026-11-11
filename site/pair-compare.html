@@ -63,7 +63,7 @@
     <form class="db-filters gc-filters" id="filters" aria-label="비교 조건" onsubmit="return false">
       <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>구분</span><select id="f-grp"><option value="">전체</option></select></label>
       <label class="db-sel"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>품목</span><select id="f-item"><option value="">전체</option></select></label>
-      <label class="db-sel pc-basis-sel"><i class="ph ph-scales" aria-hidden="true"></i><span>재무 기준</span><select id="f-basis"><option value="auto">자동(개별 우선)</option><option value="c">연결만</option><option value="s">개별·별도만</option><option value="k">한국 내 공시(글로벌=한국 법인)</option></select></label>
+      <label class="db-sel pc-basis-sel"><i class="ph ph-scales" aria-hidden="true"></i><span>재무 기준</span><select id="f-basis"><option value="auto">자동(국내 개별·글로벌 연결)</option><option value="c">연결만</option><option value="s">개별·별도만</option><option value="k">한국 내 공시(글로벌=한국 법인)</option></select></label>
       <label class="db-sel pc-val-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>값</span><select id="f-val"><option value="sum">매출액 합계</option><option value="idx">매출지수(2023=100)</option><option value="avg">기업당 평균</option></select></label>
       <label class="pc-chk"><input type="checkbox" id="f-x" checked><span id="f-x-l">합계에 포함</span></label>
     </form>
@@ -92,6 +92,6 @@
   <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"업체 비교(성장 비교 자료)",updated:"",note:"자료 불러오는 중"}};</script>
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="pair-compare.js?v=15"></script>
+  <script src="pair-compare.js?v=16"></script>
 </body>
 </html>
