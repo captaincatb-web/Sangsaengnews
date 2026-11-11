@@ -57,3 +57,8 @@
 .pc-basis-sel{flex:1 1 0}
 .pc-tbl tbody th.l{overflow-wrap:break-word;word-break:keep-all}
 .pc-tbl tbody th small.pc-kr{color:var(--text-2);margin-top:3px}
+/* 업체 검색은 품목별 요약 카드로, 값 선택은 필터 줄에 */
+.pc-sq{display:inline-flex;align-items:center;gap:6px;margin-left:auto;min-width:200px}.pc-sq i{color:var(--text-3)}
+.pc-sq input{flex:1;min-height:34px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);padding:0 10px;font:inherit}.pc-sq input::placeholder{color:var(--text-3);opacity:1}
+.pc-val-sel{flex:1 1 0}
+@media(max-width:640px){.pc-sq{width:100%;margin-left:0}}

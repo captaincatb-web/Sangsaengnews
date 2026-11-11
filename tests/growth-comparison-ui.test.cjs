@@ -136,6 +136,16 @@ for (const w of [390, 1280]) {
     assert.equal(tp.length, 2, "추이 그래프 2개"); assert.ok(tp[0][0].includes("pc-dom") && tp[1][0].includes("pc-glo"), "왼쪽(위) 국내, 오른쪽(아래) 글로벌");
     if (w > 900) assert.ok(tp[0][1] < tp[1][1], "넓은 화면: 국내가 왼쪽, 글로벌이 오른쪽"); else assert.ok(tp[0][2] < tp[1][2], "좁은 화면: 국내가 위");
     assert.equal(await page.locator("#pc-trend svg .bar").count(), 12, "3개년 × 매출·영업이익 막대 × 2");
+    /* 영업이익 막대는 매출 막대보다 높지 않다(같은 눈금) */
+    const bars = await page.locator("#pc-trend .pc-tp").evaluateAll((els) => els.map((e) => [...e.querySelectorAll(".slot")].map((s) => { const r = s.querySelectorAll("rect.bar"); return [+r[0].getAttribute("height"), +r[1].getAttribute("height")]; })));
+    for (const side of bars) for (const [rev, op] of side) assert.ok(op <= rev + 0.01, "영업이익 막대 ≤ 매출 막대");
+    /* 값 선택: 지수(매출 막대만)·기업당 평균, 품목별 요약에도 연동 */
+    const sumHead = () => page.locator("#pc-sum thead tr").nth(1).locator("th").first().innerText();
+    await page.selectOption("#f-val", "idx"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 6, "지수: 매출 막대만");
+    assert.match(await sumHead(), /매출지수\(2023=100\)/); assert.match(await page.locator("#pc-legend").innerText(), /매출지수/);
+    await page.selectOption("#f-val", "avg"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 12); assert.match(await sumHead(), /기업당/);
+    await page.selectOption("#f-val", "sum"); assert.match(await sumHead(), /^2025 매출\(억 원\)/);
+    assert.equal(await page.locator("#f-q").evaluate((e) => !!e.closest("#sum-card")), true, "업체 검색은 품목별 요약 카드 안");
     await page.locator("#pc-trend .pc-dom .slot").first().hover(); assert.match(await page.locator("#pc-trend .pc-dom .pc-strip").innerText(), /^2023년 · 매출/, "마우스를 올리면 해당 연도 값");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "가로 넘침 없음");
     await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
@@ -163,6 +173,9 @@ for (const w of [390, 1280]) {
     await page.selectOption("#f-basis", "c"); g = await glo();
     assert.ok(!g.find((x) => x.n === "Applied Materials").none, "연결만: Applied 연결 있음");
     assert.ok(g.find((x) => x.n === "SHIN-ETSU CHEMICAL" || true), "연결만 상태에서도 목록 유지");
+    await page.selectOption("#f-basis", "k"); g = await glo();
+    assert.ok(g.every((x) => /한국 법인/.test(x.tag) || x.none), "한국 내 공시: 글로벌은 한국 법인 값");
+    assert.ok(!g.find((x) => x.n === "TOKYO ELECTRON").none, "한국 내 공시: 도쿄일렉트론코리아 값 있음");
     await page.selectOption("#f-basis", "auto"); g = await glo(); assert.ok(g.every((x) => !x.none), "자동: 설비 글로벌 5곳 모두 값 있음");
     const basis = await page.locator("#pc-basis").innerText();
     for (const t of ["당사 거래업체만 대상", "설비/부품/원자재 구분", "본사 소재지 기준", "구매액 상위 5개업체"]) assert.ok(basis.includes(t), t);
