@@ -1,0 +1,54 @@
+name: edinet-japan-pilot
+
+# 일본 EDINET 공식 공시 실험: 수동 실행, 기존 사이트 데이터/배포는 변경하지 않음
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "공시 제출일 조회 시작 (2025 회계연도 일본 3월 결산은 보통 2026년 5~7월에 공시)"
+        required: true
+        default: "2026-05-01"
+        type: string
+      end_date:
+        description: "공시 제출일 조회 종료 (최대 101일)"
+        required: true
+        default: "2026-07-31"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EDINET_API_KEY: ${{ secrets.EDINET_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install runtime dependency
+        run: python -m pip install "requests>=2.31"
+      - name: Offline parser tests
+        run: python -m unittest discover -s tests -p "test_peers_edinet.py" -v
+      - name: Ensure API key is configured
+        if: ${{ env.EDINET_API_KEY == '' }}
+        run: |
+          echo "::error::EDINET_API_KEY repository secret is not configured"
+          exit 1
+      - name: Collect EDINET official annual reports
+        run: |
+          python scripts/peers_edinet.py \
+            --start "${{ inputs.start_date }}" \
+            --end "${{ inputs.end_date }}" \
+            --out "edinet-results"
+      - name: Upload pilot CSV / JSON (not deployed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: japan-edinet-pilot-${{ inputs.start_date }}-${{ inputs.end_date }}
+          path: edinet-results/
+          if-no-files-found: ignore
+          retention-days: 30
