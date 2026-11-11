@@ -44,7 +44,7 @@ const uniqSum=list=>{const seen=new Set();return list.filter(x=>{if(!inSumRaw(x)
 function agg(list){const has=uniqSum(list),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
  return{n:list.length,k:has.length,rev:r2,op:o2,r0,m:has.length?margin(o2,r2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
 const krTxt=x=>x.kr?'한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':'')+': 2025 매출 '+fmt(x.kr.r[2])+'억 · 영업이익률 '+pct(margin(x.kr.o[2],x.kr.r[2]))+' ('+x.kr.s+(x.kr.src?' · '+x.kr.src:'')+')':'';
-const tagOf=x=>fbasis()==='k'&&x.side==='glo'?['한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':''),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · '):[x.e.p?(x.row?'본사 실적: '+x.e.p.n:''):(x.k&&KIND[x.k]),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · ');
+const tagOf=x=>fbasis()==='k'&&x.side==='glo'?['한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':''),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · '):[x.e.p?(x.row?(x.side==='dom'?'본사 실적 참조: ':'본사 실적: ')+x.e.p.n:''):(x.k&&KIND[x.k]),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · ');
 
 /* 구분→품목 선택지 */
 function fillGroups(){const g=$('f-grp');ROSTER.groups.forEach(gr=>g.add(new Option(gr.g,gr.g)));fillItems()}
