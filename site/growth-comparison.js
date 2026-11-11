@@ -23,7 +23,7 @@ function opts(sel,vals){const cur=sel.value;sel.length=1;[...new Set(vals)].sort
 function children(c,p){const out=[];for(const k in base()){const [cc,pp_]=JSON.parse(k);if((cc||null)===(c||null)&&pp_.length===p.length+1&&p.every((x,i)=>pp_[i]===x))out.push(pp_[p.length])}
  // 회사별 상세(공개 승인)에 있는 상세구분도 선택지에 넣는다: 5곳 미만이라 집계 셀이 비공개여도 해당 회사를 목록에서 찾아볼 수 있게 한다
  for(const r of (window.GC_ROWS||[]))for(const q of (r.p||[]))if((!c||r.c===c)&&q.length>p.length&&p.every((x,i)=>q[i]===x))out.push(q[p.length]);return out}
-window.gcSync=()=>{sync()};
+window.gcSync=()=>{if(S)sync()};  /* 요약(S)이 아직 오지 않았으면 건너뛴다: 요약이 도착하면 refreshMode()가 GC_ROWS까지 반영해 다시 맞춘다 */
 function sync(){const c=$('f-chart').value;let p=[];for(let i=1;i<=5;i++){const s=$('f-d'+i);if(i>1&&!$('f-d'+(i-1)).value){s.length=1;s.disabled=true;continue}opts(s,children(c,p));if(!s.value)break;p.push(s.value)}}
 function svgEl(n,a,t){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e}
 function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
