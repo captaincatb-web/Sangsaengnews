@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>국내·글로벌 업체 비교 | 소부장 분석</title>
+  <meta name="description" content="국내업체와 글로벌업체를 구분·품목별로 골라 매출액·영업이익률을 비교합니다.">
+  <link rel="icon" href="data:,">
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Regular.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="vendor/pretendard-gov/PretendardGOV-Bold.subset.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="vendor/phosphor/style.css">
+  <script>/* 첫 화면이 그려지기 전에 저장된 화면 모드(밝게/어둡게)를 적용 */try{var t=localStorage.getItem("sobujang:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}</script>
+  <link rel="stylesheet" href="dashboard.css?v=202611031300">
+  <link rel="stylesheet" href="dashboard.theme.css?v=202611031300">
+  <link rel="stylesheet" href="sidebar.shared.css?v=202611081200">
+  <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
+  <link rel="stylesheet" href="data-status.css?v=202611081000">
+  <link rel="stylesheet" href="growth-comparison.css?v=8">
+  <link rel="stylesheet" href="pair-compare.css?v=4">
+</head>
+<body class="db">
+  <a class="db-skip" href="#main">본문 바로가기</a>
+  <header class="krds-header">
+    <div class="head-inner">
+      <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span class="brand-name">소부장 분석<small>반도체 소재·부품·장비 기업 정보</small></span></a>
+      <div class="head-actions">
+        <button class="th-icon" type="button" id="theme-btn" aria-label="화면 모드 전환(밝게·어둡게)"></button>
+        <button class="btn-navi site-menu" type="button" id="site-menu" aria-expanded="false" aria-controls="site-gnb"><i class="ph ph-list" aria-hidden="true"></i>메뉴</button>
+        <a class="btn-navi" href="./#search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>검색</a>
+      </div>
+    </div>
+    <nav class="gnb" id="site-gnb" aria-label="주 메뉴">
+      <ul>
+        <li><a href="./">프로필</a></li>
+        <li><a href="growth-comparison.html">성장 분석</a></li>
+        <li><a href="dashboard.html" >소부장 경영 정보</a></li>
+        <li><a href="domestic.html">국내 소부장</a></li>
+        <li><a href="compare.html">해외 비교</a></li>
+        <li><a href="pair-compare.html" aria-current="page">업체 비교</a></li>
+        <li><a href="guide.html">이용 안내</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <aside class="db-side site-side" aria-label="업체 비교 메뉴">
+    <a class="db-brand" href="./"><span class="db-logo" aria-hidden="true"><i class="ph ph-chart-bar"></i></span><span>소부장<br>분석</span></a>
+    <nav>
+      <ul class="db-nav" id="views-nav">
+        <li><a href="#trend-card"><i class="ph ph-chart-bar" aria-hidden="true"></i><span class="l">연도별 실적 추이</span><span class="s" aria-hidden="true">추이</span></a></li>
+        <li><a href="#sum-card"><i class="ph ph-scales" aria-hidden="true"></i><span class="l">품목별 요약</span><span class="s" aria-hidden="true">요약</span></a></li>
+        <li><a href="#pair-card"><i class="ph ph-columns" aria-hidden="true"></i><span class="l">국내·글로벌 업체</span><span class="s" aria-hidden="true">업체</span></a></li>
+        <li><a href="#detail-card"><i class="ph ph-table" aria-hidden="true"></i><span class="l">업체별 상세</span><span class="s" aria-hidden="true">상세</span></a></li>
+        <li><a href="#basis-card"><i class="ph ph-info" aria-hidden="true"></i><span class="l">선정 기준·유의</span><span class="s" aria-hidden="true">기준</span></a></li>
+      </ul>
+    </nav>
+    <p class="db-refresh"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i><span>자료 생성<br><b id="updated">-</b></span></p>
+  </aside>
+
+  <main class="db-main" id="main">
+    <header class="db-top"><div><h1>국내업체/글로벌업체 성과비교 대상</h1>
+      <p id="sub">매출액·영업이익률은 성장 분석과 같은 값입니다. 2023~2025년 공시 실적이 확인된 업체만 수치를 보여 줍니다.</p>
+      <p class="gc-key" id="pc-key" hidden></p></div></header>
+    <form class="db-filters gc-filters" id="filters" aria-label="비교 조건" onsubmit="return false">
+      <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>구분</span><select id="f-grp"><option value="">전체</option></select></label>
+      <label class="db-sel"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>품목</span><select id="f-item"><option value="">전체</option></select></label>
+      <label class="pc-chk"><input type="checkbox" id="f-x" checked><span id="f-x-l">합계에 포함</span></label>
+      <label class="db-sel pc-q"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span>업체 검색</span><input id="f-q" type="search" placeholder="업체명" autocomplete="off"></label>
+    </form>
+    <p class="gc-result" id="pc-count" role="status" aria-live="polite"></p>
+    <div class="db-view">
+      <section class="db-card" id="trend-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">연도별 실적 추이 <small>2023~2025 · 수치가 확인된 업체의 합계 · 왼쪽 국내업체, 오른쪽 글로벌업체</small></h2>
+        <ul class="db-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li><li><i class="sq" style="background:var(--orange)"></i>영업이익률</li></ul></div>
+        <div class="pc-trend" id="pc-trend"></div>
+        <p class="gc-note" id="pc-trend-note">국내와 글로벌은 합계 규모가 달라 두 그래프의 축 눈금이 서로 다릅니다. 막대 높이가 아니라 값과 영업이익률로 견주어 주세요.</p></section>
+      <section class="db-card" id="sum-card" aria-labelledby="st"><div class="db-card-head"><h2 id="st">품목별 요약 <small>수치가 확인된 업체만 합산 · 영업이익률 = 영업이익 합계 ÷ 매출 합계</small></h2></div>
+        <div class="db-tbl-wrap"><table class="db-tbl pc-sum" id="pc-sum"></table></div></section>
+      <section class="db-card" id="pair-card" aria-labelledby="pt"><div class="db-card-head"><h2 id="pt">국내업체 · 글로벌업체 <small>금액 단위 억 원 · 2025년 기준</small></h2></div>
+        <div id="pc-pairs"></div></section>
+      <section class="db-card" id="detail-card" aria-labelledby="dt"><div class="db-card-head"><h2 id="dt">업체별 상세 <small>성장 분석의 회사별 상세와 같은 값</small></h2>
+        <button type="button" class="db-btn ghost gc-csv" id="pc-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button></div>
+        <div class="db-tbl-wrap gc-co-wrap"><table class="db-tbl gc-co-tbl" id="pc-tbl"></table></div>
+        <p class="gc-empty" id="pc-empty" hidden>조건에 맞는 업체가 없습니다.</p></section>
+      <section class="db-card" id="basis-card" aria-labelledby="bt"><div class="db-card-head"><h2 id="bt">선정 기준</h2></div>
+        <ol class="pc-basis" id="pc-basis"></ol>
+        <h3 class="pc-h3">수치를 볼 때 유의할 점</h3>
+        <ul class="gc-notes" id="pc-notes"></ul>
+        <h3 class="pc-h3" id="pc-miss-h"></h3><ul class="gc-notes" id="pc-miss"></ul></section>
+    </div>
+  </main>
+  <script src="data/status.js?v=202611011230"></script>
+  <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"업체 비교(성장 비교 자료)",updated:"",note:"자료 불러오는 중"}};</script>
+  <script src="data-status.js?v=202611041200"></script>
+  <script src="site-menu.js?v=202611022000"></script>
+  <script src="pair-compare.js?v=8"></script>
+</body>
+</html>

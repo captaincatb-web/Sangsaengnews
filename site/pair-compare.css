@@ -1,0 +1,54 @@
+/* 국내·글로벌 업체 비교(pair-compare.html). 색 변수와 공통 표·필터는 growth-comparison.css 를 함께 쓴다 */
+.pc-q{flex:2 1 0}
+.pc-q input{width:100%;min-height:36px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);padding:0 10px;font:inherit}
+.pc-q input::placeholder{color:var(--text-3);opacity:1}
+.db-card-head .gc-csv{width:auto;min-height:34px;white-space:nowrap}
+/* 품목별 요약 표 */
+.pc-sum{min-width:760px;font-variant-numeric:tabular-nums}
+.pc-sum th,.pc-sum td{text-align:right;white-space:nowrap}.pc-sum .l{text-align:left}
+.pc-sum td small,.pc-sum th small{display:block;font-weight:400;font-size:11.5px;color:var(--text-3)}
+.pc-sum .pc-gh{text-align:center}.pc-sum .pc-dom{color:var(--gc-ink-1)}.pc-sum .pc-glo{color:var(--gc-ink-2)}
+.pc-sum .pc-diff{font-weight:700}
+.pc-na{color:var(--text-3)}
+/* 품목별 국내업체 | 글로벌업체 */
+.pc-item+.pc-item{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.pc-ih{margin:0 0 10px;font-size:15.5px;font-weight:700}
+.pc-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px}
+.pc-col{min-width:0}
+.pc-col h4{margin:0 0 6px;padding-bottom:6px;font-size:14px;font-weight:700;border-bottom:2px solid currentColor}
+.pc-col h4 small{margin-left:6px;font-size:12px;font-weight:400;color:var(--text-2)}
+.pc-dom h4{color:var(--gc-ink-1)}.pc-glo h4{color:var(--gc-ink-2)}
+.pc-tbl{width:100%;font-variant-numeric:tabular-nums}
+.pc-tbl th,.pc-tbl td{text-align:right;padding:8px 8px;font-size:13.5px}.pc-tbl th.l{text-align:left}
+.pc-tbl thead th{white-space:nowrap;font-size:12px;color:var(--text-2)}
+.pc-tbl tbody th{font-weight:600;color:var(--text)}
+.pc-tbl tbody th small,.gc-co-tbl tbody th small.pc-why{display:block;margin-top:1px;font-weight:400;font-size:11.5px;line-height:1.4;color:var(--text-3)}
+.pc-tbl td.pc-na{text-align:left;font-size:13px}
+.pc-none th .pc-n{color:var(--text-2)}
+.pc-s-dom{color:var(--gc-ink-1);font-weight:600}.pc-s-glo{color:var(--gc-ink-2);font-weight:600}
+/* 선정 기준 */
+.pc-basis{list-style:none;margin:0;padding:0;font-size:14.5px;line-height:1.65}
+.pc-basis li{display:grid;grid-template-columns:1.6em 1fr;gap:4px;padding:5px 0}
+.pc-bn{font-weight:700;color:var(--text-2)}
+.pc-h3{margin:18px 0 6px;font-size:14px;font-weight:700}
+@media(max-width:900px){.pc-cols{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:640px){.pc-hm{display:none}.pc-tbl th,.pc-tbl td{padding:8px 6px;font-size:13px}.gc-filters{flex-wrap:wrap}.pc-q{flex:1 1 100%}}
+/* 업체명·사유가 칸에서 잘리지 않고 줄바꿈되게 */
+.pc-tbl tbody th.l{white-space:normal;overflow:visible;text-overflow:clip;max-width:none;width:50%;overflow-wrap:anywhere}
+.pc-tbl tbody th small{white-space:normal;overflow:visible;text-overflow:clip}
+.pc-tbl td{white-space:nowrap}
+.pc-tbl td.pc-na{vertical-align:top;padding-top:10px}
+/* 연도별 실적 추이: 왼쪽 국내업체, 오른쪽 글로벌업체 */
+.pc-trend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 28px}
+.pc-tp h3{margin:0 0 4px;padding-bottom:6px;font-size:14px;font-weight:700;border-bottom:2px solid currentColor}
+.pc-tp h3 small{margin-left:6px;font-size:12px;font-weight:400;color:var(--text-2)}
+.pc-tp.pc-dom h3{color:var(--gc-ink-1)}.pc-tp.pc-glo h3{color:var(--gc-ink-2)}
+.pc-strip{margin:4px 0 0;font-size:12.5px;color:var(--text-2);min-height:1.5em}
+.pcg .colbg{fill:transparent}.pcg .slot:hover .colbg,.pcg .slot:focus-visible .colbg{fill:var(--text);opacity:.06}.pcg .slot{outline:none}.pcg .slot:focus-visible .colbg{stroke:var(--blue);stroke-width:1.5;opacity:.12}
+.pcg .bar{transform-box:fill-box;transform-origin:bottom;animation:pcgrow .55s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes pcgrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.pcg .bar{animation:none}}
+@media(max-width:900px){.pc-trend{grid-template-columns:minmax(0,1fr)}}
+.pc-chk{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.pc-chk input{width:16px;height:16px;margin:0;accent-color:var(--brand,var(--blue))}.pc-chk:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:640px){.pc-chk{flex:1 1 100%}}
