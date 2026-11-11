@@ -21,7 +21,8 @@ function build(R,rows,extra){const by={},ex={};rows.forEach(r=>{by[r.n]=r});(ext
 
 const state=()=>({g:$('f-grp').value,i:$('f-item').value,q:($('f-q').value||'').trim().toLowerCase()});
 function visible(){const s=state();return ALL.filter(x=>(!s.g||x.g===s.g)&&(!s.i||x.i===s.i)&&(!s.q||x.e.n.toLowerCase().includes(s.q)||x.e.f.toLowerCase().includes(s.q)))}
-function agg(list){const has=list.filter(x=>x.row),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
+const inSum=x=>x.row&&!x.e.x;  /* 합계 제외 표시(x)가 있는 업체는 수치만 보여 주고 합계·그래프에서 뺀다 */
+function agg(list){const has=list.filter(inSum),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
  return{n:list.length,k:has.length,rev:r2,op:o2,m:has.length?margin(o2,r2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
 const tagOf=x=>[x.row&&x.row.s,x.k&&KIND[x.k],x.row&&x.row.src].filter(Boolean).join(' · ');
 
@@ -44,7 +45,7 @@ const axis=(vals,k)=>{const mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx
  for(const f of [1,1.2,1.5,2,2.5,3,4,5,6,8,10,12,15,20,25,30,40,50,100]){const step=f*e,lo=mn<0?-Math.ceil(-mn/step)*step:0;if(lo+step*k>=mx)return{lo,step}}return{lo:0,step:rg/k}};
 const tick=big=>v=>big?(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'조':Math.round(v).toLocaleString('ko-KR');
 const money=v=>v==null?'–':Math.abs(v)>=10000?(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'조 원':Math.round(v).toLocaleString('ko-KR')+'억 원';
-function trendSvg(side,list){const has=list.filter(x=>x.row);
+function trendSvg(side,list){const has=list.filter(inSum);
  if(!has.length)return '<p class="gc-empty">수치가 확인된 업체가 없습니다.</p>';
  const S=YRS.map((_,i)=>has.reduce((t,x)=>t+x.row.r[i],0)),O=YRS.map((_,i)=>has.reduce((t,x)=>t+x.row.o[i],0)),M=S.map((v,i)=>v>0?O[i]/v*100:null);
  const W=520,H=290,L=54,R=54,T=14,B=28,k=4,band=92,pw=W-L-R,ph=H-T-B,bh=ph-band,top=T+band;
@@ -93,7 +94,7 @@ function summary(items,vis){const t=$('pc-sum');
 function pairs(items,vis){const box=$('pc-pairs');
  if(!items.length){box.innerHTML='<p class="gc-empty">조건에 맞는 업체가 없습니다.</p>';return}
  const col=(side,list)=>{const a=agg(list);
-  const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(!r&&x.e.w?'<small class="pc-why">'+esc(x.e.w)+'</small>':'')+'</th>';
+  const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(!r&&x.e.w?'<small class="pc-why">'+esc(x.e.w)+'</small>':'')+(x.e.x?'<small class="pc-why">'+esc(x.e.x)+'</small>':'')+'</th>';
    return r?'<tr>'+nm+'<td>'+fmt(r.r[2])+'</td><td class="pc-hm">'+sg(grow(r.r,2))+'</td><td>'+pct(margin(r.o[2],r.r[2]))+'</td></tr>':'<tr class="pc-none">'+nm+'<td colspan="3" class="pc-na">자료 없음</td></tr>'}).join('');
   return '<div class="pc-col pc-'+side+'"><h4>'+SIDE[side]+' <small>수치 확인 '+a.k+'/'+a.n+'곳</small></h4><div class="db-tbl-wrap"><table class="db-tbl pc-tbl"><caption class="sr-only">'+SIDE[side]+' 2025년 매출·매출 증감·영업이익률</caption><thead><tr><th scope="col" class="l">업체</th><th scope="col">2025 매출(억 원)</th><th scope="col" class="pc-hm">매출 증감</th><th scope="col">영업이익률</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'};
  box.innerHTML=items.map(it=>{const l=vis.filter(x=>x.g===it.g&&x.i===it.i);
@@ -124,7 +125,9 @@ function basis(){const M=['①','②','③','④'];
   '수치는 성장 분석의 회사별 상세(공시 기준, 억 원 환산)와 같은 값입니다. 매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아닙니다.',
   '재무 기준(별도·개별·연결)이 업체마다 다릅니다. 국내업체와 한국 법인은 별도(개별) 재무, 해외 본사는 개별 우선·미공시 시 연결입니다. 회계기간·환율 차이도 있어 직접 비교에는 한계가 있습니다.',
   '글로벌업체는 본사 소재지 기준으로 구분했습니다. \'한국 법인(본사 해외)\'은 한국에 설립된 법인 자체의 실적이며 해외 본사 실적이 아닙니다. 해외 법인·지점이나 공개 집계의 법인명과 정확히 같지 않은 업체는 모회사·유사 법인 실적으로 대체하지 않습니다.',
+  '재무 기준 옆에 \'사업보고서\'·\'감사보고서\'로 표시된 업체는 성장 분석 집계에 없어, DART 사업보고서 또는 외부감사 보고서의 개별(별도) 재무에서 따로 가져온 값입니다(2023~2025년 모두 확인된 업체만).',
   '자료 없음은 2023~2025년 3개년 공시 실적이 확인되지 않은 업체입니다(비공시 법인 등). 수치를 추정하거나 만들지 않습니다.',
+  '반도체 소부장이 아닌 사업이 대부분인 업체(삼성에스디아이)는 수치는 보여 주되 합계·그래프에서는 제외하고, 그 이유를 업체 아래에 적었습니다.',
   '품목별 요약은 수치가 확인된 업체만 합산해, 확인된 업체가 적은 품목은 대표성이 낮습니다. 업체 명단의 순서는 표시 편의를 위한 것이며 순위나 구매액을 나타내지 않습니다.'].map(t=>'<li>'+esc(t)+'</li>').join('')}
 
 /* 초기화 */

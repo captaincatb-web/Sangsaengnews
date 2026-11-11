@@ -39,6 +39,10 @@ class PairRoster(unittest.TestCase):
             if side == "glo": self.assertIn(e["k"], KINDS, e["n"])
             else: self.assertNotIn("k", e)
 
+    def test_sum_exclusion_has_reason(self):
+        ex = [e for *_, e in self.entries if "x" in e]
+        self.assertEqual([e["n"] for e in ex], ["삼성에스디아이"]); self.assertTrue(all(len(e["x"]) > 10 for e in ex))
+
     def test_no_identifiers(self):
         self.assertIsNone(re.search(r"\d{10,}", self.raw)); self.assertIsNone(re.search(r"\d{3}-\d{2}-\d{5}|\d{6}-\d{7}", self.raw))
 

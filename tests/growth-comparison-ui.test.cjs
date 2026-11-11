@@ -141,7 +141,9 @@ for (const w of [390, 1280]) {
     await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
     await page.selectOption("#f-item", "케미컬"); assert.equal(await page.locator(".pc-item").count(), 1);
     assert.equal(await page.locator(".pc-dom tbody tr").count(), 5, "국내 케미컬 5곳"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 5, "글로벌 케미컬 5곳");
-    assert.ok((await page.locator(".pc-none").count()) >= 1, "자료 없음 업체도 목록에 표시");
+    assert.ok((await page.locator(".pc-sdi, .pc-dom .pc-why").count()) >= 1, "합계 제외 사유 표시");
+    await page.selectOption("#f-item", "PCB/소자"); assert.ok((await page.locator(".pc-none").count()) >= 1, "자료 없음 업체도 목록에 표시");
+    await page.selectOption("#f-item", "케미컬");
     await page.selectOption("#f-grp", "설비"); assert.equal(await page.locator("#f-item").inputValue(), "", "구분을 바꾸면 품목 초기화");
     await page.fill("#f-q", "ASML"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 1);
     const basis = await page.locator("#pc-basis").innerText();
