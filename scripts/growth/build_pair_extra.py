@@ -43,6 +43,15 @@ def main():
             d = sc[pick]; u = (d[YEARS[0]].get("source_url") or "").lower(); host = "SEC" if "sec.gov" in u else "EDINET" if "edinet" in u else "공시"
             rows.append({"n": pn, "s": pick, "src": host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
         if not any(full(sc.get(k, {})) for k in ("개별", "연결")): skipped += 1
+    # (3) 국내 상장 본사의 DART 개별(OFS)·연결(CFS) 3개년(종료연도): 명단의 본사 지정(p.d)에 연결. 접수번호 등 식별 정보는 싣지 않는다
+    sf = priv / "dart_scopes.csv"; dn = {e["p"]["n"] for side, e in ents if e.get("p", {}).get("d")}
+    if sf.exists() and dn:
+        sby = {}
+        for r in csv.DictReader(open(sf, encoding="utf-8-sig")):
+            if r["company"] in dn and r["collection_status"] == "COLLECTED" and r["fiscal_year"]: sby.setdefault((r["company"], r["financial_basis"]), {})[int(r["fiscal_year"])] = r
+        for (nm, basis), d in sorted(sby.items()):
+            if full(d): rows.append({"n": nm, "s": "별도" if basis == "STANDALONE" else "연결", "src": "DART 사업보고서",
+                                     "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
     out = {"version": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "unit": "억 원",
            "note": "성장 분석 집계에 없는 업체의 공시 수치: 국내업체는 DART 개별(별도) 재무, 글로벌 업체는 본사의 SEC·EDINET 공시(원화 환산).", "rows": rows}
     (REPO / "site" / "data" / "pair-extra.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
