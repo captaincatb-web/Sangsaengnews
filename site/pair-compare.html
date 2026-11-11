@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611081000">
   <link rel="stylesheet" href="growth-comparison.css?v=8">
-  <link rel="stylesheet" href="pair-compare.css?v=4">
+  <link rel="stylesheet" href="pair-compare.css?v=5">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -63,6 +63,7 @@
     <form class="db-filters gc-filters" id="filters" aria-label="비교 조건" onsubmit="return false">
       <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>구분</span><select id="f-grp"><option value="">전체</option></select></label>
       <label class="db-sel"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>품목</span><select id="f-item"><option value="">전체</option></select></label>
+      <label class="db-sel pc-basis-sel"><i class="ph ph-scales" aria-hidden="true"></i><span>재무 기준</span><select id="f-basis"><option value="auto">자동(개별 우선)</option><option value="c">연결만</option><option value="s">개별·별도만</option></select></label>
       <label class="pc-chk"><input type="checkbox" id="f-x" checked><span id="f-x-l">합계에 포함</span></label>
       <label class="db-sel pc-q"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span>업체 검색</span><input id="f-q" type="search" placeholder="업체명" autocomplete="off"></label>
     </form>
@@ -91,6 +92,6 @@
   <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"업체 비교(성장 비교 자료)",updated:"",note:"자료 불러오는 중"}};</script>
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="pair-compare.js?v=8"></script>
+  <script src="pair-compare.js?v=9"></script>
 </body>
 </html>

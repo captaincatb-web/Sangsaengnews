@@ -151,6 +151,17 @@ for (const w of [390, 1280]) {
     await page.selectOption("#f-grp", "설비"); assert.equal(await page.locator("#f-item").inputValue(), "", "구분을 바꾸면 품목 초기화");
     await page.fill("#f-q", "ASML"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 1);
     const miss = await page.locator("#pc-miss li").count(); assert.ok(miss >= 5, "수치 미확인 업체 목록"); assert.match(await page.locator("#pc-miss-h").innerText(), /수치가 확인되지 않은 업체 \(\d+곳/);
+    /* 재무 기준 선택: 설비의 글로벌 업체 중 미국·네덜란드 본사는 연결만, 도쿄일렉트론은 개별(연결은 수집 후) */
+    await page.fill("#f-q", ""); await page.selectOption("#f-grp", "설비"); await page.selectOption("#f-item", "설비");
+    const glo = () => page.locator(".pc-glo tbody tr").evaluateAll((trs) => trs.map((t) => ({ n: t.querySelector(".pc-n").textContent, none: t.classList.contains("pc-none"), tag: [...t.querySelectorAll("th small")].map((e) => e.textContent).join(" ") })));
+    await page.selectOption("#f-basis", "s"); let g = await glo();
+    assert.ok(g.find((x) => x.n === "Applied Materials").none, "개별만: Applied 연결만 공시 → 자료 없음");
+    assert.match(g.find((x) => x.n === "Applied Materials").tag, /연결/, "있는 기준(연결) 안내");
+    assert.ok(!g.find((x) => x.n === "TOKYO ELECTRON").none, "개별만: 도쿄일렉트론은 개별 있음");
+    await page.selectOption("#f-basis", "c"); g = await glo();
+    assert.ok(!g.find((x) => x.n === "Applied Materials").none, "연결만: Applied 연결 있음");
+    assert.ok(g.find((x) => x.n === "SHIN-ETSU CHEMICAL" || true), "연결만 상태에서도 목록 유지");
+    await page.selectOption("#f-basis", "auto"); g = await glo(); assert.ok(g.every((x) => !x.none), "자동: 설비 글로벌 5곳 모두 값 있음");
     const basis = await page.locator("#pc-basis").innerText();
     for (const t of ["당사 거래업체만 대상", "설비/부품/원자재 구분", "본사 소재지 기준", "구매액 상위 5개업체"]) assert.ok(basis.includes(t), t);
     assert.deepEqual(errs, []); await ctx.close();

@@ -14,14 +14,25 @@ const NO_DATA='3개년(2023~2025) 공시 실적이 확인된 업체만 수치를
 let ROSTER=null,ALL=[],GEN='',sortKey=null,sortDir=1;
 
 /* 명단 + 공개 회사별 수치 연결. 이름이 정확히 같은 행만 쓴다 */
-function build(R,rows,extra){const by={},ex={};rows.forEach(r=>{by[r.n]=r});(extra||[]).forEach(r=>{ex[r.n]=r});const out=[];
+/* 후보 수치: 같은 이름의 공개 행(비교 기준 모드 blend·cons_listed)과 따로 수집한 값(pair-extra)을 재무 기준별로 모은다. c=연결, s=개별·별도 */
+const kindOf=sc=>sc==='연결'?'c':'s';
+function build(R,modes,extra){const idx={};
+ const add=(n,r)=>{const o=idx[n]||(idx[n]={c:null,s:null}),k=kindOf(r.s);if(!o[k])o[k]=r};
+ ['blend','cons_listed'].forEach(id=>{const m=(modes||[]).find(x=>x.id===id);((m&&m.rows)||[]).forEach(r=>add(r.n,r))});
+ (extra||[]).forEach(r=>add(r.n,r));
+ const out=[];
  R.groups.forEach(gr=>gr.items.forEach(it=>['dom','glo'].forEach(side=>it[side].forEach(e=>{
   /* 글로벌 업체는 본사 실적(e.p)을 쓴다: 공개 회사별 상세(p.m)에 없으면 따로 수집한 본사 공시(pair-extra.json, p.n). 국내업체는 자기 실적(m, 없으면 pair-extra) */
-  const P=e.p||null,row=P?((P.m?by[P.m]:ex[P.n])||null):((e.m?by[e.m]:null)||ex[e.n]||null);
-  out.push({g:gr.g,i:it.i,side,e,row,k:side==='glo'?e.k:null,ord:out.length,key:P?(P.m||P.n):(e.m||e.n)})}))));return out}
+  const P=e.p||null,nm=P?(P.m||P.n):(e.m||e.n),cands=idx[nm]||{c:null,s:null};
+  out.push({g:gr.g,i:it.i,side,e,cands,row:null,k:side==='glo'?e.k:null,ord:out.length,key:nm})}))));return out}
+const fbasis=()=>{const b=$('f-basis');return b?b.value:'auto'};
+/* 재무 기준 적용: auto=개별 우선(없으면 연결, 성장 분석 규칙), c=연결만, s=개별·별도만 */
+function applyBasis(){const b=fbasis();ALL.forEach(x=>{const c=x.cands;x.row=b==='c'?c.c:b==='s'?c.s:(c.s||c.c)})}
 
 const state=()=>({g:$('f-grp').value,i:$('f-item').value,q:($('f-q').value||'').trim().toLowerCase()});
 function visible(){const s=state();return ALL.filter(x=>(!s.g||x.g===s.g)&&(!s.i||x.i===s.i)&&(!s.q||x.e.n.toLowerCase().includes(s.q)||x.e.f.toLowerCase().includes(s.q)))}
+/* 선택한 재무 기준의 수치가 없지만 다른 기준에는 있을 때의 안내 */
+const otherBasis=x=>{const b=fbasis();if(b==='auto')return '';const have=[x.cands.c&&'연결',x.cands.s&&'개별·별도'].filter(Boolean);return have.length?(b==='c'?'연결':'개별·별도')+' 기준 자료가 없습니다(있는 기준: '+have.join('·')+').':''};
 const incX=()=>{const c=$('f-x');return !c||c.checked};
 const inSumRaw=x=>x.row&&(!x.e.x||incX());
 const uniqSum=list=>{const seen=new Set();return list.filter(x=>{if(!inSumRaw(x)||seen.has(x.key))return false;seen.add(x.key);return true})};  /* 같은 본사·같은 업체는 합계에서 한 번만 센다 */  /* 전지 중심 기업 등(x 표시)은 필터에서 '합계에 포함'을 끄면 수치만 보여 주고 합계·그래프에서 뺀다 */
@@ -36,11 +47,11 @@ function fillItems(){const it=$('f-item'),cur=it.value,g=$('f-grp').value;it.len
  if([...it.options].some(o=>o.value===cur))it.value=cur}
 
 function render(){
- const vis=visible(),items=[];vis.forEach(x=>{const k=x.g+'\u0000'+x.i;if(!items.some(a=>a.k===k))items.push({k,g:x.g,i:x.i})});
+ applyBasis();const vis=visible(),items=[];vis.forEach(x=>{const k=x.g+'\u0000'+x.i;if(!items.some(a=>a.k===k))items.push({k,g:x.g,i:x.i})});
  const dm=vis.filter(x=>x.side==='dom'),gl=vis.filter(x=>x.side==='glo');
  $('pc-count').textContent='국내 '+dm.length+'곳 · 글로벌 '+gl.length+'곳 (수치 확인 국내 '+dm.filter(x=>x.row).length+'곳 · 글로벌 '+gl.filter(x=>x.row).length+'곳)';
  key(vis,dm,gl);trend(dm,gl);summary(items,vis);pairs(items,vis);detail(vis);
- try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));if(!incX())h.push('x=0');history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}}
+ try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));if(!incX())h.push('x=0');if(fbasis()!=='auto')h.push('b='+fbasis());history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}}
 
 /* 연도별 실적 추이: 왼쪽 국내업체, 오른쪽 글로벌업체. 매출(왼쪽 축)·영업이익(오른쪽 축) 막대 + 영업이익률 선(소부장 경영 정보의 연도별 실적 추이와 같은 구성) */
 const YRS=[2023,2024,2025],NS='http://www.w3.org/2000/svg';
@@ -97,7 +108,7 @@ function summary(items,vis){const t=$('pc-sum');
 function pairs(items,vis){const box=$('pc-pairs');
  if(!items.length){box.innerHTML='<p class="gc-empty">조건에 맞는 업체가 없습니다.</p>';return}
  const col=(side,list)=>{const a=agg(list);
-  const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(!r?'<small class="pc-why">'+esc(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:''))+'</small>':'')+(x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 '+(incX()?'포함 중':'제외 중')+'</small>':'')+'</th>';
+  const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(!r?'<small class="pc-why">'+esc(otherBasis(x)||(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:'')))+'</small>':'')+(x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 '+(incX()?'포함 중':'제외 중')+'</small>':'')+'</th>';
    return r?'<tr>'+nm+'<td>'+fmt(r.r[2])+'</td><td class="pc-hm">'+sg(grow(r.r,2))+'</td><td>'+pct(margin(r.o[2],r.r[2]))+'</td></tr>':'<tr class="pc-none">'+nm+'<td colspan="3" class="pc-na">자료 없음</td></tr>'}).join('');
   return '<div class="pc-col pc-'+side+'"><h4>'+SIDE[side]+' <small>수치 확인 '+a.k+'/'+a.n+'곳</small></h4><div class="db-tbl-wrap"><table class="db-tbl pc-tbl"><caption class="sr-only">'+SIDE[side]+' 2025년 매출·매출 증감·영업이익률</caption><thead><tr><th scope="col" class="l">업체</th><th scope="col">2025 매출(억 원)</th><th scope="col" class="pc-hm">매출 증감</th><th scope="col">영업이익률</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'};
  box.innerHTML=items.map(it=>{const l=vis.filter(x=>x.g===it.g&&x.i===it.i);
@@ -126,7 +137,7 @@ function basis(){const M=['①','②','③','④'];
  $('pc-basis').innerHTML=ROSTER.basis.map((t,i)=>'<li><span class="pc-bn" aria-hidden="true">'+(M[i]||'')+'</span><span>'+esc(t)+'</span></li>').join('');
  $('pc-notes').innerHTML=[
   '수치는 성장 분석의 회사별 상세(공시 기준, 억 원 환산)와 같은 값입니다. 매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아닙니다.',
-  '재무 기준(별도·개별·연결)이 업체마다 다릅니다. 국내업체와 한국 법인은 별도(개별) 재무, 해외 본사는 개별 우선·미공시 시 연결입니다. 회계기간·환율 차이도 있어 직접 비교에는 한계가 있습니다.',
+  '위 \'재무 기준\'에서 자동(개별·별도 우선, 없으면 연결)·연결만·개별만을 고를 수 있습니다. 선택한 기준의 수치가 없는 업체는 \'자료 없음\'으로 두고 있는 기준을 안내합니다(미국·네덜란드 본사처럼 연결 재무제표만 공시하는 곳은 개별이 없음). 재무 기준(별도·개별·연결)이 업체마다 다릅니다. 국내업체와 한국 법인은 별도(개별) 재무, 해외 본사는 개별 우선·미공시 시 연결입니다. 회계기간·환율 차이도 있어 직접 비교에는 한계가 있습니다.',
   '글로벌업체는 본사 소재지 기준으로 구분했고, 수치도 한국 법인·지점·현지 법인이 아닌 본사(모회사)의 실적입니다. 명단의 한국 법인 아래에 \'본사 실적: ○○\'로 어느 본사의 값인지 표시했습니다. 본사가 여러 사업을 하는 그룹이면 회사 전체 실적이라 반도체 소재 사업 실적과 차이가 큽니다.',
   '같은 본사가 여러 업체의 본사로 나오거나 여러 품목에 있으면(예: ASML) 표에는 각각 보이지만 합계·그래프에서는 한 번만 셉니다. 본사의 공시 실적이 없거나 본사가 확정되지 않은 업체는 \'자료 없음\'으로 두고 그룹 실적으로 대체하지 않습니다.',
   '재무 기준 옆에 \'사업보고서\'·\'감사보고서\'로 표시된 업체는 성장 분석 집계에 없어, DART 사업보고서 또는 외부감사 보고서의 개별(별도) 재무에서 따로 가져온 값입니다(2023~2025년 모두 확인된 업체만).',
@@ -135,19 +146,19 @@ function basis(){const M=['①','②','③','④'];
   '품목별 요약은 수치가 확인된 업체만 합산해, 확인된 업체가 적은 품목은 대표성이 낮습니다. 업체 명단의 순서는 표시 편의를 위한 것이며 순위나 구매액을 나타내지 않습니다.'].map(t=>'<li>'+esc(t)+'</li>').join('')}
 
 /* 수치 미확인 업체 목록(명단 전체 기준) */
-function missing(){const m=ALL.filter(x=>!x.row);$('pc-miss-h').textContent='수치가 확인되지 않은 업체 ('+m.length+'곳 / 명단 '+ALL.length+'곳)';
+function missing(){const m=ALL.filter(x=>!x.cands.c&&!x.cands.s);$('pc-miss-h').textContent='수치가 확인되지 않은 업체 ('+m.length+'곳 / 명단 '+ALL.length+'곳)';
  $('pc-miss').innerHTML=m.map(x=>'<li><b>'+esc(x.e.n)+'</b> <small>'+SIDE[x.side]+' · '+esc(x.g===x.i?x.i:x.g+' › '+x.i)+'</small> — '+esc(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:NO_DATA))+'</li>').join('')||'<li>모든 업체의 수치가 확인되었습니다.</li>'}
 
 /* 초기화 */
 const tb=$('theme-btn');if(tb){const cur=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const paint=()=>{const d=cur()==='dark';tb.innerHTML='<i class="ph ph-'+(d?'sun':'moon')+'" aria-hidden="true"></i>';tb.title=d?'밝은 화면으로':'어두운 화면으로'};tb.addEventListener('click',()=>{const t=cur()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sobujang:theme',t)}catch(e){}paint()});paint()}
 const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return r.json()});
 Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get('data/pair-extra.json').catch(()=>({rows:[]}))]).then(([R,G,X])=>{
- ROSTER=R;GEN=G.generatedAt||'';const bl=(G.modes||[]).find(m=>m.id==='blend')||(G.modes||[])[0];ALL=build(R,(bl&&bl.rows)||[],X&&X.rows);
+ ROSTER=R;GEN=G.generatedAt||'';const bl=(G.modes||[]).find(m=>m.id==='blend')||(G.modes||[])[0];ALL=build(R,G.modes||[],X&&X.rows);applyBasis();
  basis();missing();fillGroups();{const xs=[...new Set(ALL.filter(x=>x.e.x).map(x=>x.e.n))];$('f-x-l').textContent=xs.join('·')+' 합계에 포함';if(!xs.length)$('f-x').parentElement.hidden=true}
- try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(p.get('x')==='0')$('f-x').checked=false}catch(e){}
+ try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(p.get('x')==='0')$('f-x').checked=false;if(['c','s'].includes(p.get('b')))$('f-basis').value=p.get('b')}catch(e){}
  $('updated').textContent=GEN.slice(0,10)||'-';
  const ds=document.querySelector('.site-data-status__item');if(ds&&GEN){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');if(n)n.textContent=GEN.slice(0,10)+' 기준 · 업체 '+ALL.length+'곳 중 수치 확인 '+ALL.filter(x=>x.row).length+'곳';if(t){t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
- $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-x').addEventListener('change',render);
+ $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-x').addEventListener('change',render);$('f-basis').addEventListener('change',render);
  $('pc-tbl').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;const k=b.dataset.k;if(sortKey===k)sortDir=-sortDir;else{sortKey=k;sortDir=(k==='n'||k==='side'||k==='s')?1:-1}render()});
  $('pc-csv').addEventListener('click',csv);
  render();

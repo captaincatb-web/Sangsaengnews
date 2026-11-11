@@ -21,6 +21,7 @@ def main():
     ents = [(side, e) for gr in roster["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side]]
     dom = {e["n"] for side, e in ents if side == "dom" and e.get("k") != "sub"}
     par = {e["p"]["n"]: e["p"]["x"] for side, e in ents if side == "glo" and e.get("p", {}).get("x")}
+    par.update({e["n"]: e["ex"] for side, e in ents if side == "glo" and e.get("ex")})  # 본사 자체(ex): 공개 회사별 상세에 없는 기준(예: 도쿄일렉트론 연결)을 따로 수집
     rows, skipped = [], 0
     by = {}
     for r in csv.DictReader(open(priv / "pair_audit_rows.csv", encoding="utf-8-sig")):
@@ -35,12 +36,13 @@ def main():
     if pf.exists():
         for r in csv.DictReader(open(pf, encoding="utf-8-sig")):
             if r.get("year"): pby.setdefault(r["entity_id"], {}).setdefault(r.get("scope") or "연결", {})[int(r["year"])] = r
-    for pn, x in sorted(par.items()):
+    for pn, x in sorted(par.items()):  # 한 업체에 완전한 기준(개별·연결)을 모두 싣는다: 화면에서 재무 기준을 고를 수 있게
         sc = pby.get("O:" + x, {})
-        pick = next((s for s in ("개별", "연결") if full(sc.get(s, {}))), None)  # 법인별 3개년은 한 기준으로(개별 우선, 성장 분석과 같은 규칙)
-        if not pick: skipped += 1; continue
-        d = sc[pick]; host = "SEC" if "sec.gov" in (d[YEARS[0]].get("source_url") or "") else "EDINET" if "edinet" in (d[YEARS[0]].get("source_url") or "").lower() else "공시"
-        rows.append({"n": pn, "s": pick, "src": host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
+        for pick in ("개별", "연결"):
+            if not full(sc.get(pick, {})): continue
+            d = sc[pick]; u = (d[YEARS[0]].get("source_url") or "").lower(); host = "SEC" if "sec.gov" in u else "EDINET" if "edinet" in u else "공시"
+            rows.append({"n": pn, "s": pick, "src": host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
+        if not any(full(sc.get(k, {})) for k in ("개별", "연결")): skipped += 1
     out = {"version": 1, "generatedAt": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "unit": "억 원",
            "note": "성장 분석 집계에 없는 업체의 공시 수치: 국내업체는 DART 개별(별도) 재무, 글로벌 업체는 본사의 SEC·EDINET 공시(원화 환산).", "rows": rows}
     (REPO / "site" / "data" / "pair-extra.json").write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
