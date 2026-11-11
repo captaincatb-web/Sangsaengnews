@@ -104,32 +104,48 @@
       {
        "n": "싸이머코리아",
        "f": "싸이머코리아유한회사",
-       "k": "kr",
-       "m": "싸이머코리아"
+       "k": "par",
+       "p": {
+        "n": "ASML",
+        "m": "ASML",
+        "b": "Cymer는 ASML의 자회사"
+       }
       },
       {
        "n": "엑셀리스코리아",
        "f": "엑셀리스코리아주식회사",
-       "k": "kr",
-       "m": "엑셀리스코리아"
+       "k": "par",
+       "p": {
+        "n": "Axcelis Technologies",
+        "m": "Axcelis Technologies"
+       }
       },
       {
        "n": "케이엘에이텐코코리아",
        "f": "케이엘에이텐코코리아(주)",
-       "k": "kr",
-       "m": "케이엘에이텐코코리아"
+       "k": "par",
+       "p": {
+        "n": "KLA",
+        "m": "KLA"
+       }
       },
       {
        "n": "한국기가포톤",
        "f": "한국기가포톤주식회사",
-       "k": "kr",
-       "m": "한국기가포톤"
+       "k": "par",
+       "p": {
+        "n": "Gigaphoton",
+        "w": "본사(Gigaphoton, 일본)가 비상장이라 공시 실적이 없습니다."
+       }
       },
       {
        "n": "히타치하이테크코리아",
        "f": "히타치하이테크코리아 주식회사",
-       "k": "kr",
-       "m": "히타치하이테크코리아"
+       "k": "par",
+       "p": {
+        "n": "Hitachi High-Tech",
+        "w": "본사(Hitachi High-Tech, 일본)는 2020년 상장폐지돼 자체 공시 실적이 없습니다. 모회사 그룹 실적으로 대체하지 않습니다."
+       }
       }
      ]
     }
@@ -170,32 +186,47 @@
       {
        "n": "Montage Semiconductor(Kunshan)",
        "f": "Montage Semiconductor(Kunshan) Co., Ltd.",
-       "k": "sub",
-       "w": "이 법인(지점) 단위의 공시 실적이 수집되지 않았고, 모회사 실적으로 대체하지 않습니다."
+       "k": "par",
+       "p": {
+        "n": "Montage Technology",
+        "w": "본사(Montage Technology, 중국 상하이) 실적의 수집 경로가 아직 없습니다."
+       }
       },
       {
        "n": "MPS Schaffhausen International",
        "f": "MPS Schaffhausen International GmbH",
-       "k": "sub",
-       "w": "이 법인(지점) 단위의 공시 실적이 수집되지 않았고, 모회사 실적으로 대체하지 않습니다."
+       "k": "par",
+       "p": {
+        "n": "Monolithic Power Systems",
+        "x": "monolithicpowersystems"
+       }
       },
       {
        "n": "TANAKA ELECTRONICS (HANGZHOU)",
        "f": "TANAKA ELECTRONICS (HANGZHOU) Co.,Ltd",
-       "k": "sub",
-       "w": "이 법인(지점) 단위의 공시 실적이 수집되지 않았고, 모회사 실적으로 대체하지 않습니다."
+       "k": "par",
+       "p": {
+        "n": "TANAKA Holdings",
+        "w": "본사(TANAKA Holdings, 일본)가 비상장이라 공시 실적이 없습니다."
+       }
       },
       {
        "n": "Unimicron Technology (Kunshan)",
        "f": "Unimicron Technology (Kunshan) Corp.",
-       "k": "sub",
-       "w": "이 법인(지점) 단위의 공시 실적이 수집되지 않았고, 모회사 실적으로 대체하지 않습니다."
+       "k": "par",
+       "p": {
+        "n": "UNIMICRON TECHNOLOGY",
+        "m": "UNIMICRON TECHNOLOGY"
+       }
       },
       {
        "n": "한국무라타전자",
        "f": "한국무라타전자주식회사",
-       "k": "kr",
-       "m": "한국무라타전자"
+       "k": "par",
+       "p": {
+        "n": "Murata Manufacturing",
+        "x": "muratamanufacturing"
+       }
       }
      ]
     },
@@ -211,14 +242,20 @@
       {
        "n": "에어프로덕츠코리아",
        "f": "에어프로덕츠코리아주식회사",
-       "k": "kr",
-       "w": "9월 결산 법인으로 2025 회계연도 보고서가 아직 공시되지 않아 3개년이 확인되지 않았습니다."
+       "k": "par",
+       "p": {
+        "n": "Air Products and Chemicals",
+        "m": "Air Products and Chemicals"
+       }
       },
       {
        "n": "린데코리아",
        "f": "린데코리아 주식회사",
-       "k": "kr",
-       "m": "린데코리아"
+       "k": "par",
+       "p": {
+        "n": "Linde",
+        "x": "linde"
+       }
       }
      ]
     },
@@ -234,8 +271,12 @@
       {
        "n": "엠이엠씨코리아",
        "f": "엠이엠씨코리아(주)",
-       "k": "kr",
-       "m": "엠이엠씨코리아"
+       "k": "par",
+       "p": {
+        "n": "GlobalWafers",
+        "m": "GlobalWafers",
+        "b": "MEMC는 GlobalWafers 자회사"
+       }
       },
       {
        "n": "SHIN-ETSU CHEMICAL",
@@ -290,32 +331,47 @@
       {
        "n": "제이에스알일렉트로닉머트리얼즈코리아",
        "f": "제이에스알일렉트로닉머트리얼즈코리아 주식회사",
-       "k": "kr",
-       "m": "제이에스알일렉트로닉머트리얼즈코리아"
+       "k": "par",
+       "p": {
+        "n": "JSR",
+        "x": "jsr"
+       }
       },
       {
        "n": "듀폰퍼포먼스프로덕츠코리아",
        "f": "듀폰퍼포먼스프로덕츠코리아 유한회사",
-       "k": "kr",
-       "m": "듀폰퍼포먼스프로덕츠코리아"
+       "k": "par",
+       "p": {
+        "n": "DuPont",
+        "w": "본사가 듀폰과 2025년 분사한 전자소재 회사(Qnity) 중 어디인지 확정되지 않아 연결하지 않았습니다."
+       }
       },
       {
        "n": "디디피스페셜티프로덕츠코리아",
        "f": "디디피스페셜티프로덕츠코리아 주식회사",
-       "k": "kr",
-       "m": "디디피스페셜티프로덕츠코리아"
+       "k": "par",
+       "p": {
+        "n": "DuPont",
+        "w": "본사가 듀폰과 2025년 분사한 전자소재 회사(Qnity) 중 어디인지 확정되지 않아 연결하지 않았습니다."
+       }
       },
       {
        "n": "레조낙코리아",
        "f": "레조낙코리아주식회사",
-       "k": "kr",
-       "m": "레조낙코리아"
+       "k": "par",
+       "p": {
+        "n": "Resonac",
+        "x": "resonac"
+       }
       },
       {
        "n": "한국 인테그리스",
        "f": "한국 인테그리스 주식회사",
-       "k": "kr",
-       "m": "한국 인테그리스"
+       "k": "par",
+       "p": {
+        "n": "ENTEGRIS",
+        "m": "ENTEGRIS"
+       }
       }
      ]
     },
@@ -350,36 +406,52 @@
       {
        "n": "아데카코리아",
        "f": "아데카코리아(주)",
-       "k": "kr",
-       "m": "아데카코리아"
+       "k": "par",
+       "p": {
+        "n": "ADEKA",
+        "x": "adeka"
+       }
       },
       {
        "n": "테크센드포토마스크",
        "f": "테크센드포토마스크(주)",
-       "k": "kr",
-       "m": "테크센드포토마스크"
+       "k": "par",
+       "p": {
+        "n": "Tekscend Photomask",
+        "w": "본사(Tekscend Photomask, 일본) 실적의 수집 대상에 아직 넣지 않았습니다."
+       }
       },
       {
        "n": "HOYA ELECTRONICS SINGAPORE",
        "f": "HOYA ELECTRONICS SINGAPORE PTE, LTD.",
-       "k": "sub",
-       "w": "이 법인(지점) 단위의 공시 실적이 수집되지 않았고, 모회사 실적으로 대체하지 않습니다."
+       "k": "par",
+       "p": {
+        "n": "HOYA",
+        "x": "hoya"
+       }
       },
       {
        "n": "머크퍼포먼스머티리얼즈 서울지점",
        "f": "머크퍼포먼스머티리얼즈(주) 서울지점",
-       "k": "sub",
-       "w": "이 법인(지점) 단위의 공시 실적이 수집되지 않았고, 모회사 실적으로 대체하지 않습니다."
+       "k": "par",
+       "p": {
+        "n": "Merck KGaA",
+        "w": "본사(Merck KGaA, 독일) 실적의 수집 경로가 아직 없습니다."
+       }
       },
       {
        "n": "버슘머트리얼즈코리아",
        "f": "버슘머트리얼즈코리아",
-       "k": "kr",
-       "w": "공개 집계의 버슘머트리얼즈 법인명과 이름이 정확히 같지 않아 같은 법인으로 연결하지 않았습니다."
+       "k": "par",
+       "p": {
+        "n": "Merck KGaA",
+        "w": "본사(Merck KGaA, 독일) 실적의 수집 경로가 아직 없습니다."
+       }
       }
      ]
     }
    ]
   }
- ]
+ ],
+ "basis_note": "글로벌 업체는 본사 실적으로 보여 줍니다(한국 법인·지점·현지 법인의 자체 실적이 아님)."
 }

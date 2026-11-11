@@ -2,7 +2,7 @@
 import json, re, unittest
 from pathlib import Path
 SITE = Path(__file__).resolve().parent.parent / "site" / "data"
-KINDS = {"hq", "kr", "sub"}
+KINDS = {"hq", "par"}  # hq: 해외 본사 자체, par: 한국 법인·지점·현지 법인(수치는 본사 실적 p 를 씀)
 
 
 class PairRoster(unittest.TestCase):
@@ -26,13 +26,19 @@ class PairRoster(unittest.TestCase):
     def test_matches_exist_by_exact_name(self):
         for g, i, side, e in self.entries:
             if "m" in e: self.assertIn(e["m"], self.rows, e["n"])
-        self.assertEqual(len({e["m"] for *_, e in self.entries if "m" in e}), sum(1 for *_, e in self.entries if "m" in e), "같은 공개 행을 두 업체에 연결하지 않음")
+        ms = [e["m"] for *_, e in self.entries if "m" in e]; self.assertEqual(len(set(ms)), len(ms), "같은 공개 행을 두 업체에 직접 연결하지 않음")
 
-    def test_foreign_subsidiaries_and_branches_never_matched(self):
+    def test_global_entries_use_parent_figures(self):
+        """글로벌 업체는 본사 실적: par 업체는 자기 이름으로 공개 행에 연결하지 않고(m 없음), 본사 지정 p 에 공개 행(m)·별도 수집(x)·사유(w) 중 하나만 둔다."""
         for g, i, side, e in self.entries:
-            if e.get("k") == "sub": self.assertNotIn("m", e, e["n"]); self.assertTrue(e.get("w"))
-        for g, i, side, e in self.entries:  # 모회사 대체 방지: Kunshan 법인은 대만 본사 행(UNIMICRON TECHNOLOGY)과 연결하지 않음
-            if "Kunshan" in e["f"]: self.assertNotIn("m", e)
+            if side != "glo": continue
+            if e["k"] == "par":
+                self.assertNotIn("m", e, e["n"]); p = e["p"]; self.assertTrue(p["n"])
+                self.assertEqual(sum(k in p for k in ("m", "x", "w")), 1, e["n"])
+                if "m" in p: self.assertIn(p["m"], self.rows, e["n"])
+            else: self.assertNotIn("p", e)
+        for g, i, side, e in self.entries:  # Unimicron Kunshan 은 대만 본사 행(UNIMICRON TECHNOLOGY)을 본사로 명시해서만 연결
+            if "Unimicron" in e["f"] and e.get("k") == "par": self.assertEqual(e["p"].get("m"), "UNIMICRON TECHNOLOGY")
 
     def test_kinds_only_on_global_side(self):
         for g, i, side, e in self.entries:
@@ -53,7 +59,7 @@ class PairExtra(unittest.TestCase):
         p = SITE / "pair-extra.json"
         if not p.exists(): self.skipTest("아직 수집 전")
         raw = p.read_text(encoding="utf-8"); j = json.loads(raw); R = json.loads((SITE / "pair-roster.json").read_text(encoding="utf-8"))
-        names = {e["n"] for gr in R["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side] if e.get("k") != "sub"}
+        names = {e["n"] for gr in R["groups"] for it in gr["items"] for e in it["dom"]} | {e["p"]["n"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("p", {}).get("x")}
         self.assertEqual(set(j), {"version", "generatedAt", "unit", "note", "rows"})
         for r in j["rows"]:
             self.assertEqual(set(r), {"n", "s", "src", "r", "o"}); self.assertIn(r["n"], names); self.assertEqual((len(r["r"]), len(r["o"])), (3, 3))
