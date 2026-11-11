@@ -295,16 +295,17 @@ def parse_audit_statements(doc: str) -> tuple[dict, dict]:
     return cur, prev
 
 
-def parse_audit_statements_ex(doc: str) -> tuple[dict, dict, str]:
-    """(당기, 전기, 통화). 통화는 외화 단위('(단위 : EUR)')를 읽은 경우 그 코드, 아니면 ''. 외화일 때 금액은 원 환산 전의 원 통화 금액이다."""
+def parse_audit_statements_ex(doc: str) -> tuple[dict, dict, dict]:
+    """(당기, 전기, 항목별 통화). 통화는 그 값을 읽은 표에 외화 단위('(단위 : EUR)')가 적힌 항목만 {항목: 코드}로 담는다(원화 표의 값은 넣지 않는다).
+    외화 표에서 읽은 금액은 환산 전 외화 금액 그대로다(원화 환산은 호출부에서 회계기간 환율로 한다)."""
     cur, prev, borrow_cur, borrow_prev = {}, {}, [], []
-    ccy = ""
+    ccy, borrow_ccy = {}, ""
     for m in re.finditer(r"<TABLE\b.*?</TABLE>", doc, re.S | re.I):
         table = m.group(0)
         context = clean_cell(doc[max(0, m.start() - 600):m.start()]) + clean_cell(table[:600])
         units = UNIT_RE.findall(context)
         cc = CCY_RE.findall(context)
-        if cc and not ccy: ccy = cc[-1].upper()
+        tccy = cc[-1].upper() if cc else ""
         factor = 1 if cc else (UNIT_FACTOR[units[-1]] if units else 1)
         rows = []
         for tr in re.findall(r"<TR\b.*?</TR>", table, re.S | re.I):
@@ -320,14 +321,17 @@ def parse_audit_statements_ex(doc: str) -> tuple[dict, dict, str]:
             key = AUDIT_NAMES.get(label)
             if key and key not in cur:
                 cur[key] = nums[0] * factor
+                if tccy: ccy[key] = tccy
                 if len(nums) > 1:
                     prev[key] = nums[1] * factor
             elif is_bs and is_borrowing(label) and len(label) <= 12:
+                if tccy and not borrow_ccy: borrow_ccy = tccy
                 borrow_cur.append(nums[0] * factor)
                 if len(nums) > 1:
                     borrow_prev.append(nums[1] * factor)
     if cur:
         cur["차입금"] = sum(borrow_cur)
+        if borrow_ccy: ccy["차입금"] = borrow_ccy
         if prev:
             prev["차입금"] = sum(borrow_prev)
     # 단위 표기를 못 찾아 원으로 읽었는데 자산이 10억 미만이면 천원 단위로 본다(외화 보고서는 보정하지 않는다)
@@ -385,13 +389,19 @@ def audit_financials(api_key: str, corp_code: str) -> tuple[dict, list, dict]:
         if doc and not overview:
             overview = read_overview(audit_overview, doc, f["rcept_no"])
         cur, prev, ccy = parse_audit_statements_ex(doc)
-        if ccy:  # 외화 보고서: 당기·전기를 각 회계기간 평균 환율로 원화 환산(환율을 못 받으면 값을 버린다)
+        if ccy:  # 외화 표에서 읽은 항목만 당기·전기를 각 회계기간 평균 환율로 원화 환산(환율을 못 받으면 그 값을 버린다)
             m_end = re.search(r"\((\d{4})\.(\d{2})\)", f.get("report_nm", ""))
             end_y, end_m = (int(m_end.group(1)), int(m_end.group(2))) if m_end else (year, 12)
-            f_cur, f_prev = krw_per_unit(ccy, end_y, end_m), krw_per_unit(ccy, end_y - 1, end_m)
-            cur = {k: v * f_cur for k, v in cur.items()} if f_cur else {}
-            prev = {k: v * f_prev for k, v in prev.items()} if f_prev else {}
-            print(f"[audit] 외화({ccy}) 보고서를 원화로 환산했습니다.")
+            fx = {c: (krw_per_unit(c, end_y, end_m), krw_per_unit(c, end_y - 1, end_m)) for c in set(ccy.values())}
+            def _conv(d, i):
+                out = {}
+                for k, v in d.items():
+                    c = ccy.get(k)
+                    if not c: out[k] = v
+                    elif fx[c][i]: out[k] = v * fx[c][i]
+                return out
+            cur, prev = _conv(cur, 0), _conv(prev, 1)
+            print(f"[audit] 외화({','.join(sorted(fx))}) 표의 {len(ccy)}개 항목을 원화로 환산했습니다.")
         if cur:
             fy.setdefault(year, cur)
         if prev:

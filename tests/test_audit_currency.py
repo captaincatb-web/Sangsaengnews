@@ -19,14 +19,21 @@ def _doc(unit):
 class AuditCurrencyTest(unittest.TestCase):
     def test_eur_detected(self):
         cur, prev, ccy = b.parse_audit_statements_ex(_doc("EUR"))
-        self.assertEqual(ccy, "EUR")
+        self.assertEqual(ccy, {"매출액": "EUR"})
         self.assertEqual(cur.get("매출액"), 9_118_338_964)
         self.assertEqual(prev.get("매출액"), 7_051_108_626)
 
     def test_krw_unchanged(self):
         cur, prev, ccy = b.parse_audit_statements_ex(_doc("원"))
-        self.assertEqual(ccy, "")
+        self.assertEqual(ccy, {})
         self.assertEqual(cur.get("매출액"), 9_118_338_964)
+
+    def test_krw_report_with_usd_note_table_not_converted(self):
+        doc = ("<TABLE><TR><TD>손익계산서 (단위 : 원)</TD></TR><TR><TD>I. 매출액</TD><TD>5,000,000,000</TD><TD>4,000,000,000</TD></TR></TABLE>"
+               "<TABLE><TR><TD>외화자산 (단위 : USD)</TD></TR><TR><TD>자산총계</TD><TD>1,000</TD><TD>900</TD></TR></TABLE>")
+        cur, prev, ccy = b.parse_audit_statements_ex(doc)
+        self.assertNotIn("매출액", ccy)           # 원화 표의 매출은 환산 대상이 아니다
+        self.assertEqual(cur["매출액"], 5_000_000_000)
 
     def test_fx_rate_average(self):
         b._ECB["daily"] = {"2025-06-30": {"KRW": "1600", "USD": "1.0"}, "2025-07-01": {"KRW": "1700", "USD": "1.0"}}
