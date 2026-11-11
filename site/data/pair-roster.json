@@ -42,31 +42,37 @@
        "n": "Applied Materials",
        "f": "Applied Materials",
        "k": "hq",
-       "m": "APPLIED MATERIALS"
+       "m": "APPLIED MATERIALS",
+       "kx": "어플라이드머티어리얼즈코리아"
       },
       {
        "n": "ASML",
        "f": "ASML",
        "k": "hq",
-       "m": "ASML"
+       "m": "ASML",
+       "km": "에이에스엠엘코리아"
       },
       {
        "n": "KLA",
        "f": "KLA Corporation",
        "k": "hq",
-       "m": "KLA"
+       "m": "KLA",
+       "km": "케이엘에이텐코코리아"
       },
       {
        "n": "Lam Research",
        "f": "Lam Research",
        "k": "hq",
-       "m": "LAM RESEARCH"
+       "m": "LAM RESEARCH",
+       "km": "램리서치코리아"
       },
       {
        "n": "TOKYO ELECTRON",
        "f": "TOKYO ELECTRON LTD.",
        "k": "hq",
-       "m": "TOKYO ELECTRON"
+       "m": "TOKYO ELECTRON",
+       "ex": "tokyoelectron",
+       "km": "도쿄일렉트론코리아"
       }
      ]
     }
@@ -109,7 +115,8 @@
         "n": "ASML",
         "m": "ASML",
         "b": "Cymer는 ASML의 자회사"
-       }
+       },
+       "km": "싸이머코리아"
       },
       {
        "n": "엑셀리스코리아",
@@ -118,7 +125,8 @@
        "p": {
         "n": "Axcelis Technologies",
         "m": "Axcelis Technologies"
-       }
+       },
+       "km": "엑셀리스코리아"
       },
       {
        "n": "케이엘에이텐코코리아",
@@ -127,7 +135,8 @@
        "p": {
         "n": "KLA",
         "m": "KLA"
-       }
+       },
+       "km": "케이엘에이텐코코리아"
       },
       {
        "n": "한국기가포톤",
@@ -136,7 +145,8 @@
        "p": {
         "n": "Gigaphoton",
         "w": "본사(Gigaphoton, 일본)가 비상장이라 공시 실적이 없습니다."
-       }
+       },
+       "km": "한국기가포톤"
       },
       {
        "n": "히타치하이테크코리아",
@@ -145,7 +155,8 @@
        "p": {
         "n": "Hitachi High-Tech",
         "w": "본사(Hitachi High-Tech, 일본)는 2020년 상장폐지돼 자체 공시 실적이 없습니다. 모회사 그룹 실적으로 대체하지 않습니다."
-       }
+       },
+       "km": "히타치하이테크코리아"
       }
      ]
     }
@@ -226,7 +237,8 @@
        "p": {
         "n": "Murata Manufacturing",
         "x": "muratamanufacturing"
-       }
+       },
+       "km": "한국무라타전자"
       }
      ]
     },
@@ -246,7 +258,8 @@
        "p": {
         "n": "Air Products and Chemicals",
         "m": "Air Products and Chemicals"
-       }
+       },
+       "kx": "에어프로덕츠코리아"
       },
       {
        "n": "린데코리아",
@@ -255,7 +268,8 @@
        "p": {
         "n": "Linde",
         "x": "linde"
-       }
+       },
+       "km": "린데코리아"
       }
      ]
     },
@@ -276,7 +290,8 @@
         "n": "GlobalWafers",
         "m": "GlobalWafers",
         "b": "MEMC는 GlobalWafers 자회사"
-       }
+       },
+       "km": "엠이엠씨코리아"
       },
       {
        "n": "SHIN-ETSU CHEMICAL",
@@ -335,7 +350,8 @@
        "p": {
         "n": "JSR",
         "w": "본사 JSR은 2024년 상장폐지로 3개년 공시 실적이 확인되지 않았습니다."
-       }
+       },
+       "km": "제이에스알일렉트로닉머트리얼즈코리아"
       },
       {
        "n": "듀폰퍼포먼스프로덕츠코리아",
@@ -344,7 +360,8 @@
        "p": {
         "n": "DuPont",
         "w": "본사가 듀폰과 2025년 분사한 전자소재 회사(Qnity) 중 어디인지 확정되지 않아 연결하지 않았습니다."
-       }
+       },
+       "km": "듀폰퍼포먼스프로덕츠코리아"
       },
       {
        "n": "디디피스페셜티프로덕츠코리아",
@@ -353,7 +370,8 @@
        "p": {
         "n": "DuPont",
         "w": "본사가 듀폰과 2025년 분사한 전자소재 회사(Qnity) 중 어디인지 확정되지 않아 연결하지 않았습니다."
-       }
+       },
+       "km": "디디피스페셜티프로덕츠코리아"
       },
       {
        "n": "레조낙코리아",
@@ -362,7 +380,8 @@
        "p": {
         "n": "Resonac",
         "x": "resonac"
-       }
+       },
+       "km": "레조낙코리아"
       },
       {
        "n": "한국 인테그리스",
@@ -371,7 +390,8 @@
        "p": {
         "n": "ENTEGRIS",
         "m": "ENTEGRIS"
-       }
+       },
+       "km": "한국 인테그리스"
       }
      ]
     },
@@ -410,7 +430,8 @@
        "p": {
         "n": "ADEKA",
         "x": "adeka"
-       }
+       },
+       "km": "아데카코리아"
       },
       {
        "n": "테크센드포토마스크",
@@ -419,7 +440,8 @@
        "p": {
         "n": "Tekscend Photomask",
         "w": "본사(Tekscend Photomask, 일본) 실적의 수집 대상에 아직 넣지 않았습니다."
-       }
+       },
+       "km": "테크센드포토마스크"
       },
       {
        "n": "HOYA ELECTRONICS SINGAPORE",
@@ -446,7 +468,8 @@
        "p": {
         "n": "Merck KGaA",
         "w": "본사(Merck KGaA, 독일) 실적의 수집 경로가 아직 없습니다."
-       }
+       },
+       "kx": "버슘머트리얼즈코리아"
       }
      ]
     }

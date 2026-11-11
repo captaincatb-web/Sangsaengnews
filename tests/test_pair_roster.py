@@ -40,6 +40,12 @@ class PairRoster(unittest.TestCase):
         for g, i, side, e in self.entries:  # Unimicron Kunshan 은 대만 본사 행(UNIMICRON TECHNOLOGY)을 본사로 명시해서만 연결
             if "Unimicron" in e["f"] and e.get("k") == "par": self.assertEqual(e["p"].get("m"), "UNIMICRON TECHNOLOGY")
 
+    def test_korean_affiliate_rows_exist_by_exact_name(self):
+        """글로벌 업체의 한국 법인(km: 공개 행 이름, kx: 따로 수집)은 글로벌 쪽에만 있고, km 는 공개 행에 이름이 정확히 있어야 한다."""
+        for g, i, side, e in self.entries:
+            if side == "dom": self.assertNotIn("km", e); self.assertNotIn("kx", e)
+            if "km" in e: self.assertIn(e["km"], self.rows, e["n"]); self.assertNotIn("kx", e)
+
     def test_kinds_only_on_global_side(self):
         for g, i, side, e in self.entries:
             if side == "glo": self.assertIn(e["k"], KINDS, e["n"])
@@ -59,7 +65,7 @@ class PairExtra(unittest.TestCase):
         p = SITE / "pair-extra.json"
         if not p.exists(): self.skipTest("아직 수집 전")
         raw = p.read_text(encoding="utf-8"); j = json.loads(raw); R = json.loads((SITE / "pair-roster.json").read_text(encoding="utf-8"))
-        names = {e["n"] for gr in R["groups"] for it in gr["items"] for e in it["dom"]} | {e["p"]["n"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("p", {}).get("x")}
+        names = {e["n"] for gr in R["groups"] for it in gr["items"] for e in it["dom"]} | {e["p"]["n"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("p", {}).get("x")} | {e["n"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("ex")} | {e["kx"] for gr in R["groups"] for it in gr["items"] for e in it["glo"] if e.get("kx")}
         self.assertEqual(set(j), {"version", "generatedAt", "unit", "note", "rows"})
         for r in j["rows"]:
             self.assertEqual(set(r), {"n", "s", "src", "r", "o"}); self.assertIn(r["n"], names); self.assertEqual((len(r["r"]), len(r["o"])), (3, 3))
