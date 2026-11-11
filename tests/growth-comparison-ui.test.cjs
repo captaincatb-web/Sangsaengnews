@@ -132,6 +132,11 @@ for (const w of [390, 1280]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }); const page = await ctx.newPage(); const errs = []; page.on("pageerror", (e) => errs.push(e.message));
     await page.goto(base + "pair-compare.html"); await page.waitForSelector(".pc-item", { timeout: 8000 });
     assert.equal(await page.locator(".pc-item").count(), 7, "품목 7개");
+    const tp = await page.locator("#pc-trend .pc-tp").evaluateAll((els) => els.map((e) => [e.className, e.getBoundingClientRect().left, e.getBoundingClientRect().top]));
+    assert.equal(tp.length, 2, "추이 그래프 2개"); assert.ok(tp[0][0].includes("pc-dom") && tp[1][0].includes("pc-glo"), "왼쪽(위) 국내, 오른쪽(아래) 글로벌");
+    if (w > 900) assert.ok(tp[0][1] < tp[1][1], "넓은 화면: 국내가 왼쪽, 글로벌이 오른쪽"); else assert.ok(tp[0][2] < tp[1][2], "좁은 화면: 국내가 위");
+    assert.equal(await page.locator("#pc-trend svg .bar").count(), 12, "3개년 × 매출·영업이익 막대 × 2");
+    await page.locator("#pc-trend .pc-dom .slot").first().hover(); assert.match(await page.locator("#pc-trend .pc-dom .pc-strip").innerText(), /^2023년 · 매출/, "마우스를 올리면 해당 연도 값");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "가로 넘침 없음");
     await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
     await page.selectOption("#f-item", "케미컬"); assert.equal(await page.locator(".pc-item").count(), 1);

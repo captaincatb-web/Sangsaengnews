@@ -43,4 +43,19 @@ class PairRoster(unittest.TestCase):
         self.assertIsNone(re.search(r"\d{10,}", self.raw)); self.assertIsNone(re.search(r"\d{3}-\d{2}-\d{5}|\d{6}-\d{7}", self.raw))
 
 
+class PairExtra(unittest.TestCase):
+    """감사·사업보고서로 따로 수집한 공개 파일(site/data/pair-extra.json): 허용 필드만, 명단 업체만, 3개년 완전, 식별번호 없음."""
+    def test_extra_file(self):
+        p = SITE / "pair-extra.json"
+        if not p.exists(): self.skipTest("아직 수집 전")
+        raw = p.read_text(encoding="utf-8"); j = json.loads(raw); R = json.loads((SITE / "pair-roster.json").read_text(encoding="utf-8"))
+        names = {e["n"] for gr in R["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side] if e.get("k") != "sub"}
+        self.assertEqual(set(j), {"version", "generatedAt", "unit", "note", "rows"})
+        for r in j["rows"]:
+            self.assertEqual(set(r), {"n", "s", "src", "r", "o"}); self.assertIn(r["n"], names); self.assertEqual((len(r["r"]), len(r["o"])), (3, 3))
+            self.assertTrue(all(isinstance(v, (int, float)) for v in r["r"] + r["o"]))
+        self.assertEqual(len({r["n"] for r in j["rows"]}), len(j["rows"]))
+        self.assertIsNone(re.search(r"\d{10,}", raw)); self.assertIsNone(re.search(r"\d{3}-\d{2}-\d{5}|\d{6}-\d{7}", raw))
+
+
 if __name__ == "__main__": unittest.main()

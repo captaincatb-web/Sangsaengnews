@@ -38,3 +38,14 @@
 .pc-tbl tbody th small{white-space:normal;overflow:visible;text-overflow:clip}
 .pc-tbl td{white-space:nowrap}
 .pc-tbl td.pc-na{vertical-align:top;padding-top:10px}
+/* 연도별 실적 추이: 왼쪽 국내업체, 오른쪽 글로벌업체 */
+.pc-trend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 28px}
+.pc-tp h3{margin:0 0 4px;padding-bottom:6px;font-size:14px;font-weight:700;border-bottom:2px solid currentColor}
+.pc-tp h3 small{margin-left:6px;font-size:12px;font-weight:400;color:var(--text-2)}
+.pc-tp.pc-dom h3{color:var(--gc-ink-1)}.pc-tp.pc-glo h3{color:var(--gc-ink-2)}
+.pc-strip{margin:4px 0 0;font-size:12.5px;color:var(--text-2);min-height:1.5em}
+.pcg .colbg{fill:transparent}.pcg .slot:hover .colbg,.pcg .slot:focus-visible .colbg{fill:var(--text);opacity:.06}.pcg .slot{outline:none}.pcg .slot:focus-visible .colbg{stroke:var(--blue);stroke-width:1.5;opacity:.12}
+.pcg .bar{transform-box:fill-box;transform-origin:bottom;animation:pcgrow .55s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes pcgrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media(prefers-reduced-motion:reduce){.pcg .bar{animation:none}}
+@media(max-width:900px){.pc-trend{grid-template-columns:minmax(0,1fr)}}

@@ -14,16 +14,16 @@ const NO_DATA='3개년(2023~2025) 공시 실적이 확인된 업체만 수치를
 let ROSTER=null,ALL=[],GEN='',sortKey=null,sortDir=1;
 
 /* 명단 + 공개 회사별 수치 연결. 이름이 정확히 같은 행만 쓴다 */
-function build(R,rows){const by={};rows.forEach(r=>{by[r.n]=r});const out=[];
+function build(R,rows,extra){const by={},ex={};rows.forEach(r=>{by[r.n]=r});(extra||[]).forEach(r=>{ex[r.n]=r});const out=[];
  R.groups.forEach(gr=>gr.items.forEach(it=>['dom','glo'].forEach(side=>it[side].forEach(e=>{
-  const row=e.m?by[e.m]||null:null;  /* 국내/글로벌은 명단(본사 소재지 기준)을 따른다. 성장 분석의 구분과 달라도 이름이 정확히 같은 법인의 수치를 쓴다 */
+  const row=(e.m?by[e.m]:null)||(e.k==='sub'?null:ex[e.n])||null;  /* 공개 회사별 상세에 없으면, 감사·사업보고서로 따로 수집한 값(pair-extra.json)을 쓴다 */  /* 국내/글로벌은 명단(본사 소재지 기준)을 따른다. 성장 분석의 구분과 달라도 이름이 정확히 같은 법인의 수치를 쓴다 */
   out.push({g:gr.g,i:it.i,side,e,row,k:side==='glo'?e.k:null,ord:out.length})}))));return out}
 
 const state=()=>({g:$('f-grp').value,i:$('f-item').value,q:($('f-q').value||'').trim().toLowerCase()});
 function visible(){const s=state();return ALL.filter(x=>(!s.g||x.g===s.g)&&(!s.i||x.i===s.i)&&(!s.q||x.e.n.toLowerCase().includes(s.q)||x.e.f.toLowerCase().includes(s.q)))}
 function agg(list){const has=list.filter(x=>x.row),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
  return{n:list.length,k:has.length,rev:r2,op:o2,m:has.length?margin(o2,r2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
-const tagOf=x=>[x.row&&x.row.s,x.k&&KIND[x.k]].filter(Boolean).join(' · ');
+const tagOf=x=>[x.row&&x.row.s,x.k&&KIND[x.k],x.row&&x.row.src].filter(Boolean).join(' · ');
 
 /* 구분→품목 선택지 */
 function fillGroups(){const g=$('f-grp');ROSTER.groups.forEach(gr=>g.add(new Option(gr.g,gr.g)));fillItems()}
@@ -35,8 +35,40 @@ function render(){
  const vis=visible(),items=[];vis.forEach(x=>{const k=x.g+'\u0000'+x.i;if(!items.some(a=>a.k===k))items.push({k,g:x.g,i:x.i})});
  const dm=vis.filter(x=>x.side==='dom'),gl=vis.filter(x=>x.side==='glo');
  $('pc-count').textContent='국내 '+dm.length+'곳 · 글로벌 '+gl.length+'곳 (수치 확인 국내 '+dm.filter(x=>x.row).length+'곳 · 글로벌 '+gl.filter(x=>x.row).length+'곳)';
- key(vis,dm,gl);summary(items,vis);pairs(items,vis);detail(vis);
+ key(vis,dm,gl);trend(dm,gl);summary(items,vis);pairs(items,vis);detail(vis);
  try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}}
+
+/* 연도별 실적 추이: 왼쪽 국내업체, 오른쪽 글로벌업체. 매출(왼쪽 축)·영업이익(오른쪽 축) 막대 + 영업이익률 선(소부장 경영 정보의 연도별 실적 추이와 같은 구성) */
+const YRS=[2023,2024,2025],NS='http://www.w3.org/2000/svg';
+const axis=(vals,k)=>{const mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx-mn)||1,e=Math.pow(10,Math.floor(Math.log10(rg/k)));
+ for(const f of [1,1.2,1.5,2,2.5,3,4,5,6,8,10,12,15,20,25,30,40,50,100]){const step=f*e,lo=mn<0?-Math.ceil(-mn/step)*step:0;if(lo+step*k>=mx)return{lo,step}}return{lo:0,step:rg/k}};
+const tick=big=>v=>big?(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'조':Math.round(v).toLocaleString('ko-KR');
+const money=v=>v==null?'–':Math.abs(v)>=10000?(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'조 원':Math.round(v).toLocaleString('ko-KR')+'억 원';
+function trendSvg(side,list){const has=list.filter(x=>x.row);
+ if(!has.length)return '<p class="gc-empty">수치가 확인된 업체가 없습니다.</p>';
+ const S=YRS.map((_,i)=>has.reduce((t,x)=>t+x.row.r[i],0)),O=YRS.map((_,i)=>has.reduce((t,x)=>t+x.row.o[i],0)),M=S.map((v,i)=>v>0?O[i]/v*100:null);
+ const W=520,H=290,L=54,R=54,T=14,B=28,k=4,band=92,pw=W-L-R,ph=H-T-B,bh=ph-band,top=T+band;
+ const aS=axis(S,k),aO=axis(O,k),bigS=Math.max(...S.map(Math.abs))>=10000,bigO=Math.max(...O.map(Math.abs))>=10000;
+ const yS=v=>top+bh-(v-aS.lo)/(aS.step*k)*bh,yO=v=>top+bh-(v-aO.lo)/(aO.step*k)*bh,zS=yS(Math.max(0,aS.lo)),zO=yO(Math.max(0,aO.lo));
+ const mv=M.filter(v=>v!=null),mn=Math.min(...mv),mx=Math.max(...mv),pad=Math.max((mx-mn)*.25,.5),lo=mn-pad,sp=mx+pad-lo||1,ym=v=>T+18+(1-(v-lo)/sp)*(band-36);
+ const slot=pw/3,bw=Math.min(34,slot*.3),cx=i=>L+slot*i+slot/2,tS=tick(bigS),tO=tick(bigO);
+ let g='<text class="ax" x="'+(L-6)+'" y="'+(T+12)+'" text-anchor="end">이익률</text><line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+(top-6)+'" y2="'+(top-6)+'" stroke-dasharray="2 3"/>';
+ for(let i=0;i<=k;i++){const yy=yS(aS.lo+aS.step*i);g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax axl" x="'+(L-6)+'" y="'+(yy+4)+'" text-anchor="end">'+tS(aS.lo+aS.step*i)+'</text><text class="ax axr" x="'+(W-R+6)+'" y="'+(yy+4)+'">'+tO(aO.lo+aO.step*i)+'</text>'}
+ if(aO.lo<0)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+zO+'" y2="'+zO+'" stroke="var(--text-3)" stroke-width="1"/>';
+ YRS.forEach((y,i)=>{const x=cx(i),ys=Math.min(yS(S[i]),zS),hs=Math.max(1,Math.abs(yS(S[i])-zS)),yo=Math.min(yO(O[i]),zO),ho=Math.max(1,Math.abs(yO(O[i])-zO));
+  g+='<g class="slot" style="--i:'+i+'" tabindex="0" data-i="'+i+'"><rect class="colbg" x="'+(x-slot/2+2)+'" y="'+T+'" width="'+(slot-4)+'" height="'+ph+'" rx="10"/>'+
+   '<rect class="bar" x="'+(x-bw-1)+'" y="'+ys+'" width="'+bw+'" height="'+hs+'" rx="3" fill="var(--blue)"/>'+
+   '<rect class="bar" x="'+(x+1)+'" y="'+yo+'" width="'+bw+'" height="'+ho+'" rx="3" fill="'+(O[i]<0?'var(--down)':'var(--green)')+'"/>'+
+   '<text class="val" x="'+(x-bw/2-1)+'" y="'+(ys-5)+'" text-anchor="middle">'+tS(S[i])+'</text>'+
+   '<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+y+'</text><rect class="hit" x="'+(x-slot/2)+'" y="'+T+'" width="'+slot+'" height="'+ph+'"/></g>'});
+ const pts=M.map((m,i)=>m==null?null:[cx(i),ym(m),m]).filter(Boolean);
+ g+='<polyline points="'+pts.map(p=>p[0]+','+p[1]).join(' ')+'" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>';
+ pts.forEach(p=>{g+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="'+p[0]+'" y="'+(p[1]-8)+'" text-anchor="middle">'+pct(p[2])+'</text>'});
+ const info=YRS.map((y,i)=>y+'년 · 매출 '+money(S[i])+' · 영업이익 '+money(O[i])+' · 영업이익률 '+pct(M[i]));
+ return '<div class="pc-tp pc-'+side+'"><h3>'+SIDE[side]+' <small>수치 확인 '+has.length+'/'+list.length+'곳 합계</small></h3><div class="db-chart pcg"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+SIDE[side]+' 2023~2025 매출·영업이익·영업이익률. '+esc(info.join(' / '))+'">'+g+'</svg></div><p class="pc-strip" aria-live="polite" data-info="'+esc(JSON.stringify(info))+'">'+esc(info[2])+'</p></div>'}
+function trend(dm,gl){const box=$('pc-trend');box.innerHTML=trendSvg('dom',dm)+trendSvg('glo',gl)}
+document.addEventListener('pointerover',e=>{const s=e.target.closest&&e.target.closest('.pcg .slot');if(s)strip(s)});document.addEventListener('focusin',e=>{const s=e.target.closest&&e.target.closest('.pcg .slot');if(s)strip(s)});
+function strip(s){const p=s.closest('.pc-tp').querySelector('.pc-strip');try{p.textContent=JSON.parse(p.dataset.info)[+s.dataset.i]}catch(e){}}
 
 /* 제목 아래 한 줄 요약 */
 function key(vis,dm,gl){const k=$('pc-key'),a=agg(dm),b=agg(gl);
@@ -98,8 +130,8 @@ function basis(){const M=['①','②','③','④'];
 /* 초기화 */
 const tb=$('theme-btn');if(tb){const cur=()=>document.documentElement.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');const paint=()=>{const d=cur()==='dark';tb.innerHTML='<i class="ph ph-'+(d?'sun':'moon')+'" aria-hidden="true"></i>';tb.title=d?'밝은 화면으로':'어두운 화면으로'};tb.addEventListener('click',()=>{const t=cur()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sobujang:theme',t)}catch(e){}paint()});paint()}
 const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return r.json()});
-Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json')]).then(([R,G])=>{
- ROSTER=R;GEN=G.generatedAt||'';const bl=(G.modes||[]).find(m=>m.id==='blend')||(G.modes||[])[0];ALL=build(R,(bl&&bl.rows)||[]);
+Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get('data/pair-extra.json').catch(()=>({rows:[]}))]).then(([R,G,X])=>{
+ ROSTER=R;GEN=G.generatedAt||'';const bl=(G.modes||[]).find(m=>m.id==='blend')||(G.modes||[])[0];ALL=build(R,(bl&&bl.rows)||[],X&&X.rows);
  basis();fillGroups();
  try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q')}catch(e){}
  $('updated').textContent=GEN.slice(0,10)||'-';
