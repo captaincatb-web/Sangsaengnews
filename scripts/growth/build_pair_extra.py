@@ -32,16 +32,19 @@ def main():
         src = {d[y]["source"] for y in YEARS}
         rows.append({"n": n, "s": "별도", "src": "·".join(sorted(src)) if len(src) > 1 else next(iter(src)),
                      "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
-    pf = priv / "parents" / "overseas_financials_ext.csv"; pby = {}
-    if pf.exists():
-        for r in csv.DictReader(open(pf, encoding="utf-8-sig")):
-            if r.get("year"): pby.setdefault(r["entity_id"], {}).setdefault(r.get("scope") or "연결", {})[int(r["year"])] = r
+    pby = {}
+    for fn in ("overseas_financials_ext.csv", "jp_manual_financials.csv"):  # 두 번째는 사람이 입력한 본사 실적(2차 출처 포함, 확신도로 구분)
+        pf = priv / "parents" / fn
+        if pf.exists():
+            for r in csv.DictReader(open(pf, encoding="utf-8-sig")):
+                if r.get("year"): pby.setdefault(r["entity_id"], {}).setdefault(r.get("scope") or "연결", {})[int(r["year"])] = r
     for pn, x in sorted(par.items()):  # 한 업체에 완전한 기준(개별·연결)을 모두 싣는다: 화면에서 재무 기준을 고를 수 있게
         sc = pby.get("O:" + x, {})
         for pick in ("개별", "연결"):
             if not full(sc.get(pick, {})): continue
             d = sc[pick]; u = (d[YEARS[0]].get("source_url") or "").lower(); host = "SEC" if "sec.gov" in u else "EDINET" if "edinet" in u else "공시"
-            rows.append({"n": pn, "s": pick, "src": host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
+            second = (d[YEARS[0]].get("confidence") or "높음") != "높음"  # 확신도가 높음이 아니면 2차 출처로 표시(원문 대조 전)
+            rows.append({"n": pn, "s": pick, "src": "2차 출처 · 원문 대조 전" if second else host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
         if not any(full(sc.get(k, {})) for k in ("개별", "연결")): skipped += 1
     # (3) 국내 상장 본사의 DART 개별(OFS)·연결(CFS) 3개년(종료연도): 명단의 본사 지정(p.d)에 연결. 접수번호 등 식별 정보는 싣지 않는다
     sf = priv / "dart_scopes.csv"; dn = {e["p"]["n"] for side, e in ents if e.get("p", {}).get("d")}
