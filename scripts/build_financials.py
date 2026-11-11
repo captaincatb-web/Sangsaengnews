@@ -182,8 +182,27 @@ def quarters_from_cumulative(cum: dict, count: int = 8) -> dict | None:
 
 # ---------- 연간 ----------
 
-def annual_series(api_key: str, corp_code: str, this_year: int) -> tuple:
-    """(연도 목록, {항목: [억원...]}, 출처) 최근 3개년. 사업보고서 → 감사보고서 순."""
+def acc_month(api_key: str, corp_code: str):
+    """결산월(1~12). 알 수 없으면 None."""
+    c = bcp.call(api_key, "company", corp_code=corp_code) or {}
+    try:
+        m = int(str(c.get("acc_mt") or "").strip())
+        return m if 1 <= m <= 12 else None
+    except ValueError:
+        return None
+
+
+def fy_shift(acc_mt) -> int:
+    """DART 사업연도(시작한 해) → 결산 종료연도 보정값. 12월 결산이 아니면 사업연도가 끝나는 해는 시작한 해+1."""
+    return 1 if acc_mt and int(acc_mt) != 12 else 0
+
+
+def annual_series(api_key: str, corp_code: str, this_year: int, acc_mt=None) -> tuple:
+    """(연도 목록, {항목: [억원...]}, 출처) 최근 3개년. 사업보고서 → 감사보고서 순.
+    연도는 모두 '회계기간 종료연도'로 돌려준다(3월 결산 2024.04~2025.03 → 2025). 올해(this_year) 이후에 끝나는 기간은 쓰지 않는다
+    (12월 결산이 아닌 곳은 종료연도 this_year-1 까지: 2023·2024·2025 를 얻으려고 사업연도 한 해 더 앞까지 읽는다)."""
+    mt = acc_mt if acc_mt is not None else acc_month(api_key, corp_code)
+    sh = fy_shift(mt)
     fy = {}
     for year in (this_year - 1, this_year - 2):
         rows = bcp.statement_rows(api_key, corp_code, year, bcp.ANNUAL)
@@ -191,11 +210,15 @@ def annual_series(api_key: str, corp_code: str, this_year: int) -> tuple:
             fy.update(bcp.annual_by_year(rows, year))
             for y, vals in bcp.annual_by_year(bcp.statement_rows(api_key, corp_code, year - 1, bcp.ANNUAL), year - 1).items():
                 fy.setdefault(y, vals)
+            if sh:  # 종료연도 3개년을 채우려면 사업연도가 한 해 더 앞선 보고서도 필요하다
+                for y, vals in bcp.annual_by_year(bcp.statement_rows(api_key, corp_code, year - 2, bcp.ANNUAL), year - 2).items():
+                    fy.setdefault(y, vals)
             source = "사업보고서"
             break
     else:
         fy, _auditors, _overview = bcp.audit_financials(api_key, corp_code)
         source = "감사보고서"
+    fy = {y + sh: v for y, v in fy.items() if y + sh <= this_year - 1}  # 종료연도 기준으로 바꾸고 아직 끝나지 않은 해는 버린다
     years = sorted(y for y, v in fy.items() if v.get("매출액") is not None)[-3:]
     if not years:
         return [], {}, ""
@@ -207,7 +230,8 @@ def collect(api_key: str, corp_code: str, name: str, key: str | None) -> dict | 
     if not company:
         return None
     this_year = datetime.now().year
-    years, rows, source = annual_series(api_key, corp_code, this_year)
+    mt = acc_month(api_key, corp_code)
+    years, rows, source = annual_series(api_key, corp_code, this_year, mt)
     listed = bool(company.get("stock_code"))
     rec = {"c": corp_code, "n": name, "k": key, "l": 1 if listed else 0, "cls": company.get("corp_cls", ""),
            "ind": company.get("induty_code", ""), "mt": company.get("acc_mt", ""), "ad": company.get("adres", ""),
@@ -219,7 +243,7 @@ def collect(api_key: str, corp_code: str, name: str, key: str | None) -> dict | 
         emp = []
         for y in years:
             try:
-                emp.append(bcp.fetch_employees(api_key, corp_code, y).get("count"))
+                emp.append(bcp.fetch_employees(api_key, corp_code, y - fy_shift(mt)).get("count"))
             except bcp.DartUnreachable:
                 raise
             except Exception as e:  # 임직원 수를 못 읽어도 실적은 저장한다
