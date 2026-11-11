@@ -231,6 +231,37 @@ CELL_RE = re.compile(r"<(T[DHEU])\b[^>]*>(.*?)</\1>", re.S | re.I)
 UNIT_RE = re.compile(r"단위\s*[:：]?\s*(백만원|천원|원)")
 NOTE_RE = re.compile(r"^\d{1,2}(\s*,\s*\d{1,2})*$")  # 주석 번호 칸(예: 4, 12,13)
 UNIT_FACTOR = {"원": 1, "천원": 1_000, "백만원": 1_000_000}
+# 외화로 작성한 감사보고서(예: '(단위 : EUR)'): 금액을 원으로 읽으면 수천 배 틀리므로, 통화를 알아보고 회계기간 평균 환율(ECB)로 원화 환산한다.
+CCY_RE = re.compile(r"단위\s*[:：]?\s*(EUR|USD|JPY|CNY|GBP|CHF|SGD|HKD|TWD|AUD|CAD)\b", re.I)
+_ECB = {}
+
+
+def krw_per_unit(ccy: str, end_year: int, end_month: int) -> float | None:
+    """통화 1단위당 원: 회계기간(끝나는 달까지 12개월)의 ECB 일별 교차환율 평균. 받지 못하면 None(환산하지 않고 값을 버린다)."""
+    ccy = ccy.upper()
+    if "daily" not in _ECB:
+        try:
+            r = requests.get("https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip", timeout=60); r.raise_for_status()
+            import csv as _csv
+            rows = {}
+            with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
+                for x in _csv.DictReader(io.TextIOWrapper(zf.open("eurofxref-hist.csv"), encoding="utf-8")):
+                    rows[x["Date"]] = x
+            _ECB["daily"] = rows
+        except Exception as e:  # noqa: BLE001
+            print(f"[fx] ECB 환율을 받지 못했습니다: {type(e).__name__}"); _ECB["daily"] = {}
+    daily = _ECB["daily"]
+    end = (end_year, end_month); start = (end_year - 1, end_month + 1) if end_month < 12 else (end_year, 1)
+    vals = []
+    for d, x in daily.items():
+        ym = (int(d[:4]), int(d[5:7]))
+        if not (start <= ym <= end): continue
+        try:
+            krw = float(x["KRW"]); c = 1.0 if ccy == "EUR" else float(x[ccy])
+        except (KeyError, ValueError):
+            continue
+        vals.append(krw / c)
+    return sum(vals) / len(vals) if vals else None
 AUDIT_NAMES = {squash(n): label for label, _, names in ACCOUNTS for n in names}
 
 
@@ -259,13 +290,22 @@ def parse_amount(text: str) -> int | None:
 
 
 def parse_audit_statements(doc: str) -> tuple[dict, dict]:
-    """감사보고서 원문(XML/HTML)에서 당기·전기 주요 계정을 읽는다. 표마다 단위를 찾아 원으로 환산한다."""
+    """감사보고서 원문(XML/HTML)에서 당기·전기 주요 계정을 읽는다. 표마다 단위를 찾아 원으로 환산한다(외화 보고서는 parse_audit_statements_ex 로 통화를 함께 받는다)."""
+    cur, prev, _ccy = parse_audit_statements_ex(doc)
+    return cur, prev
+
+
+def parse_audit_statements_ex(doc: str) -> tuple[dict, dict, str]:
+    """(당기, 전기, 통화). 통화는 외화 단위('(단위 : EUR)')를 읽은 경우 그 코드, 아니면 ''. 외화일 때 금액은 원 환산 전의 원 통화 금액이다."""
     cur, prev, borrow_cur, borrow_prev = {}, {}, [], []
+    ccy = ""
     for m in re.finditer(r"<TABLE\b.*?</TABLE>", doc, re.S | re.I):
         table = m.group(0)
         context = clean_cell(doc[max(0, m.start() - 600):m.start()]) + clean_cell(table[:600])
         units = UNIT_RE.findall(context)
-        factor = UNIT_FACTOR[units[-1]] if units else 1
+        cc = CCY_RE.findall(context)
+        if cc and not ccy: ccy = cc[-1].upper()
+        factor = 1 if cc else (UNIT_FACTOR[units[-1]] if units else 1)
         rows = []
         for tr in re.findall(r"<TR\b.*?</TR>", table, re.S | re.I):
             cells = [clean_cell(c[1]) for c in CELL_RE.findall(tr)]
@@ -290,12 +330,12 @@ def parse_audit_statements(doc: str) -> tuple[dict, dict]:
         cur["차입금"] = sum(borrow_cur)
         if prev:
             prev["차입금"] = sum(borrow_prev)
-    # 단위 표기를 못 찾아 원으로 읽었는데 자산이 10억 미만이면 천원 단위로 본다
-    if cur.get("총자산") and cur["총자산"] < 1_000_000_000:
+    # 단위 표기를 못 찾아 원으로 읽었는데 자산이 10억 미만이면 천원 단위로 본다(외화 보고서는 보정하지 않는다)
+    if not ccy and cur.get("총자산") and cur["총자산"] < 1_000_000_000:
         print(f"[audit] 자산총계 {cur['총자산']:,} 가 너무 작아 천원 단위로 보정합니다.")
         cur = {k: v * 1000 for k, v in cur.items()}
         prev = {k: v * 1000 for k, v in prev.items()}
-    return cur, prev
+    return cur, prev, ccy
 
 
 def fetch_document_text(api_key: str, rcept_no: str) -> str:
@@ -344,7 +384,14 @@ def audit_financials(api_key: str, corp_code: str) -> tuple[dict, list, dict]:
         doc = fetch_document_text(api_key, f["rcept_no"])
         if doc and not overview:
             overview = read_overview(audit_overview, doc, f["rcept_no"])
-        cur, prev = parse_audit_statements(doc)
+        cur, prev, ccy = parse_audit_statements_ex(doc)
+        if ccy:  # 외화 보고서: 당기·전기를 각 회계기간 평균 환율로 원화 환산(환율을 못 받으면 값을 버린다)
+            m_end = re.search(r"\((\d{4})\.(\d{2})\)", f.get("report_nm", ""))
+            end_y, end_m = (int(m_end.group(1)), int(m_end.group(2))) if m_end else (year, 12)
+            f_cur, f_prev = krw_per_unit(ccy, end_y, end_m), krw_per_unit(ccy, end_y - 1, end_m)
+            cur = {k: v * f_cur for k, v in cur.items()} if f_cur else {}
+            prev = {k: v * f_prev for k, v in prev.items()} if f_prev else {}
+            print(f"[audit] 외화({ccy}) 보고서를 원화로 환산했습니다.")
         if cur:
             fy.setdefault(year, cur)
         if prev:
