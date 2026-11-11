@@ -144,7 +144,7 @@
        "k": "par",
        "p": {
         "n": "Gigaphoton",
-        "w": "본사(Gigaphoton, 일본)가 비상장이라 공시 실적이 없습니다."
+        "x": "gigaphoton"
        },
        "km": "한국기가포톤"
       },
@@ -154,7 +154,7 @@
        "k": "par",
        "p": {
         "n": "Hitachi High-Tech",
-        "w": "본사(Hitachi High-Tech, 일본)는 2020년 상장폐지돼 자체 공시 실적이 없습니다. 모회사 그룹 실적으로 대체하지 않습니다."
+        "x": "hitachihightech"
        },
        "km": "히타치하이테크코리아"
       }
