@@ -184,9 +184,9 @@ def is_borrowing(name: str) -> bool:
     return "차입금" in n or n.endswith("사채")
 
 
-def statement_rows(api_key: str, corp_code: str, year: int, reprt_code: str) -> list:
+def statement_rows(api_key: str, corp_code: str, year: int, reprt_code: str, fs_div: str = "OFS") -> list:
     data = call(api_key, "fnlttSinglAcntAll", corp_code=corp_code, bsns_year=str(year),
-                reprt_code=reprt_code, fs_div="OFS")
+                reprt_code=reprt_code, fs_div=fs_div)
     return (data or {}).get("list", [])
 
 
