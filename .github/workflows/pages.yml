@@ -393,12 +393,19 @@ jobs:
       - name: Install Playwright
         timeout-minutes: 12
         run: |
-          # 설치 단계가 네트워크 지연으로 멈추는 일이 있어, 시도마다 제한 시간을 두고 최대 3번 다시 시도한다
+          # 브라우저만 내려받는다(시스템 패키지 설치 없이). --with-deps 는 apt 저장소(우분투 미러)에 접속하는데,
+          # 미러가 응답하지 않으면 설치 단계 전체가 멈춘다. GitHub 실행기에는 크롬 실행에 필요한 라이브러리가 이미 있다.
           npm i --no-save playwright@1.49.1
           for i in 1 2 3; do
-            if timeout 240 npx playwright install --with-deps chromium; then break; fi
-            echo "Playwright 설치 시도 $i 실패 또는 시간 초과"; [ "$i" = 3 ] && exit 1; sleep 5
+            if timeout 240 npx playwright install chromium; then break; fi
+            echo "Playwright 브라우저 내려받기 시도 $i 실패 또는 시간 초과"; [ "$i" = 3 ] && exit 1; sleep 5
           done
+          # 브라우저가 실제로 뜨는지 확인하고, 라이브러리가 없어 못 뜰 때만 시스템 패키지를 설치한다
+          if ! node -e "require('playwright').chromium.launch().then(b=>b.close())"; then
+            echo "브라우저 실행 실패 — 시스템 패키지를 설치합니다"
+            timeout 420 npx playwright install-deps chromium
+            node -e "require('playwright').chromium.launch().then(b=>b.close())"
+          fi
       - name: Browser checks on the built artifact (real data)
         env:
           SITE_DIR: site_built
