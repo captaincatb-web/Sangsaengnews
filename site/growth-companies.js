@@ -27,7 +27,7 @@ function render(){
  if(cn){cn.hidden=!cq.length;cn.innerHTML=cq.length?'<b>영업이익 계산값</b>: 손익계산서에 영업이익 줄이 없는 기업('+cq.map(esc).join(', ')+')은 같은 연차보고서의 매출 − 매출원가 − 연구개발비 − 판관비로 계산하고, 영업권·무형자산 손상이 따로 적힌 해는 그 손상도 뺐습니다. 해마다 세전이익과 맞춰 검산했습니다.':''}
 }
 fetch('data/growth-companies.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{D=j;
- window.GC_ROWS=j.modes.flatMap(m=>m.rows.map(x=>({c:x.c,p:x.p})));if(window.gcSync)window.gcSync();  // 상단 상세구분 선택지에 회사별 상세의 경로를 보탠다
+ window.GC_ROWS=j.modes.flatMap(m=>m.rows.map(x=>({c:x.c,p:x.p})));if(window.gcSync)try{window.gcSync()}catch(e){}  /* 상단 필터 동기화가 실패해도 회사별 목록은 그린다 */  // 상단 상세구분 선택지에 회사별 상세의 경로를 보탠다
  $('co-note').textContent=(j.note||'')+' 금액 단위: '+j.unit+'. 재무 기준은 비교 기준에 따라 다릅니다(별도·연결·개별).';
  const cs=[...new Set(j.modes.flatMap(m=>m.rows.map(x=>x.c)))].sort();$('co-c').innerHTML='<option value="">전체</option>'+cs.map(c=>'<option>'+esc(c)+'</option>').join('');
  ['co-q','co-g','co-c'].forEach(id=>$(id).addEventListener(id==='co-q'?'input':'change',()=>{shown=60;render()}));

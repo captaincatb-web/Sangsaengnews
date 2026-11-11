@@ -156,3 +156,13 @@ for (const w of [390, 1280]) {
     assert.deepEqual(errs, []); await ctx.close();
   });
 }
+
+test("회사별 상세: 요약 자료가 늦게 와도 목록을 그린다(로딩 순서 경합)", async () => {
+  const ctx = await browser.newContext(); const page = await ctx.newPage(); const errs = []; page.on("pageerror", (e) => errs.push(e.message));
+  await page.route("**/growth-comparison-summary.json*", async (r) => { await new Promise((x) => setTimeout(x, 1500)); r.continue(); });
+  await page.goto(base + "growth-comparison.html"); await page.waitForSelector("#chart svg", { timeout: 10000 }); await page.waitForTimeout(400);
+  assert.ok((await page.locator("#co-tbl tbody tr").count()) > 0, "회사별 목록 표시");
+  assert.ok(!(await page.locator("#co-body").innerText()).includes("불러오지 못했습니다"), "불러오기 실패 문구 없음");
+  assert.ok((await page.locator("#f-d1 option").count()) > 1, "상단 상세구분 선택지도 채워짐");
+  assert.deepEqual(errs, []); await ctx.close();
+});
