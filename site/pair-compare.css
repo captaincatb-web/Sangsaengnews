@@ -49,3 +49,6 @@
 @keyframes pcgrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media(prefers-reduced-motion:reduce){.pcg .bar{animation:none}}
 @media(max-width:900px){.pc-trend{grid-template-columns:minmax(0,1fr)}}
+.pc-chk{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.pc-chk input{width:16px;height:16px;margin:0;accent-color:var(--brand,var(--blue))}.pc-chk:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:640px){.pc-chk{flex:1 1 100%}}

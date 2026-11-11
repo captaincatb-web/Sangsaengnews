@@ -141,11 +141,16 @@ for (const w of [390, 1280]) {
     await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
     await page.selectOption("#f-item", "케미컬"); assert.equal(await page.locator(".pc-item").count(), 1);
     assert.equal(await page.locator(".pc-dom tbody tr").count(), 5, "국내 케미컬 5곳"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 5, "글로벌 케미컬 5곳");
-    assert.ok((await page.locator(".pc-sdi, .pc-dom .pc-why").count()) >= 1, "합계 제외 사유 표시");
+    assert.ok((await page.locator(".pc-dom .pc-why").count()) >= 1, "전지 중심 기업 사유 표시");
+    assert.ok(await page.locator("#f-x").isChecked(), "삼성에스디아이 합계 포함이 기본");
+    const sum = () => page.locator("#pc-sum tbody tr").first().innerText();
+    const withX = await sum(); await page.locator("#f-x").uncheck(); assert.notEqual(await sum(), withX, "합계에 포함을 끄면 케미컬 국내 합계가 바뀜");
+    assert.match(await page.locator(".pc-dom .pc-why").first().innerText(), /제외 중/); await page.locator("#f-x").check(); assert.equal(await sum(), withX, "다시 켜면 원래대로");
     await page.selectOption("#f-item", "PCB/소자"); assert.ok((await page.locator(".pc-none").count()) >= 1, "자료 없음 업체도 목록에 표시");
     await page.selectOption("#f-item", "케미컬");
     await page.selectOption("#f-grp", "설비"); assert.equal(await page.locator("#f-item").inputValue(), "", "구분을 바꾸면 품목 초기화");
     await page.fill("#f-q", "ASML"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 1);
+    const miss = await page.locator("#pc-miss li").count(); assert.ok(miss >= 5, "수치 미확인 업체 목록"); assert.match(await page.locator("#pc-miss-h").innerText(), /수치가 확인되지 않은 업체 \(\d+곳/);
     const basis = await page.locator("#pc-basis").innerText();
     for (const t of ["당사 거래업체만 대상", "설비/부품/원자재 구분", "본사 소재지 기준", "구매액 상위 5개업체"]) assert.ok(basis.includes(t), t);
     assert.deepEqual(errs, []); await ctx.close();
