@@ -391,9 +391,14 @@ jobs:
         with:
           node-version: "22"
       - name: Install Playwright
+        timeout-minutes: 12
         run: |
+          # 설치 단계가 네트워크 지연으로 멈추는 일이 있어, 시도마다 제한 시간을 두고 최대 3번 다시 시도한다
           npm i --no-save playwright@1.49.1
-          npx playwright install --with-deps chromium
+          for i in 1 2 3; do
+            if timeout 240 npx playwright install --with-deps chromium; then break; fi
+            echo "Playwright 설치 시도 $i 실패 또는 시간 초과"; [ "$i" = 3 ] && exit 1; sleep 5
+          done
       - name: Browser checks on the built artifact (real data)
         env:
           SITE_DIR: site_built
