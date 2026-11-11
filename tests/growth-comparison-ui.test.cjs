@@ -139,9 +139,11 @@ for (const w of [390, 1280]) {
     /* 영업이익 막대는 매출 막대보다 높지 않다(같은 눈금) */
     const bars = await page.locator("#pc-trend .pc-tp").evaluateAll((els) => els.map((e) => [...e.querySelectorAll(".slot")].map((s) => { const r = s.querySelectorAll("rect.bar"); return [+r[0].getAttribute("height"), +r[1].getAttribute("height")]; })));
     for (const side of bars) for (const [rev, op] of side) assert.ok(op <= rev + 0.01, "영업이익 막대 ≤ 매출 막대");
+    assert.ok((await page.locator("#pc-trend .pc-dom svg text.axr").count()) >= 5, "오른쪽 영업이익 축 눈금 표시");
+    assert.match(await page.locator("#pc-legend").innerText(), /영업이익\(오른쪽 축\)/);
     /* 값 선택: 지수(매출 막대만)·기업당 평균, 품목별 요약에도 연동 */
     const sumHead = () => page.locator("#pc-sum thead tr").nth(1).locator("th").first().innerText();
-    await page.selectOption("#f-val", "idx"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 6, "지수: 매출 막대만");
+    await page.selectOption("#f-val", "idx"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 6, "지수: 매출 막대만"); assert.equal(await page.locator("#pc-trend svg text.axr").count(), 0, "지수: 오른쪽 축 없음");
     assert.match(await sumHead(), /매출지수\(2023=100\)/); assert.match(await page.locator("#pc-legend").innerText(), /매출지수/);
     await page.selectOption("#f-val", "avg"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 12); assert.match(await sumHead(), /기업당/);
     await page.selectOption("#f-val", "sum"); assert.match(await sumHead(), /^2025 매출\(억 원\)/);
