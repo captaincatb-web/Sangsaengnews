@@ -154,6 +154,8 @@ for (const w of [390, 1280]) {
     /* 재무 기준 선택: 설비의 글로벌 업체 중 미국·네덜란드 본사는 연결만, 도쿄일렉트론은 개별(연결은 수집 후) */
     await page.fill("#f-q", ""); await page.selectOption("#f-grp", "설비"); await page.selectOption("#f-item", "설비");
     const glo = () => page.locator(".pc-glo tbody tr").evaluateAll((trs) => trs.map((t) => ({ n: t.querySelector(".pc-n").textContent, none: t.classList.contains("pc-none"), tag: [...t.querySelectorAll("th small")].map((e) => e.textContent).join(" ") })));
+    assert.ok((await page.locator(".pc-glo .pc-kr").count()) >= 3, "글로벌 업체 아래 한국 법인 값 표시");
+    assert.match(await page.locator(".pc-glo .pc-kr").first().innerText(), /^한국 법인.*2025 매출 .*영업이익률/, "한국 법인 문구 형식");
     await page.selectOption("#f-basis", "s"); let g = await glo();
     assert.ok(g.find((x) => x.n === "Applied Materials").none, "개별만: Applied 연결만 공시 → 자료 없음");
     assert.match(g.find((x) => x.n === "Applied Materials").tag, /연결/, "있는 기준(연결) 안내");

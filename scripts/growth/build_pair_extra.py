@@ -19,7 +19,7 @@ def main():
     if not priv: sys.exit("GROWTH_PRIVATE_DIR 가 필요합니다")
     priv = Path(priv); roster = json.loads((REPO / "site" / "data" / "pair-roster.json").read_text(encoding="utf-8"))
     ents = [(side, e) for gr in roster["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side]]
-    dom = {e["n"] for side, e in ents if side == "dom" and e.get("k") != "sub"}
+    dom = {e["n"] for side, e in ents if side == "dom" and e.get("k") != "sub"} | {e["kx"] for side, e in ents if side == "glo" and e.get("kx")}  # 국내업체 + 글로벌 업체의 한국 법인(DART 개별 실적)
     par = {e["p"]["n"]: e["p"]["x"] for side, e in ents if side == "glo" and e.get("p", {}).get("x")}
     par.update({e["n"]: e["ex"] for side, e in ents if side == "glo" and e.get("ex")})  # 본사 자체(ex): 공개 회사별 상세에 없는 기준(예: 도쿄일렉트론 연결)을 따로 수집
     rows, skipped = [], 0

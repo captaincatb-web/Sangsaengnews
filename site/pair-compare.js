@@ -24,7 +24,8 @@ function build(R,modes,extra){const idx={};
  R.groups.forEach(gr=>gr.items.forEach(it=>['dom','glo'].forEach(side=>it[side].forEach(e=>{
   /* 글로벌 업체는 본사 실적(e.p)을 쓴다: 공개 회사별 상세(p.m)에 없으면 따로 수집한 본사 공시(pair-extra.json, p.n). 국내업체는 자기 실적(m, 없으면 pair-extra) */
   const P=e.p||null,nm=P?(P.m||P.n):(e.m||e.n),cands=idx[nm]||{c:null,s:null};
-  out.push({g:gr.g,i:it.i,side,e,cands,row:null,k:side==='glo'?e.k:null,ord:out.length,key:nm})}))));return out}
+  const kn=e.km||e.kx||null,kc=kn?(idx[kn]||{}):null,kr=kc?(kc.s||kc.c||null):null;  /* 글로벌 업체의 한국 법인(별도 재무) 값: 합계에는 넣지 않고 함께 보여 준다 */
+  out.push({g:gr.g,i:it.i,side,e,cands,row:null,kr,kn,k:side==='glo'?e.k:null,ord:out.length,key:nm})}))));return out}
 const fbasis=()=>{const b=$('f-basis');return b?b.value:'auto'};
 /* 재무 기준 적용: auto=개별 우선(없으면 연결, 성장 분석 규칙), c=연결만, s=개별·별도만 */
 function applyBasis(){const b=fbasis();ALL.forEach(x=>{const c=x.cands;x.row=b==='c'?c.c:b==='s'?c.s:(c.s||c.c)})}
@@ -38,6 +39,7 @@ const inSumRaw=x=>x.row&&(!x.e.x||incX());
 const uniqSum=list=>{const seen=new Set();return list.filter(x=>{if(!inSumRaw(x)||seen.has(x.key))return false;seen.add(x.key);return true})};  /* 같은 본사·같은 업체는 합계에서 한 번만 센다 */  /* 전지 중심 기업 등(x 표시)은 필터에서 '합계에 포함'을 끄면 수치만 보여 주고 합계·그래프에서 뺀다 */
 function agg(list){const has=uniqSum(list),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
  return{n:list.length,k:has.length,rev:r2,op:o2,m:has.length?margin(o2,r2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
+const krTxt=x=>x.kr?'한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':'')+': 2025 매출 '+fmt(x.kr.r[2])+'억 · 영업이익률 '+pct(margin(x.kr.o[2],x.kr.r[2]))+' ('+x.kr.s+(x.kr.src?' · '+x.kr.src:'')+')':'';
 const tagOf=x=>[x.e.p?(x.row?'본사 실적: '+x.e.p.n:''):(x.k&&KIND[x.k]),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · ');
 
 /* 구분→품목 선택지 */
@@ -108,27 +110,27 @@ function summary(items,vis){const t=$('pc-sum');
 function pairs(items,vis){const box=$('pc-pairs');
  if(!items.length){box.innerHTML='<p class="gc-empty">조건에 맞는 업체가 없습니다.</p>';return}
  const col=(side,list)=>{const a=agg(list);
-  const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(!r?'<small class="pc-why">'+esc(otherBasis(x)||(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:'')))+'</small>':'')+(x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 '+(incX()?'포함 중':'제외 중')+'</small>':'')+'</th>';
+  const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(x.kr?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+(!r?'<small class="pc-why">'+esc(otherBasis(x)||(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:'')))+'</small>':'')+(x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 '+(incX()?'포함 중':'제외 중')+'</small>':'')+'</th>';
    return r?'<tr>'+nm+'<td>'+fmt(r.r[2])+'</td><td class="pc-hm">'+sg(grow(r.r,2))+'</td><td>'+pct(margin(r.o[2],r.r[2]))+'</td></tr>':'<tr class="pc-none">'+nm+'<td colspan="3" class="pc-na">자료 없음</td></tr>'}).join('');
   return '<div class="pc-col pc-'+side+'"><h4>'+SIDE[side]+' <small>수치 확인 '+a.k+'/'+a.n+'곳</small></h4><div class="db-tbl-wrap"><table class="db-tbl pc-tbl"><caption class="sr-only">'+SIDE[side]+' 2025년 매출·매출 증감·영업이익률</caption><thead><tr><th scope="col" class="l">업체</th><th scope="col">2025 매출(억 원)</th><th scope="col" class="pc-hm">매출 증감</th><th scope="col">영업이익률</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'};
  box.innerHTML=items.map(it=>{const l=vis.filter(x=>x.g===it.g&&x.i===it.i);
   return '<section class="pc-item" aria-label="'+esc(it.g===it.i?it.i:it.g+' '+it.i)+'"><h3 class="pc-ih">'+(it.g===it.i?esc(it.i):esc(it.g)+' › '+esc(it.i))+'</h3><div class="pc-cols">'+col('dom',l.filter(x=>x.side==='dom'))+col('glo',l.filter(x=>x.side==='glo'))+'</div></section>'}).join('')}
 
 /* 업체별 상세(성장 분석 회사별 상세와 같은 열) */
-const COLS=[['n','업체',1],['side','구분',1],['s','재무 기준',1],['r0','2023 매출(억 원)',0],['r1','2024 매출',0],['r2','2025 매출',0],['o2','2025 영업이익(억 원)',0],['m0','2023 영업이익률',0],['m1','2024 영업이익률',0],['m2','2025 영업이익률',0],['g1','매출 성장 2024',0],['g2','매출 성장 2025',0]];
-function val(x,k){const r=x.row;switch(k){case'n':return x.e.n;case'side':return SIDE[x.side];case's':return tagOf(x);case'r0':case'r1':case'r2':return r.r[+k[1]];case'o2':return r.o[2];case'm0':case'm1':case'm2':return margin(r.o[+k[1]],r.r[+k[1]]);case'g1':return grow(r.r,1);case'g2':return grow(r.r,2)}}
-function detail(vis){const rows=vis.filter(x=>x.row),miss=vis.length-rows.length;
+const COLS=[['n','업체',1],['side','구분',1],['s','재무 기준',1],['r0','2023 매출(억 원)',0],['r1','2024 매출',0],['r2','2025 매출',0],['o2','2025 영업이익(억 원)',0],['m0','2023 영업이익률',0],['m1','2024 영업이익률',0],['m2','2025 영업이익률',0],['g1','매출 성장 2024',0],['g2','매출 성장 2025',0],['kr2','한국 법인 2025 매출(억 원)',0],['krm','한국 법인 2025 영업이익률',0]];
+function val(x,k){const r=x.row;if(k==='kr2')return x.kr?x.kr.r[2]:null;if(k==='krm')return x.kr?margin(x.kr.o[2],x.kr.r[2]):null;if(!r&&k!=='n'&&k!=='side'&&k!=='s')return null;switch(k){case'n':return x.e.n;case'side':return SIDE[x.side];case's':return tagOf(x);case'r0':case'r1':case'r2':return r.r[+k[1]];case'o2':return r.o[2];case'm0':case'm1':case'm2':return margin(r.o[+k[1]],r.r[+k[1]]);case'g1':return grow(r.r,1);case'g2':return grow(r.r,2)}}
+function detail(vis){const rows=vis.filter(x=>x.row||x.kr),miss=vis.length-rows.length;
  let l=rows.slice();
  if(sortKey)l.sort((a,b)=>{const A=val(a,sortKey),B=val(b,sortKey);if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return -1;return(typeof A==='string'?A.localeCompare(B,'ko'):A-B)*sortDir});
  $('pc-empty').hidden=l.length>0;
  const head='<thead><tr>'+COLS.map(([k,t,s])=>'<th scope="col" class="'+(s?'l':'')+'" aria-sort="'+(sortKey===k?(sortDir>0?'ascending':'descending'):'none')+'"><button type="button" data-k="'+k+'">'+esc(t)+(sortKey===k?(sortDir>0?' ▲':' ▼'):'')+'</button></th>').join('')+'</tr></thead>';
- const body='<tbody>'+l.map(x=>{const r=x.row.r,o=x.row.o;return '<tr><th scope="row" class="l"><span class="co-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span><small>'+esc(x.g===x.i?x.i:x.g+' › '+x.i)+'</small></th><td class="l pc-s-'+x.side+'">'+SIDE[x.side]+'</td><td class="l">'+esc(tagOf(x))+'</td><td>'+fmt(r[0])+'</td><td>'+fmt(r[1])+'</td><td>'+fmt(r[2])+'</td><td>'+fmt(o[2])+'</td><td>'+pct(margin(o[0],r[0]))+'</td><td>'+pct(margin(o[1],r[1]))+'</td><td>'+pct(margin(o[2],r[2]))+'</td><td>'+sg(grow(r,1))+'</td><td>'+sg(grow(r,2))+'</td></tr>'}).join('')+'</tbody>';
+ const body='<tbody>'+l.map(x=>{const r=x.row?x.row.r:[null,null,null],o=x.row?x.row.o:[null,null,null],K=x.kr;return '<tr><th scope="row" class="l"><span class="co-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span><small>'+esc(x.g===x.i?x.i:x.g+' › '+x.i)+'</small></th><td class="l pc-s-'+x.side+'">'+SIDE[x.side]+'</td><td class="l">'+esc(tagOf(x))+'</td><td>'+fmt(r[0])+'</td><td>'+fmt(r[1])+'</td><td>'+fmt(r[2])+'</td><td>'+fmt(o[2])+'</td><td>'+pct(margin(o[0],r[0]))+'</td><td>'+pct(margin(o[1],r[1]))+'</td><td>'+pct(margin(o[2],r[2]))+'</td><td>'+sg(grow(r,1))+'</td><td>'+sg(grow(r,2))+'</td><td>'+(K?fmt(K.r[2]):'–')+'</td><td>'+(K?pct(margin(K.o[2],K.r[2])):'–')+'</td></tr>'}).join('')+'</tbody>';
  $('pc-tbl').innerHTML=l.length?head+body:'';
  }
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
- const head=['구분','품목','국내/글로벌','업체명','분류','재무 기준',...Y.map(y=>y+' 매출(억 원)'),...Y.map(y=>y+' 영업이익(억 원)'),...Y.map(y=>y+' 영업이익률(%)'),'매출 성장 2024(%)','매출 성장 2025(%)','비고'];
- const lines=vis.map(x=>{const r=x.row;return [x.g,x.i,SIDE[x.side],x.e.n,x.e.p?'본사 실적: '+x.e.p.n:(x.k?KIND[x.k]:'국내'),r?r.s:'',...(r?r.r.map(n1):['','','']),...(r?r.o.map(n1):['','','']),...(r?r.r.map((v,i)=>n1(margin(r.o[i],v))):['','','']),r?n1(grow(r.r,1)):'',r?n1(grow(r.r,2)):'',r?'':(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||'자료 없음(3개년 공시 실적 미확인)')]});
+ const head=['구분','품목','국내/글로벌','업체명','분류','재무 기준',...Y.map(y=>y+' 매출(억 원)'),...Y.map(y=>y+' 영업이익(억 원)'),...Y.map(y=>y+' 영업이익률(%)'),'매출 성장 2024(%)','매출 성장 2025(%)','한국 법인','한국 법인 재무 기준',...Y.map(y=>'한국 법인 '+y+' 매출(억 원)'),...Y.map(y=>'한국 법인 '+y+' 영업이익(억 원)'),'비고'];
+ const lines=vis.map(x=>{const r=x.row;return [x.g,x.i,SIDE[x.side],x.e.n,x.e.p?'본사 실적: '+x.e.p.n:(x.k?KIND[x.k]:'국내'),r?r.s:'',...(r?r.r.map(n1):['','','']),...(r?r.o.map(n1):['','','']),...(r?r.r.map((v,i)=>n1(margin(r.o[i],v))):['','','']),r?n1(grow(r.r,1)):'',r?n1(grow(r.r,2)):'',x.kr?(x.kn||x.e.n):'',x.kr?x.kr.s:'',...(x.kr?x.kr.r.map(n1):['','','']),...(x.kr?x.kr.o.map(n1):['','','']),r?'':(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||'자료 없음(3개년 공시 실적 미확인)')]});
  const text='﻿'+[head,...lines].map(a=>a.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));a.download='국내글로벌_업체비교_'+String(GEN).slice(0,10)+'.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
@@ -139,6 +141,7 @@ function basis(){const M=['①','②','③','④'];
   '수치는 성장 분석의 회사별 상세(공시 기준, 억 원 환산)와 같은 값입니다. 매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아닙니다.',
   '위 \'재무 기준\'에서 자동(개별·별도 우선, 없으면 연결)·연결만·개별만을 고를 수 있습니다. 선택한 기준의 수치가 없는 업체는 \'자료 없음\'으로 두고 있는 기준을 안내합니다(미국·네덜란드 본사처럼 연결 재무제표만 공시하는 곳은 개별이 없음). 재무 기준(별도·개별·연결)이 업체마다 다릅니다. 국내업체와 한국 법인은 별도(개별) 재무, 해외 본사는 개별 우선·미공시 시 연결입니다. 회계기간·환율 차이도 있어 직접 비교에는 한계가 있습니다.',
   '글로벌업체는 본사 소재지 기준으로 구분했고, 수치도 한국 법인·지점·현지 법인이 아닌 본사(모회사)의 실적입니다. 명단의 한국 법인 아래에 \'본사 실적: ○○\'로 어느 본사의 값인지 표시했습니다. 본사가 여러 사업을 하는 그룹이면 회사 전체 실적이라 반도체 소재 사업 실적과 차이가 큽니다.',
+  '글로벌 업체 아래의 \'한국 법인: …\'은 그 본사의 한국 법인(별도 재무제표)의 2025년 값으로, 본사 값과 함께 참고용으로만 보여 주며 합계·그래프에는 넣지 않습니다. 한국 법인이 명단에 없거나 공시 실적이 없는 본사는 표시하지 않습니다.',
   '같은 본사가 여러 업체의 본사로 나오거나 여러 품목에 있으면(예: ASML) 표에는 각각 보이지만 합계·그래프에서는 한 번만 셉니다. 본사의 공시 실적이 없거나 본사가 확정되지 않은 업체는 \'자료 없음\'으로 두고 그룹 실적으로 대체하지 않습니다.',
   '재무 기준 옆에 \'사업보고서\'·\'감사보고서\'로 표시된 업체는 성장 분석 집계에 없어, DART 사업보고서 또는 외부감사 보고서의 개별(별도) 재무에서 따로 가져온 값입니다(2023~2025년 모두 확인된 업체만).',
   '자료 없음은 2023~2025년 3개년 공시 실적이 확인되지 않은 업체입니다(비공시 법인 등). 수치를 추정하거나 만들지 않습니다.',
