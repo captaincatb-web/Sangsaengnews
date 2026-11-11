@@ -42,7 +42,7 @@ def main():
         sc = pby.get("O:" + x, {})
         for pick in ("개별", "연결"):
             if not full(sc.get(pick, {})): continue
-            d = sc[pick]; u = (d[YEARS[0]].get("source_url") or "").lower(); host = "SEC" if "sec.gov" in u else "EDINET" if "edinet" in u else "공시"
+            d = sc[pick]; u = (d[YEARS[0]].get("source_url") or "").lower(); host = "SEC" if "sec.gov" in u else "EDINET" if "edinet" in u else "공식"
             second = (d[YEARS[0]].get("confidence") or "높음") != "높음"  # 확신도가 높음이 아니면 2차 출처로 표시(원문 대조 전)
             rows.append({"n": pn, "s": pick, "src": "2차 출처 · 원문 대조 전" if second else host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
         if not any(full(sc.get(k, {})) for k in ("개별", "연결")): skipped += 1
