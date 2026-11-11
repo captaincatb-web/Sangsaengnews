@@ -126,3 +126,21 @@ for (const w of [360, 1200]) {
     await ctx.close();
   });
 }
+
+for (const w of [390, 1280]) {
+  test(`업체 비교 화면 ${w}px: 구분·품목 필터와 선정 기준 설명`, async () => {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }); const page = await ctx.newPage(); const errs = []; page.on("pageerror", (e) => errs.push(e.message));
+    await page.goto(base + "pair-compare.html"); await page.waitForSelector(".pc-item", { timeout: 8000 });
+    assert.equal(await page.locator(".pc-item").count(), 7, "품목 7개");
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "가로 넘침 없음");
+    await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
+    await page.selectOption("#f-item", "케미컬"); assert.equal(await page.locator(".pc-item").count(), 1);
+    assert.equal(await page.locator(".pc-dom tbody tr").count(), 5, "국내 케미컬 5곳"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 5, "글로벌 케미컬 5곳");
+    assert.ok((await page.locator(".pc-none").count()) >= 1, "자료 없음 업체도 목록에 표시");
+    await page.selectOption("#f-grp", "설비"); assert.equal(await page.locator("#f-item").inputValue(), "", "구분을 바꾸면 품목 초기화");
+    await page.fill("#f-q", "ASML"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 1);
+    const basis = await page.locator("#pc-basis").innerText();
+    for (const t of ["당사 거래업체만 대상", "설비/부품/원자재 구분", "본사 소재지 기준", "구매액 상위 5개업체"]) assert.ok(basis.includes(t), t);
+    assert.deepEqual(errs, []); await ctx.close();
+  });
+}

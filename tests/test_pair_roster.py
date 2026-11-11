@@ -1,0 +1,46 @@
+"""업체 비교 명단(site/data/pair-roster.json) 점검: 공개 회사별 수치와 이름이 정확히 같고 국내/해외가 맞는 곳만 연결, 해외 법인·지점은 모회사 실적으로 대체하지 않음, 식별번호 없음."""
+import json, re, unittest
+from pathlib import Path
+SITE = Path(__file__).resolve().parent.parent / "site" / "data"
+KINDS = {"hq", "kr", "sub"}
+
+
+class PairRoster(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.raw = (SITE / "pair-roster.json").read_text(encoding="utf-8"); cls.R = json.loads(cls.raw)
+        g = json.loads((SITE / "growth-companies.json").read_text(encoding="utf-8"))
+        cls.rows = {r["n"]: r for r in next(m for m in g["modes"] if m["id"] == "blend")["rows"]}
+        cls.entries = [(gr["g"], it["i"], side, e) for gr in cls.R["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side]]
+
+    def test_basis_has_four_criteria(self):
+        self.assertEqual(len(self.R["basis"]), 4); self.assertIn("구매액 상위 5개업체", self.R["basis"][3])
+
+    def test_structure_and_five_or_fewer_per_side(self):
+        self.assertEqual({gr["g"] for gr in self.R["groups"]}, {"설비", "부품", "원재료"})
+        self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["설비", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
+        for gr in self.R["groups"]:
+            for it in gr["items"]:
+                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 5, (it["i"], side))
+
+    def test_matches_exist_by_exact_name(self):
+        for g, i, side, e in self.entries:
+            if "m" in e: self.assertIn(e["m"], self.rows, e["n"])
+        self.assertEqual(len({e["m"] for *_, e in self.entries if "m" in e}), sum(1 for *_, e in self.entries if "m" in e), "같은 공개 행을 두 업체에 연결하지 않음")
+
+    def test_foreign_subsidiaries_and_branches_never_matched(self):
+        for g, i, side, e in self.entries:
+            if e.get("k") == "sub": self.assertNotIn("m", e, e["n"]); self.assertTrue(e.get("w"))
+        for g, i, side, e in self.entries:  # 모회사 대체 방지: Kunshan 법인은 대만 본사 행(UNIMICRON TECHNOLOGY)과 연결하지 않음
+            if "Kunshan" in e["f"]: self.assertNotIn("m", e)
+
+    def test_kinds_only_on_global_side(self):
+        for g, i, side, e in self.entries:
+            if side == "glo": self.assertIn(e["k"], KINDS, e["n"])
+            else: self.assertNotIn("k", e)
+
+    def test_no_identifiers(self):
+        self.assertIsNone(re.search(r"\d{10,}", self.raw)); self.assertIsNone(re.search(r"\d{3}-\d{2}-\d{5}|\d{6}-\d{7}", self.raw))
+
+
+if __name__ == "__main__": unittest.main()
