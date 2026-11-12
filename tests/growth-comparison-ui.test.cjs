@@ -147,7 +147,7 @@ for (const w of [390, 1280]) {
     assert.match(await sumHead(), /매출지수\(2023=100\)/); assert.match(await page.locator("#pc-legend").innerText(), /매출지수/);
     await page.selectOption("#f-val", "avg"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 12); assert.match(await sumHead(), /기업당/);
     await page.selectOption("#f-val", "sum"); assert.match(await sumHead(), /^2025 매출\(억 원\)/);
-    assert.equal(await page.locator("#f-q").evaluate((e) => !!e.closest("#sum-card")), true, "업체 검색은 품목별 요약 카드 안");
+    assert.equal(await page.locator("#f-q").evaluate((e) => !!e.closest("#pair-card")), true, "업체 검색은 업체 목록 카드 안");
     await page.locator("#pc-trend .pc-dom .slot").first().hover(); assert.match(await page.locator("#pc-trend .pc-dom .pc-strip").innerText(), /^2023년 · 매출/, "마우스를 올리면 해당 연도 값");
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "가로 넘침 없음");
     await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
@@ -162,7 +162,7 @@ for (const w of [390, 1280]) {
     await page.selectOption("#f-item", "케미컬");
     await page.selectOption("#f-grp", "설비"); assert.equal(await page.locator("#f-item").inputValue(), "", "구분을 바꾸면 품목 초기화");
     await page.fill("#f-q", "ASML"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 1);
-    const miss = await page.locator("#pc-miss li").count(); assert.ok(miss >= 5, "수치 미확인 업체 목록"); assert.match(await page.locator("#pc-miss-h").innerText(), /수치가 확인되지 않은 업체 \(\d+곳/);
+    const miss = await page.locator("#pc-miss li").count(); assert.ok(miss >= 5, "수치 미확인 업체 목록"); assert.match(await page.locator("#pc-miss-h").innerText(), /비교용 원화 3개년 실적이 없는 업체 \(\d+곳/);
     /* 재무 기준 선택: 설비의 글로벌 업체 중 미국·네덜란드 본사는 연결만, 도쿄일렉트론은 개별(연결은 수집 후) */
     await page.fill("#f-q", ""); await page.selectOption("#f-grp", "설비"); await page.selectOption("#f-item", "설비");
     const glo = () => page.locator(".pc-glo tbody tr").evaluateAll((trs) => trs.map((t) => ({ n: t.querySelector(".pc-n").textContent, none: t.classList.contains("pc-none"), tag: [...t.querySelectorAll("th small")].map((e) => e.textContent).join(" ") })));
