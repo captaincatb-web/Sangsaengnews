@@ -178,19 +178,17 @@ function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFi
 function basis(){const M=['①','②','③','④'];
  $('pc-basis').innerHTML=ROSTER.basis.map((t,i)=>'<li><span class="pc-bn" aria-hidden="true">'+(M[i]||'')+'</span><span>'+esc(t)+'</span></li>').join('');
  $('pc-notes').innerHTML=[
-  '수치는 성장 분석의 회사별 상세(공시 기준, 억 원 환산)와 같은 값입니다. 매출·영업이익은 기업 전체 실적이며 반도체 사업만의 실적이 아닙니다.',
-  '위 \'재무 기준\'에서 자동(국내업체는 개별·별도, 글로벌업체는 연결 기준 — 없으면 다른 기준)·연결만·개별만·한국 내 공시(글로벌은 한국 법인의 별도 재무)를 고를 수 있고, \'값\'에서 매출지수(2023=100)·매출액 합계·기업당 평균을 골라 그래프와 품목별 요약에 적용할 수 있습니다. 선택한 기준의 수치가 없는 업체는 \'자료 없음\'으로 두고 있는 기준을 안내합니다(미국·네덜란드 본사처럼 연결 재무제표만 공시하는 곳은 개별이 없음). 재무 기준(별도·개별·연결)이 업체마다 다릅니다. 국내업체와 한국 법인은 별도(개별) 재무, 해외 본사는 개별 우선·미공시 시 연결입니다. 회계기간·환율 차이도 있어 직접 비교에는 한계가 있습니다.',
-  '글로벌업체는 본사 소재지 기준으로 구분했고, 수치도 한국 법인·지점·현지 법인이 아닌 본사(모회사)의 실적입니다. 명단의 한국 법인 아래에 \'본사 실적: ○○\'로 어느 본사의 값인지 표시했습니다. 본사가 여러 사업을 하는 그룹이면 회사 전체 실적이라 반도체 소재 사업 실적과 차이가 큽니다.',
-  '글로벌 업체 아래의 \'한국 법인: …\'은 그 본사의 한국 법인(별도 재무제표)의 2025년 값으로, 본사 값과 함께 참고용으로만 보여 주며 합계·그래프에는 넣지 않습니다. 한국 법인이 명단에 없거나 공시 실적이 없는 본사는 표시하지 않습니다.',
-  '같은 본사가 여러 업체의 본사로 나오거나 여러 품목에 있으면(예: ASML) 표에는 각각 보이지만 합계·그래프에서는 한 번만 셉니다. 본사의 공시 실적이 없거나 본사가 확정되지 않은 업체는 \'자료 없음\'으로 두고 그룹 실적으로 대체하지 않습니다.',
-  '재무 기준 옆에 \'사업보고서\'·\'감사보고서\'로 표시된 업체는 성장 분석 집계에 없어, DART 사업보고서 또는 외부감사 보고서의 개별(별도) 재무에서 따로 가져온 값입니다(2023~2025년 모두 확인된 업체만).',
-  '자료 없음은 2023~2025년 3개년 공시 실적이 확인되지 않은 업체입니다(비공시 법인 등). 수치를 추정하거나 만들지 않습니다.',
-  '글로벌 원재료·부품 업체명 아래에는 본사 공시 참고실적을 현지 통화(백만 단위)로 표시합니다. 연도별 원문 검증 상태(공식 대조/2차 출처/대조 전)를 구분하며, 연결·개별 기준을 섞지 않습니다. 참고실적은 원화 합계·그래프·성장률에 포함하지 않습니다.',
-  '전지 중심 기업(삼성에스디아이)은 회사 전체 실적이 반도체 소재 사업과 거리가 큽니다. 기본으로 합계·그래프에 포함하며, 위 필터의 \'합계에 포함\'을 끄면 수치는 그대로 두고 합계·그래프에서만 뺍니다.',
-  '품목별 요약은 수치가 확인된 업체만 합산해, 확인된 업체가 적은 품목은 대표성이 낮습니다. 업체 명단의 순서는 표시 편의를 위한 것이며 순위나 구매액을 나타내지 않습니다.'].map(t=>'<li>'+esc(t)+'</li>').join('')}
+  '비교 재무 기준은 국내업체 개별(별도), 글로벌업체 해외 본사 연결로 고정합니다. 해당 기준의 2023~2025년 실적이 없는 회사는 다른 재무 기준으로 대체하거나 합계에 넣지 않습니다.',
+  '매출액과 영업이익은 기업 전체 실적이며 반도체 관련 사업만의 실적이 아닐 수 있습니다. 차트 값(합계/평균/매출지수)은 그래프에만 적용하며 통합표에는 실제 억 원 단위 금액을 표시합니다.',
+  '글로벌업체는 본사 소재지 기준으로 구분합니다. 현지 법인·지점이 아니라 해외 본사 연결 실적을 비교합니다. 한국 법인 실적은 회사명 아래 참고용으로만 표시합니다.',
+  '같은 본사가 여러 업체나 품목에 나오면 표에는 각각 표시하되 합계·그래프에서는 한 번만 집계합니다.',
+  '삼성에스디아이는 합계와 그래프에 항상 포함합니다. 전지 중심 사업 실적도 포함되므로 소부장 사업만의 성장성으로 해석하지 마세요.',
+  '글로벌 원재료·부품 기업의 현지 통화 참고실적은 연도별 검증 상태를 구분하며, 원화 비교 집계·성장률에 포함하지 않습니다.',
+  '회계기간·환율·사업범위 차이로 직접 비교에는 한계가 있습니다. 미확인 실적은 0으로 대체하지 않으며 영업이익 증감은 흑자·적자 전환을 구분합니다.'
+ ].map(t=>'<li>'+esc(t)+'</li>').join('')}
 
 /* 수치 미확인 업체 목록(명단 전체 기준) */
-function missing(){const m=ALL.filter(x=>!x.cands.c&&!x.cands.s);$('pc-miss-h').textContent='비교용 원화 3개년 실적이 없는 업체 ('+m.length+'곳 / 명단 '+ALL.length+'곳)';
+function missing(){applyBasis();const m=ALL.filter(x=>!x.row);$('pc-miss-h').textContent='고정 재무기준의 원화 3개년 실적이 없는 업체 ('+m.length+'곳 / 명단 '+ALL.length+'곳)';
  $('pc-miss').innerHTML=m.map(x=>'<li><b>'+esc(x.e.n)+'</b> <small>'+SIDE[x.side]+' · '+esc(x.g===x.i?x.i:x.g+' › '+x.i)+'</small> — '+esc(rawParent(x)?'본사 공시 참고실적 있음(원본 통화·연도별 검증 상태는 업체명 아래 펼침 참고). 원화 합계에는 미포함.':(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:NO_DATA)))+'</li>').join('')||'<li>모든 업체의 원화 3개년 실적이 확인되었습니다.</li>'}
 
 /* 초기화 */
@@ -199,13 +197,13 @@ const get=u=>fetch(u,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(u+' '
 Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get('data/pair-extra.json').catch(()=>({rows:[]})),get('data/pair-parent-consolidated.json').catch(()=>({companies:[]}))]).then(([R,G,X,P])=>{
  RAW_PARENT=Object.fromEntries(((P&&P.companies)||[]).map(c=>[c.name,c]));
  ROSTER=R;GEN=G.generatedAt||'';const bl=(G.modes||[]).find(m=>m.id==='blend')||(G.modes||[])[0];ALL=build(R,G.modes||[],X&&X.rows);applyBasis();
- basis();missing();fillGroups();{const xs=[...new Set(ALL.filter(x=>x.e.x).map(x=>x.e.n))];$('f-x-l').textContent=xs.join('·')+' 합계에 포함';if(!xs.length)$('f-x').parentElement.hidden=true}
- try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(p.get('x')==='0')$('f-x').checked=false;if(['c','s','k'].includes(p.get('b')))$('f-basis').value=p.get('b');if(['idx','avg'].includes(p.get('v')))$('f-val').value=p.get('v')}catch(e){}
+ basis();missing();fillGroups();
+  try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(['idx','avg'].includes(p.get('v')))$('f-val').value=p.get('v')}catch(e){}
  $('updated').textContent=GEN.slice(0,10)||'-';
  const ds=document.querySelector('.site-data-status__item');if(ds&&GEN){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');if(n)n.textContent=GEN.slice(0,10)+' 기준 · 업체 '+ALL.length+'곳 중 수치 확인 '+ALL.filter(x=>x.row).length+'곳';if(t){t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
- $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-x').addEventListener('change',render);$('f-basis').addEventListener('change',render);$('f-val').addEventListener('change',render);
+ $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);
  $('pc-tbl').addEventListener('click',e=>{const b=e.target.closest('button[data-k]');if(!b)return;const k=b.dataset.k;if(sortKey===k)sortDir=-sortDir;else{sortKey=k;sortDir=(k==='n'||k==='side'||k==='s')?1:-1}render()});
  $('pc-csv').addEventListener('click',csv);
  render();
-}).catch(()=>{const m='<p class="gc-empty">업체 비교 자료를 불러오지 못했습니다. 잠시 뒤 다시 열어 주세요.</p>';['pc-pairs'].forEach(id=>{const e=$(id);if(e)e.innerHTML=m})});
+}).catch(()=>{const e=$('pc-empty');if(e){e.hidden=false;e.textContent='업체 비교 자료를 불러오지 못했습니다. 다시 열어 주세요.'}});
 })();
