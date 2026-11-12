@@ -5,11 +5,11 @@
 .db-card-head .gc-csv{width:auto;min-height:34px;white-space:nowrap}
 /* 통합 비교표: 모바일은 표 자체만 가로 스크롤하고 업체명 열은 고정 */
 .pc-unified-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.pc-unified{min-width:1090px;width:100%;font-variant-numeric:tabular-nums}
+.pc-unified{min-width:960px;width:100%;font-variant-numeric:tabular-nums}
 .pc-unified th,.pc-unified td{padding:10px 12px;text-align:right;vertical-align:top;white-space:nowrap;font-size:13px}
-.pc-unified th.l{text-align:left;white-space:normal;overflow-wrap:anywhere;min-width:230px;max-width:330px}
-.pc-unified thead th{white-space:normal;min-width:106px;font-size:12px}
-.pc-unified thead th:first-child{min-width:230px}
+.pc-unified th.l{text-align:left;white-space:normal;overflow-wrap:anywhere;min-width:195px;max-width:290px}
+.pc-unified thead th{white-space:normal;min-width:92px;font-size:12px}
+.pc-unified thead th:first-child{min-width:195px}
 .pc-unified thead button{font:inherit;color:inherit}
 .pc-unified tbody th small,.pc-unified td small{display:block;margin-top:3px;font-size:11.5px;font-weight:400;line-height:1.45;color:var(--text-2);white-space:normal}
 .pc-unified .pc-total{background:var(--card)}
@@ -71,7 +71,7 @@
 @media(max-width:640px){
  .pc-table-actions{width:100%;margin-left:0}
  .pc-sq{flex:1;min-width:0}
- .pc-unified{min-width:1000px}
+ .pc-unified{min-width:960px}
  .pc-year-metrics{font-size:10.5px;padding:6px 4px}
  .pc-change{font-size:10px}
 }
