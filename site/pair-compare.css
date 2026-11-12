@@ -62,3 +62,15 @@
 .pc-sq input{flex:1;min-height:34px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);padding:0 10px;font:inherit}.pc-sq input::placeholder{color:var(--text-3);opacity:1}
 .pc-val-sel{flex:1 1 0}
 @media(max-width:640px){.pc-sq{width:100%;margin-left:0}}
+
+/* 글로벌 원재료 본사 연결 원문 수치: 기존 원화 집계와 분리 */
+.pc-parent-raw{margin-top:5px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:11.5px;font-weight:400;line-height:1.55}
+.pc-parent-raw summary{cursor:pointer;color:var(--gc-ink-2);font-size:12px;font-weight:650;word-break:keep-all}
+.pc-parent-raw summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.pc-parent-rows{margin-top:7px;display:grid;gap:3px}
+.pc-parent-year{display:block;color:var(--text);overflow-wrap:anywhere}
+.pc-parent-year b{font-weight:700;margin-right:4px}
+.pc-parent-status{font-weight:650;color:var(--text-2);margin-top:5px}
+.pc-parent-why,.pc-parent-hint{color:var(--text-3);margin-top:3px}
+.pc-parent-links{margin-top:5px;overflow-wrap:anywhere}
+.pc-parent-links a{color:var(--gc-ink-2);text-decoration:underline;text-underline-offset:2px}
