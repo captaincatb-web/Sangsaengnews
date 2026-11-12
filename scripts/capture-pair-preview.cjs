@@ -22,8 +22,8 @@ const server=http.createServer((req,res)=>{
    await page.locator("#pc-tbl tbody tr").first().waitFor({timeout:20000});
    await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo(0,0)});
    await page.screenshot({path:path.join(out,"pair-top-"+size+".png"),fullPage:false,animations:"disabled"});
-   await page.locator("#detail-card").scrollIntoViewIfNeeded();
-   await page.evaluate(()=>window.scrollBy(0,-60));
+   await page.evaluate(()=>{const y=document.querySelector('#detail-card').getBoundingClientRect().top+window.scrollY-90;window.scrollTo({top:y,behavior:'instant'})});
+   await page.waitForTimeout(180);
    await page.screenshot({path:path.join(out,"pair-table-"+size+".png"),fullPage:false,animations:"disabled"});
    console.log("screenshots",size);
    await context.close();
