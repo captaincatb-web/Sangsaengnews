@@ -106,7 +106,7 @@ function trendSvg(side,list){
    '<rect class="bar" x="'+xs+'" y="'+ys+'" width="'+bw+'" height="'+hs+'" rx="3" fill="var(--blue)"/>'+
    '<rect class="bar" x="'+xo+'" y="'+yo+'" width="'+bw+'" height="'+ho+'" rx="3" fill="'+(o<0?'var(--down)':'var(--green)')+'"/>'+
    '<text class="val" x="'+(xs+bw/2)+'" y="'+labelY(a,ys,hs,sz)+'" text-anchor="middle">'+fmtA(A[i])+'</text>'+
-   '<text class="val" x="'+(xo+bw/2)+'" y="'+labelY(o,yo,ho,oz)+'" text-anchor="middle">'+chartMoney(B[i])+'</text>'+
+   '<text class="val" x="'+(xo+bw/2)+'" y="'+(labelY(o,yo,ho,oz)+(o>=0?-13:0))+'" text-anchor="middle">'+chartMoney(B[i])+'</text>'+
    '<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+yr+'</text>'+
    '<rect class="hit" x="'+(x-slot/2)+'" y="'+top+'" width="'+slot+'" height="'+(bottom-top)+'"/></g>'});
  const cards=YRS.map((y,i)=>'<div class="pc-year-metrics"><b class="pc-year">'+y+'</b><div>매출 <strong>'+chartMoney(S[i])+'</strong> '+changeHtml(change(S,i,false))+'</div><div>영업 <strong>'+chartMoney(O[i])+'</strong> '+changeHtml(change(O,i,true))+'</div></div>').join('');
