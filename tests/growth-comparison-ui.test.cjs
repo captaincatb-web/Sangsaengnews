@@ -128,60 +128,45 @@ for (const w of [360, 1200]) {
 }
 
 for (const w of [390, 1280]) {
-  test(`업체 비교 화면 ${w}px: 구분·품목 필터와 선정 기준 설명`, async () => {
-    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } }); const page = await ctx.newPage(); const errs = []; page.on("pageerror", (e) => errs.push(e.message));
-    await page.goto(base + "pair-compare.html"); await page.waitForSelector(".pc-item", { timeout: 8000 });
-    assert.equal(await page.locator(".pc-item").count(), 7, "품목 7개");
-    const tp = await page.locator("#pc-trend .pc-tp").evaluateAll((els) => els.map((e) => [e.className, e.getBoundingClientRect().left, e.getBoundingClientRect().top]));
-    assert.equal(tp.length, 2, "추이 그래프 2개"); assert.ok(tp[0][0].includes("pc-dom") && tp[1][0].includes("pc-glo"), "왼쪽(위) 국내, 오른쪽(아래) 글로벌");
-    if (w > 900) assert.ok(tp[0][1] < tp[1][1], "넓은 화면: 국내가 왼쪽, 글로벌이 오른쪽"); else assert.ok(tp[0][2] < tp[1][2], "좁은 화면: 국내가 위");
-    assert.equal(await page.locator("#pc-trend svg .bar").count(), 12, "3개년 × 매출·영업이익 막대 × 2");
-    /* 영업이익 막대는 매출 막대보다 높지 않다(같은 눈금) */
-    const bars = await page.locator("#pc-trend .pc-tp").evaluateAll((els) => els.map((e) => [...e.querySelectorAll(".slot")].map((s) => { const r = s.querySelectorAll("rect.bar"); return [+r[0].getAttribute("height"), +r[1].getAttribute("height")]; })));
-    for (const side of bars) for (const [rev, op] of side) assert.ok(op <= rev + 0.01, "영업이익 막대 ≤ 매출 막대");
-    assert.ok((await page.locator("#pc-trend .pc-dom svg text.axr").count()) >= 5, "오른쪽 영업이익 축 눈금 표시");
-    assert.match(await page.locator("#pc-legend").innerText(), /영업이익\(오른쪽 축\)/);
-    /* 값 선택: 지수(매출 막대만)·기업당 평균, 품목별 요약에도 연동 */
-    const sumHead = () => page.locator("#pc-sum thead tr").nth(1).locator("th").first().innerText();
-    await page.selectOption("#f-val", "idx"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 6, "지수: 매출 막대만"); assert.equal(await page.locator("#pc-trend svg text.axr").count(), 0, "지수: 오른쪽 축 없음");
-    assert.match(await sumHead(), /매출지수\(2023=100\)/); assert.match(await page.locator("#pc-legend").innerText(), /매출지수/);
-    await page.selectOption("#f-val", "avg"); assert.equal(await page.locator("#pc-trend svg .bar").count(), 12); assert.match(await sumHead(), /기업당/);
-    await page.selectOption("#f-val", "sum"); assert.match(await sumHead(), /^2025 매출\(억 원\)/);
-    assert.equal(await page.locator("#f-q").evaluate((e) => !!e.closest("#pair-card")), true, "업체 검색은 업체 목록 카드 안");
-    await page.locator("#pc-trend .pc-dom .slot").first().hover(); assert.match(await page.locator("#pc-trend .pc-dom .pc-strip").innerText(), /^2023년 · 매출/, "마우스를 올리면 해당 연도 값");
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, "가로 넘침 없음");
-    await page.selectOption("#f-grp", "원재료"); assert.equal(await page.locator(".pc-item").count(), 5, "원재료: 품목 5개");
-    await page.selectOption("#f-item", "케미컬"); assert.equal(await page.locator(".pc-item").count(), 1);
-    assert.equal(await page.locator(".pc-dom tbody tr").count(), 5, "국내 케미컬 5곳"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 5, "글로벌 케미컬 5곳");
-    assert.ok((await page.locator(".pc-dom .pc-why").count()) >= 1, "전지 중심 기업 사유 표시");
-    assert.ok(await page.locator("#f-x").isChecked(), "삼성에스디아이 합계 포함이 기본");
-    const sum = () => page.locator("#pc-sum tbody tr").first().innerText();
-    const withX = await sum(); await page.locator("#f-x").uncheck(); assert.notEqual(await sum(), withX, "합계에 포함을 끄면 케미컬 국내 합계가 바뀜");
-    assert.match(await page.locator(".pc-dom .pc-why").first().innerText(), /제외 중/); await page.locator("#f-x").check(); assert.equal(await sum(), withX, "다시 켜면 원래대로");
-    await page.selectOption("#f-item", "PCB/소자"); assert.ok((await page.locator(".pc-none").count()) >= 1, "자료 없음 업체도 목록에 표시");
-    await page.selectOption("#f-item", "케미컬");
-    await page.selectOption("#f-grp", "설비"); assert.equal(await page.locator("#f-item").inputValue(), "", "구분을 바꾸면 품목 초기화");
-    await page.fill("#f-q", "ASML"); assert.equal(await page.locator(".pc-glo tbody tr").count(), 1);
-    const miss = await page.locator("#pc-miss li").count(); assert.ok(miss >= 5, "수치 미확인 업체 목록"); assert.match(await page.locator("#pc-miss-h").innerText(), /비교용 원화 3개년 실적이 없는 업체 \(\d+곳/);
-    /* 재무 기준 선택: 설비의 글로벌 업체 중 미국·네덜란드 본사는 연결만, 도쿄일렉트론은 개별(연결은 수집 후) */
-    await page.fill("#f-q", ""); await page.selectOption("#f-grp", "설비"); await page.selectOption("#f-item", "설비");
-    const glo = () => page.locator(".pc-glo tbody tr").evaluateAll((trs) => trs.map((t) => ({ n: t.querySelector(".pc-n").textContent, none: t.classList.contains("pc-none"), tag: [...t.querySelectorAll("th small")].map((e) => e.textContent).join(" ") })));
-    assert.ok((await page.locator(".pc-glo .pc-kr").count()) >= 3, "글로벌 업체 아래 한국 법인 값 표시");
-    assert.match(await page.locator(".pc-glo .pc-kr").first().innerText(), /^한국 법인.*2025 매출 .*영업이익률/, "한국 법인 문구 형식");
-    await page.selectOption("#f-basis", "s"); let g = await glo();
-    assert.ok(g.find((x) => x.n === "Applied Materials").none, "개별만: Applied 연결만 공시 → 자료 없음");
-    assert.match(g.find((x) => x.n === "Applied Materials").tag, /연결/, "있는 기준(연결) 안내");
-    assert.ok(!g.find((x) => x.n === "TOKYO ELECTRON").none, "개별만: 도쿄일렉트론은 개별 있음");
-    await page.selectOption("#f-basis", "c"); g = await glo();
-    assert.ok(!g.find((x) => x.n === "Applied Materials").none, "연결만: Applied 연결 있음");
-    assert.ok(g.find((x) => x.n === "SHIN-ETSU CHEMICAL" || true), "연결만 상태에서도 목록 유지");
-    await page.selectOption("#f-basis", "k"); g = await glo();
-    assert.ok(g.every((x) => /한국 법인/.test(x.tag) || x.none), "한국 내 공시: 글로벌은 한국 법인 값");
-    assert.ok(!g.find((x) => x.n === "TOKYO ELECTRON").none, "한국 내 공시: 도쿄일렉트론코리아 값 있음");
-    await page.selectOption("#f-basis", "auto"); g = await glo(); assert.ok(g.every((x) => !x.none), "자동: 설비 글로벌 5곳 모두 값 있음");
-    const basis = await page.locator("#pc-basis").innerText();
-    for (const t of ["당사 거래업체만 대상", "설비/부품/원자재 구분", "본사 소재지 기준", "구매액 상위 5개업체"]) assert.ok(basis.includes(t), t);
-    assert.deepEqual(errs, []); await ctx.close();
+  test('업체 비교 통합 UI '+w+'px: 고정 기준·성장률·합계·검색', async () => {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
+    const page = await ctx.newPage(), errs = []; page.on('pageerror', e => errs.push(e.message));
+    await page.goto(base + 'pair-compare.html'); await page.waitForSelector('#pc-tbl tbody tr', {timeout:8000});
+    assert.match(await page.locator('h1').innerText(), /소부장 국내업체 vs 글로벌업체 성과 비교/);
+    assert.match(await page.locator('.pc-fixed-basis').innerText(), /국내업체 개별.*글로벌업체.*연결/);
+    for (const id of ['#f-basis','#f-x','#pc-sum','#pc-pairs','#sum-card','#pair-card']) assert.equal(await page.locator(id).count(),0,id+' 제거');
+    assert.equal(await page.locator('#pc-tbl').count(),1,'통합 비교표 한 개');
+    assert.equal(await page.locator('#pc-tbl .pc-total').count(),2,'국내/글로벌 합계행 두 개');
+    assert.ok((await page.locator('#pc-tbl .pc-n').count())>5,'업체 상세 표시');
+    const charts=page.locator('#pc-trend .pc-tp');
+    assert.equal(await charts.count(),2,'국내·글로벌 차트');
+    assert.equal(await page.locator('#pc-trend svg .bar').count(),12,'2023~2025 매출·영업이익 막대 모두 표시');
+    assert.equal(await page.locator('#pc-trend .pc-growth-grid .pc-year-metrics').count(),6,'금액 및 전년 대비 증감 6개');
+    assert.equal(await page.locator('#pc-trend svg polyline').count(),0,'영업이익률 추이선 삭제');
+    assert.doesNotMatch(await page.locator('#pc-legend').innerText(), /영업이익률/);
+    assert.match(await page.locator('#pc-trend .pc-dom .pc-growth-grid').innerText(), /매출.*영업/s);
+    await page.selectOption('#f-val','idx');
+    assert.equal(await page.locator('#pc-trend svg .bar').count(),12,'매출지수 선택시에도 영업이익 막대 유지');
+    await page.selectOption('#f-val','avg');
+    assert.equal(await page.locator('#pc-trend svg .bar').count(),12,'평균 선택시 영업이익 막대 유지');
+    await page.selectOption('#f-val','sum');
+    assert.equal(await page.locator('#f-q').evaluate(e=>!!e.closest('#detail-card')),true,'검색은 통합표 카드 안');
+    await page.locator('#pc-trend .pc-dom .slot').first().hover();
+    assert.match(await page.locator('#pc-trend .pc-dom .pc-strip').innerText(),/^2023년 · 매출/);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'페이지 가로 넘침 없음');
+    await page.selectOption('#f-grp','원재료');
+    await page.selectOption('#f-item','케미컬');
+    assert.equal(await page.locator('#pc-tbl .pc-total').count(),2,'품목 필터 시에도 합계 2개');
+    assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성에스디아이 항상 표시');
+    assert.ok((await page.locator('#pc-tbl .pc-why').count())>=1,'SDI 성격 안내');
+    await page.selectOption('#f-grp','설비');
+    assert.equal(await page.locator('#f-item').inputValue(),'','품목 초기화');
+    await page.fill('#f-q','ASML');
+    assert.ok((await page.locator('#pc-tbl .pc-n').count())>=1,'업체 검색');
+    assert.match(await page.locator('#pc-miss-h').innerText(),/고정 재무기준의 원화 3개년 실적이 없는 업체/);
+    const basis=await page.locator('#pc-basis').innerText();
+    for(const t of ['당사 거래업체만 대상','설비/부품/원재료 구분','본사 소재지 기준','구매액 상위 5개업체'])assert.ok(basis.includes(t),t);
+    assert.deepEqual(errs,[]);await ctx.close();
   });
 }
 
