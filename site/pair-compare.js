@@ -72,43 +72,58 @@ const axis=(vals,k)=>{const mn=Math.min(0,...vals),mx=Math.max(0,...vals),rg=(mx
  for(const f of [1,1.2,1.5,2,2.5,3,4,5,6,8,10,12,15,20,25,30,40,50,100]){const step=f*e,lo=mn<0?-Math.ceil(-mn/step)*step:0;if(lo+step*k>=mx)return{lo,step}}return{lo:0,step:rg/k}};
 const tick=big=>v=>big?(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'조':Math.round(v).toLocaleString('ko-KR');
 const money=v=>v==null?'–':Math.abs(v)>=10000?(v/10000).toLocaleString('ko-KR',{maximumFractionDigits:1})+'조 원':Math.round(v).toLocaleString('ko-KR')+'억 원';
-function trendSvg(side,list){const has=uniqSum(list),vm=fval();
- if(!has.length)return '<p class="gc-empty">수치가 확인된 업체가 없습니다.</p>';
- const N=has.length,S=YRS.map((_,i)=>has.reduce((t,x)=>t+x.row.r[i],0)),O=YRS.map((_,i)=>has.reduce((t,x)=>t+x.row.o[i],0)),M=S.map((v,i)=>v>0?O[i]/v*100:null);
- /* 값 선택: sum=합계, avg=기업당 평균, idx=매출지수(2023=100, 매출 막대만). 매출·영업이익은 한 눈금을 써서 영업이익 막대가 매출 막대보다 높아지지 않는다 */
- const A=vm==='avg'?S.map(v=>v/N):vm==='idx'?S.map(v=>S[0]?v/S[0]*100:null):S,B=vm==='avg'?O.map(v=>v/N):vm==='idx'?null:O;
- const W=520,H=290,L=54,R=B?54:18,T=14,Bm=28,k=4,band=92,pw=W-L-R,ph=H-T-Bm,bh=ph-band,top=T+band;
- const aS=axis(A.map(v=>v==null?0:v),k),big=Math.max(...A.map(v=>Math.abs(v||0)))>=10000&&vm!=='idx';
- const yS=v=>top+bh-(v-aS.lo)/(aS.step*k)*bh,zS=yS(Math.max(0,aS.lo));
- /* 영업이익은 오른쪽 축: 매출과 눈금이 달라도 영업이익 막대가 매출 막대보다 낮게(매출 막대 높이의 90% 이하) 나오도록 눈금 간격을 고른다 */
- const aO=B?(()=>{const mn=Math.min(0,...B),mx=Math.max(0,...B),rg=(mx-mn)||1,e0=Math.pow(10,Math.floor(Math.log10(rg/k)));let last=null;
-  for(const e of [e0,e0*10]){for(const f of [1,1.2,1.5,2,2.5,3,4,5,6,8]){const step=f*e,lo=mn<0?-Math.ceil(-mn/step)*step:0;if(lo+step*k<mx)continue;last={lo,step};
-   if(B.every((o,i)=>{if(!(o>0)||!(A[i]>0))return true;const yo=top+bh-(o-lo)/(step*k)*bh,ys=yS(A[i]);return yo>=ys+0.1*(zS-ys)}))return last}}
-  return last||{lo:0,step:rg/k}})():null;
- const yO=v=>aO?top+bh-(v-aO.lo)/(aO.step*k)*bh:0,zO=aO?yO(Math.max(0,aO.lo)):0,bigO=B?Math.max(...B.map(Math.abs))>=10000:false;
- const mv=M.filter(v=>v!=null),mn=Math.min(...mv),mx=Math.max(...mv),pad=Math.max((mx-mn)*.25,.5),lo=mn-pad,sp=mx+pad-lo||1,ym=v=>T+18+(1-(v-lo)/sp)*(band-36);
- const slot=pw/3,bw=Math.min(34,slot*.3),cx=i=>L+slot*i+slot/2,tk=vm==='idx'?v=>Math.round(v).toLocaleString('ko-KR'):tick(big),tkO=tick(bigO),fm=vm==='idx'?v=>v==null?'–':Math.round(v).toString():money;
- let g='<text class="ax" x="'+(L-6)+'" y="'+(T+12)+'" text-anchor="end">이익률</text><line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+(top-6)+'" y2="'+(top-6)+'" stroke-dasharray="2 3"/>';
- for(let i=0;i<=k;i++){const yy=yS(aS.lo+aS.step*i);g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax axl" x="'+(L-6)+'" y="'+(yy+4)+'" text-anchor="end">'+tk(aS.lo+aS.step*i)+'</text>'+(aO?'<text class="ax axr" x="'+(W-R+6)+'" y="'+(yy+4)+'">'+tkO(aO.lo+aO.step*i)+'</text>':'')}
- if(aO&&aO.lo<0)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+zO+'" y2="'+zO+'" stroke="var(--text-3)" stroke-width="1"/>';
- const info=YRS.map((yr,i)=>vm==='idx'?yr+'년 · 매출지수 '+fm(A[i])+' (2023=100) · 영업이익률 '+pct(M[i]):yr+'년 · '+(vm==='avg'?'기업당 평균 ':'')+'매출 '+money(A[i])+' · 영업이익 '+money(B[i])+' · 영업이익률 '+pct(M[i]));
- YRS.forEach((yr,i)=>{const x=cx(i),a=A[i]==null?0:A[i],ys=Math.min(yS(a),zS),hs=Math.max(1,Math.abs(yS(a)-zS)),xs=B?x-bw-1:x-bw/2;
-  g+='<g class="slot" style="--i:'+i+'" tabindex="0" data-i="'+i+'"><rect class="colbg" x="'+(x-slot/2+2)+'" y="'+T+'" width="'+(slot-4)+'" height="'+ph+'" rx="10"/>'+
-   '<rect class="bar" x="'+xs+'" y="'+ys+'" width="'+bw+'" height="'+hs+'" rx="3" fill="var(--blue)"/>';
-  if(B){const o=B[i],yo=Math.min(yO(o),zO),ho=Math.max(1,Math.abs(yO(o)-zO));g+='<rect class="bar" x="'+(x+1)+'" y="'+yo+'" width="'+bw+'" height="'+ho+'" rx="3" fill="'+(o<0?'var(--down)':'var(--green)')+'"/>'}
-  g+='<text class="val" x="'+(xs+bw/2)+'" y="'+(ys-5)+'" text-anchor="middle">'+(vm==='idx'?fm(A[i]):tk(A[i]))+'</text>'+
-   '<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+yr+'</text><rect class="hit" x="'+(x-slot/2)+'" y="'+T+'" width="'+slot+'" height="'+ph+'"/></g>'});
- const pts=M.map((m,i)=>m==null?null:[cx(i),ym(m),m]).filter(Boolean);
- g+='<polyline points="'+pts.map(p=>p[0]+','+p[1]).join(' ')+'" fill="none" stroke="var(--orange)" stroke-width="2.2" stroke-linejoin="round"/>';
- pts.forEach(p=>{g+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="var(--card)" stroke="var(--orange)" stroke-width="2"/><text class="mval" x="'+p[0]+'" y="'+(p[1]-8)+'" text-anchor="middle">'+pct(p[2])+'</text>'});
- return '<div class="pc-tp pc-'+side+'"><h3>'+SIDE[side]+' <small>수치 확인 '+has.length+'/'+list.length+'곳'+(vm==='avg'?' 평균':vm==='idx'?' 합계 기준':' 합계')+'</small></h3><div class="db-chart pcg"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+SIDE[side]+' 2023~2025 '+(vm==='idx'?'매출지수·영업이익률':'매출·영업이익·영업이익률')+'. '+esc(info.join(' / '))+'">'+g+'</svg></div><p class="pc-strip" aria-live="polite" data-info="'+esc(JSON.stringify(info))+'">'+esc(info[2])+'</p></div>'}
+/* 금액 옆 성장률. 영업 적자/흑자 전환은 숫자 성장률로 오인시키지 않는다. */
+const chartMoney=v=>{if(v==null||!Number.isFinite(v))return '–';if(Math.abs(v)>=1000){const n=(v/10000).toFixed(2).replace(/\.?0+$/,'');return n+'조'}return Math.round(v).toLocaleString('ko-KR')+'억'};
+function change(arr,i,profit){if(!i||arr[i]==null||arr[i-1]==null)return{label:'—',tone:''};
+ const prev=arr[i-1],now=arr[i];
+ if(profit){if(prev<0&&now>=0)return{label:'흑자전환',tone:'up'};if(prev>=0&&now<0)return{label:'적자전환',tone:'down'};if(prev<0&&now<0)return{label:Math.abs(now)<Math.abs(prev)?'적자축소':Math.abs(now)>Math.abs(prev)?'적자확대':'변동 없음',tone:Math.abs(now)<Math.abs(prev)?'up':'down'};}
+ if(prev===0)return{label:now===0?'변동 없음':'비교 불가',tone:''};
+ const rate=(now-prev)/Math.abs(prev)*100;
+ return{label:Math.abs(rate).toFixed(1)+'%'+(rate>0?'↑':rate<0?'↓':'→'),tone:rate>0?'up':rate<0?'down':''};
+}
+function changeHtml(c){return '<span class="pc-change'+(c.tone?' is-'+c.tone:'')+'">'+esc(c.label)+'</span>'}
+function trendSvg(side,list){
+ const has=uniqSum(list),vm=fval();
+ if(!has.length)return '<p class="gc-empty">'+SIDE[side]+' · 수치가 확인된 업체가 없습니다.</p>';
+ const N=has.length,S=YRS.map((_,i)=>has.reduce((t,x)=>t+(x.row.r[i]||0),0)),O=YRS.map((_,i)=>has.reduce((t,x)=>t+(x.row.o[i]||0),0));
+ const A=vm==='avg'?S.map(v=>v/N):vm==='idx'?S.map(v=>S[0]?v/S[0]*100:null):S;
+ const B=vm==='avg'?O.map(v=>v/N):O;
+ const W=560,H=264,L=66,R=61,top=34,bottom=219,k=4,pw=W-L-R,slot=pw/3,bw=28;
+ const ax=axis(A.filter(Number.isFinite),k),ao=axis(B.filter(Number.isFinite),k);
+ const sy=v=>bottom-(v-ax.lo)/(ax.step*k)*(bottom-top),oy=v=>bottom-(v-ao.lo)/(ao.step*k)*(bottom-top);
+ const sz=sy(0),oz=oy(0),cx=i=>L+slot*(i+.5);
+ const fmtA=v=>vm==='idx'?(v==null?'–':v.toFixed(0)):chartMoney(v);
+ const info=YRS.map((y,i)=>y+'년 · 매출 '+chartMoney(S[i])+' '+change(S,i,false).label+' · 영업이익 '+chartMoney(O[i])+' '+change(O,i,true).label);
+ let g='';
+ for(let i=0;i<=k;i++){const yy=sy(ax.lo+ax.step*i);
+  g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/>'+
+  '<text class="ax axl" x="'+(L-7)+'" y="'+(yy+4)+'" text-anchor="end">'+(vm==='idx'?(ax.lo+ax.step*i).toFixed(0):chartMoney(ax.lo+ax.step*i))+'</text>'+
+  '<text class="ax axr" x="'+(W-R+6)+'" y="'+(yy+4)+'">'+chartMoney(ao.lo+ao.step*i)+'</text>'}
+ if(ao.lo<0)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+oz+'" y2="'+oz+'" stroke="var(--text-3)" stroke-width="1"/>';
+ YRS.forEach((yr,i)=>{const x=cx(i),a=A[i]||0,o=B[i]||0,xs=x-35,xo=x+7,ys=Math.min(sy(a),sz),hs=Math.max(1,Math.abs(sy(a)-sz)),yo=Math.min(oy(o),oz),ho=Math.max(1,Math.abs(oy(o)-oz));
+  const labelY=(v,y,h,z)=>v<0?z+h+12:y-6;
+  g+='<g class="slot" style="--i:'+i+'" tabindex="0" data-i="'+i+'"><rect class="colbg" x="'+(x-slot/2+3)+'" y="'+top+'" width="'+(slot-6)+'" height="'+(bottom-top)+'" rx="8"/>'+
+   '<rect class="bar" x="'+xs+'" y="'+ys+'" width="'+bw+'" height="'+hs+'" rx="3" fill="var(--blue)"/>'+
+   '<rect class="bar" x="'+xo+'" y="'+yo+'" width="'+bw+'" height="'+ho+'" rx="3" fill="'+(o<0?'var(--down)':'var(--green)')+'"/>'+
+   '<text class="val" x="'+(xs+bw/2)+'" y="'+labelY(a,ys,hs,sz)+'" text-anchor="middle">'+fmtA(A[i])+'</text>'+
+   '<text class="val" x="'+(xo+bw/2)+'" y="'+labelY(o,yo,ho,oz)+'" text-anchor="middle">'+chartMoney(B[i])+'</text>'+
+   '<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+yr+'</text>'+
+   '<rect class="hit" x="'+(x-slot/2)+'" y="'+top+'" width="'+slot+'" height="'+(bottom-top)+'"/></g>'});
+ const cards=YRS.map((y,i)=>'<div class="pc-year-metrics"><b class="pc-year">'+y+'</b><div>매출 <strong>'+chartMoney(S[i])+'</strong> '+changeHtml(change(S,i,false))+'</div><div>영업 <strong>'+chartMoney(O[i])+'</strong> '+changeHtml(change(O,i,true))+'</div></div>').join('');
+ return '<div class="pc-tp pc-'+side+'"><h3>'+SIDE[side]+' <small>수치 확인 '+has.length+'/'+list.length+'곳'+(vm==='avg'?' · 기업당 평균':vm==='idx'?' · 매출지수':' · 합계')+'</small></h3>'+
+  '<div class="db-chart pcg"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(SIDE[side]+' 2023~2025 매출 및 영업이익. '+info.join(' / '))+'">'+g+'</svg></div>'+
+  '<div class="pc-growth-grid" aria-label="'+SIDE[side]+' 연도별 금액과 전년 대비 변화">'+cards+'</div>'+
+  '<p class="pc-strip" aria-live="polite" data-info="'+esc(JSON.stringify(info))+'">'+esc(info[2])+'</p></div>';
+}
 function trend(dm,gl){const box=$('pc-trend'),vm=fval();box.innerHTML=trendSvg('dom',dm)+trendSvg('glo',gl);
  const sq=c=>'<i class="sq" style="background:var('+c+')"></i>';
- $('pc-legend').innerHTML=vm==='idx'?'<li>'+sq('--blue')+'매출지수(2023=100)</li><li>'+sq('--orange')+'영업이익률</li>':'<li>'+sq('--blue')+(vm==='avg'?'기업당 평균 매출':'매출')+'(왼쪽 축)</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':'영업이익')+'(오른쪽 축)</li><li>'+sq('--orange')+'영업이익률</li>';
- const n=$('pc-trend-note');if(n)n.textContent=vm==='idx'?'지수는 각 그래프의 2023년 매출 합계를 100으로 둔 값입니다. 영업이익률은 영업이익 합계 ÷ 매출 합계입니다.':'국내와 글로벌은 규모가 달라 두 그래프의 눈금이 서로 다릅니다. 매출은 왼쪽 축, 영업이익은 오른쪽 축 눈금입니다. 영업이익 막대가 매출 막대보다 낮게 나오도록 오른쪽 눈금을 맞췄으므로, 두 막대의 높이를 직접 견주지 말고 각 축의 값으로 읽어 주세요(적자는 0 아래).';
- const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · 수치가 확인된 업체의 '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출 합계 지수':'합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체'}
-document.addEventListener('pointerover',e=>{const s=e.target.closest&&e.target.closest('.pcg .slot');if(s)strip(s)});document.addEventListener('focusin',e=>{const s=e.target.closest&&e.target.closest('.pcg .slot');if(s)strip(s)});
-function strip(s){const p=s.closest('.pc-tp').querySelector('.pc-strip');try{p.textContent=JSON.parse(p.dataset.info)[+s.dataset.i]}catch(e){}}
+ $('pc-legend').innerHTML='<li>'+sq('--blue')+(vm==='idx'?'매출지수(2023=100)':vm==='avg'?'기업당 평균 매출':'매출')+' (왼쪽 축)</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':'영업이익')+' (오른쪽 축)</li>';
+ const n=$('pc-trend-note');if(n)n.textContent=vm==='idx'?'매출 막대만 2023년 지수(=100)로 표시하며 영업이익 막대는 실제 원화 합계입니다. 금액·증감률은 아래 연도별 요약을 참조하세요.':'국내와 글로벌 그래프는 각각 독립적인 눈금입니다. 매출은 왼쪽 축, 영업이익은 오른쪽 축을 읽으세요. 금액과 전년 대비 성장률은 각 연도 아래에 함께 표시합니다.';
+ const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출지수·영업이익 합계':'수치 확인 업체 합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체';
+}
+document.addEventListener('pointerover',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});
+document.addEventListener('focusin',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});
+function strip(t){const p=t.closest('.pc-tp').querySelector('.pc-strip');try{p.textContent=JSON.parse(p.dataset.info)[+t.dataset.i]}catch(e){}}
 
 /* 제목 아래 한 줄 요약: 이익률 대신 매출·영업이익을 표시 */
 function key(vis,dm,gl){const k=$('pc-key'),a=agg(dm),b=agg(gl);
