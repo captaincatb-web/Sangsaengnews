@@ -6,7 +6,7 @@
     2024,
     2025
   ],
-  "notes": "공식 공시의 본사 연결 실적을 원본 통화로 표시. 원화 환산 3개년 집계·합계·성장률에는 포함하지 않음.",
+  "notes": "해외 본사 공시 원문 실적(연결/개별 기준 개별 표시). 원화 3개년 합계·성장률에는 미반영. 연결 자료가 없는 곳은 개별 값을 연결로 표기하지 않음.",
   "companies": [
     {
       "name": "Montage Technology",
@@ -221,6 +221,86 @@
         {
           "url": "https://www.hoya.com/en/investor/ifrs/",
           "label": "HOYA 공식 IFRS 연결재무제표"
+        }
+      ]
+    },
+    {
+      "name": "Gigaphoton",
+      "currency": "JPY",
+      "unit": "억 엔",
+      "scope": "개별",
+      "revenue": [
+        510.55,
+        449.1,
+        498.02
+      ],
+      "operating_profit": [
+        97.53,
+        31.4,
+        60.03
+      ],
+      "operating_label": "営業利益 (개별)",
+      "periods": [
+        "2022-04-01~2023-03-31",
+        "2023-04-01~2024-03-31",
+        "2024-04-01~2025-03-31"
+      ],
+      "status": "개별 3개년 확보 · 연결 실적 미확인",
+      "note": "비상장 Gigaphoton의 결산공고 재게시(2차 출처) 기반. 본사 개별 실적이며 연결 실적이 아님. 원문 官報 대조 전이므로 연결 기준에 대신 넣지 않음.",
+      "sources": [
+        {
+          "url": "https://catr.jp/companies/1e29d/15440/settlements/04816/309806",
+          "label": "2023 결산공고 재게시"
+        },
+        {
+          "url": "https://catr.jp/companies/1e29d/15440/settlements/b15f0/361737",
+          "label": "2024 결산공고 재게시"
+        },
+        {
+          "url": "https://catr.jp/companies/1e29d/15440/settlements/fa9c4/411602",
+          "label": "2025 결산공고 재게시"
+        },
+        {
+          "url": "https://www.gigaphoton.com/ja/company",
+          "label": "Gigaphoton 공식 회사 정보"
+        }
+      ]
+    },
+    {
+      "name": "Hitachi High-Tech",
+      "currency": "JPY",
+      "unit": "억 엔",
+      "scope": "연결",
+      "revenue": [
+        6742,
+        6704,
+        7565
+      ],
+      "operating_profit": [
+        null,
+        null,
+        null
+      ],
+      "operating_label": "調整後営業利益 (연결·미수집)",
+      "periods": [
+        "2022-04-01~2023-03-31",
+        "2023-04-01~2024-03-31",
+        "2024-04-01~2025-03-31"
+      ],
+      "status": "연결 매출 3개년 확인 · 연결 영업이익 추가 검증",
+      "note": "공식 연결 매출 추이(2022/2023/2024 일본 회계연도=2023/2024/2025년 3월 결산). 2024회계연도 이후 헬스케어 사업 통합 영향이 있어 성장률 직접 비교 주의. 조정후영업이익(Adjusted Operating Profit)은 공식 차트 원문 수치·정의 재검증 전까지 공란 유지. 공식 결산공고 PDF의 개별 수치를 연결로 대체하지 말 것.",
+      "sources": [
+        {
+          "url": "https://www.hitachi-hightech.com/jp/ja/company/financial-info/",
+          "label": "Hitachi High-Tech 공식 연결 재무정보"
+        },
+        {
+          "url": "https://www.hitachi-hightech.com/jp/ja/company/data/",
+          "label": "Hitachi High-Tech 공식 연도별 매출 추이"
+        },
+        {
+          "url": "https://www.hitachi-hightech.com/jp/ja/company/publicnotice.html",
+          "label": "공식 결산공고(개별·연결 아님)"
         }
       ]
     }
