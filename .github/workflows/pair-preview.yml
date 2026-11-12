@@ -1,0 +1,31 @@
+name: Pair comparison preview screenshots
+on:
+  pull_request:
+    paths:
+      - 'site/pair-compare.*'
+      - 'scripts/capture-pair-preview.cjs'
+      - '.github/workflows/pair-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser capture dependency
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install chromium
+      - name: Capture actual comparison page (390px and 1280px)
+        run: node scripts/capture-pair-preview.cjs
+      - name: Upload screen previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: pair-compare-preview-pr
+          path: preview-screenshots/*.png
+          retention-days: 14
