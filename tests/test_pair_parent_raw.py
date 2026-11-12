@@ -4,7 +4,7 @@ from pathlib import Path
 P = Path(__file__).resolve().parents[1] / "site" / "data" / "pair-parent-consolidated.json"
 DIRECT = {  # 공시 원문(공식 PDF·SEC·EDINET)과 직접 대조한 값만 D 를 가질 수 있다: {회사: (매출 D 연도 색인, 영업이익 D 연도 색인)}
     "Montage Technology": ({0, 1, 2}, {0, 1, 2}), "TANAKA Holdings": ({0, 1, 2}, {0, 1, 2}), "Qnity Electronics": ({0, 1, 2}, set()),
-    "JSR": ({0}, {0}), "Tekscend Photomask": ({2}, {2}), "HOYA": ({0, 1}, set()),
+    "JSR": ({0}, {0}), "Tekscend Photomask": ({2}, {2}), "HOYA": ({0, 1, 2}, set()),
 }
 
 
