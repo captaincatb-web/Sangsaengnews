@@ -44,13 +44,13 @@ const uniqSum=list=>{const seen=new Set();return list.filter(x=>{if(!inSumRaw(x)
 function agg(list){const has=uniqSum(list),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
  return{n:list.length,k:has.length,rev:r2,op:o2,r0,m:has.length?margin(o2,r2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
 const krTxt=x=>x.kr?'한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':'')+': 2025 매출 '+fmt(x.kr.r[2])+'억 · 영업이익률 '+pct(margin(x.kr.o[2],x.kr.r[2]))+' ('+x.kr.s+(x.kr.src?' · '+x.kr.src:'')+')':'';
-/* 글로벌 원재료 본사의 공시 원문 금액(원본 통화). KRW 합계·성장률과는 의도적으로 분리한다. */
-const rawParent=x=>x.side==='glo'&&x.g==='원재료'&&x.e.p?RAW_PARENT[x.e.p.n]:null;
+/* 글로벌 원재료·부품 본사 공시 원문(개별/연결 구분). KRW 합계·성장률에는 미산입. */
+const rawParent=x=>x.side==='glo'&&['원재료','부품'].includes(x.g)&&x.e.p?RAW_PARENT[x.e.p.n]:null;
 function rawDetails(raw){
  const num=v=>v==null?'미확인':Number(v).toLocaleString('ko-KR',{maximumFractionDigits:2});
  const years=[2023,2024,2025].map((y,i)=>'<span class="pc-parent-year"><b>'+y+'</b> 매출 '+num(raw.revenue[i])+' / 영업 '+num(raw.operating_profit[i])+' ('+esc(raw.periods[i])+')</span>').join('');
  const links=(raw.sources||[]).filter(s=>/^https:\/\/[a-z0-9.-]+(?:\/|$)/i.test(s.url||'')).map(s=>'<a href="'+esc(s.url)+'" target="_blank" rel="noopener noreferrer">'+esc(s.label)+'</a>').join(' · ');
- return '<details class="pc-parent-raw"><summary>본사 연결 원문 3개년 · '+esc(raw.currency)+' 백만</summary><div class="pc-parent-rows">'+years+'</div><div class="pc-parent-status">'+esc(raw.status||'')+'</div><div class="pc-parent-why">'+esc(raw.note||'')+'</div>'+(links?'<div class="pc-parent-links">'+links+'</div>':'')+'<div class="pc-parent-hint">원화 비교 집계 미포함 · '+esc(raw.operating_label||'영업이익')+'</div></details>';
+ return '<details class="pc-parent-raw"><summary>본사 '+esc(raw.scope||'연결')+' 원문 3개년 · '+esc(raw.currency)+' '+esc(raw.unit||'백만')+'</summary><div class="pc-parent-rows">'+years+'</div><div class="pc-parent-status">'+esc(raw.status||'')+'</div><div class="pc-parent-why">'+esc(raw.note||'')+'</div>'+(links?'<div class="pc-parent-links">'+links+'</div>':'')+'<div class="pc-parent-hint">원화 비교 집계 미포함 · '+esc(raw.operating_label||'영업이익')+'</div></details>';
 }
 const tagOf=x=>fbasis()==='k'&&x.side==='glo'?['한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':''),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · '):[x.e.p?(x.row?(x.side==='dom'?'본사 실적 참조: ':'본사 실적: ')+x.e.p.n:''):(x.k&&KIND[x.k]),x.row&&x.row.s,x.row&&x.row.src].filter(Boolean).join(' · ');
 
@@ -136,7 +136,7 @@ function pairs(items,vis){const box=$('pc-pairs');
  if(!items.length){box.innerHTML='<p class="gc-empty">조건에 맞는 업체가 없습니다.</p>';return}
  const col=(side,list)=>{const a=agg(list);
   const rows=list.map(x=>{const r=x.row,tg=tagOf(x),nm='<th scope="row" class="l"><span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(tg?'<small>'+esc(tg)+'</small>':'')+(x.kr&&fbasis()!=='k'?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+(rawParent(x)?rawDetails(rawParent(x)):'')+(!r?'<small class="pc-why">'+esc(otherBasis(x)||(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||(x.e.p?NO_PAR:'')))+'</small>':'')+(x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 '+(incX()?'포함 중':'제외 중')+'</small>':'')+'</th>';
-   return r?'<tr>'+nm+'<td>'+fmt(r.r[2])+'</td><td class="pc-hm">'+sg(grow(r.r,2))+'</td><td>'+pct(margin(r.o[2],r.r[2]))+'</td></tr>':'<tr class="pc-none">'+nm+'<td colspan="3" class="pc-na">'+(rawParent(x)?'본사 연결 원문 확인 · 원화 비교 집계 제외':'자료 없음')+'</td></tr>'}).join('');
+   return r?'<tr>'+nm+'<td>'+fmt(r.r[2])+'</td><td class="pc-hm">'+sg(grow(r.r,2))+'</td><td>'+pct(margin(r.o[2],r.r[2]))+'</td></tr>' :'<tr class="pc-none">'+nm+'<td colspan="3" class="pc-na">'+(rawParent(x)?'본사 '+esc(rawParent(x).scope||'연결')+' 원문 확인 · 원화 비교 집계 제외':'자료 없음')+'</td></tr>'}).join('');
   return '<div class="pc-col pc-'+side+'"><h4>'+SIDE[side]+' <small>수치 확인 '+a.k+'/'+a.n+'곳</small></h4><div class="db-tbl-wrap"><table class="db-tbl pc-tbl"><caption class="sr-only">'+SIDE[side]+' 2025년 매출·매출 증감·영업이익률</caption><thead><tr><th scope="col" class="l">업체</th><th scope="col">2025 매출(억 원)</th><th scope="col" class="pc-hm">매출 증감</th><th scope="col">영업이익률</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'};
  box.innerHTML=items.map(it=>{const l=vis.filter(x=>x.g===it.g&&x.i===it.i);
   return '<section class="pc-item" aria-label="'+esc(it.g===it.i?it.i:it.g+' '+it.i)+'"><h3 class="pc-ih">'+(it.g===it.i?esc(it.i):esc(it.g)+' › '+esc(it.i))+'</h3><div class="pc-cols">'+col('dom',l.filter(x=>x.side==='dom'))+col('glo',l.filter(x=>x.side==='glo'))+'</div></section>'}).join('')}
@@ -170,7 +170,7 @@ function basis(){const M=['①','②','③','④'];
   '같은 본사가 여러 업체의 본사로 나오거나 여러 품목에 있으면(예: ASML) 표에는 각각 보이지만 합계·그래프에서는 한 번만 셉니다. 본사의 공시 실적이 없거나 본사가 확정되지 않은 업체는 \'자료 없음\'으로 두고 그룹 실적으로 대체하지 않습니다.',
   '재무 기준 옆에 \'사업보고서\'·\'감사보고서\'로 표시된 업체는 성장 분석 집계에 없어, DART 사업보고서 또는 외부감사 보고서의 개별(별도) 재무에서 따로 가져온 값입니다(2023~2025년 모두 확인된 업체만).',
   '자료 없음은 2023~2025년 3개년 공시 실적이 확인되지 않은 업체입니다(비공시 법인 등). 수치를 추정하거나 만들지 않습니다.',
-  '글로벌 원재료 업체의 본사 연결 원문 실적(현지 통화)은 업체명 아래 펼치기에서 확인할 수 있습니다. 원화 환산 검증 전 수치는 기존 합계·그래프·성장률에 포함하지 않습니다. 기간 차이, 기업 재편, 미확인 영업이익은 주석으로 구분합니다.',
+  '글로벌 원재료·부품 업체의 본사 공시 원문(현지 통화)은 업체명 아래 펼치기에서 확인할 수 있습니다. 각 본사 실적의 연결·개별 구분을 보존하고, 원화 환산 검증 전 수치는 기존 합계·그래프·성장률에 포함하지 않습니다. 연결을 확보하지 못한 개별 자료를 연결로 바꾸지 않으며, 기간 차이·기업 재편·미확인 영업이익은 주석으로 구분합니다.',
   '전지 중심 기업(삼성에스디아이)은 회사 전체 실적이 반도체 소재 사업과 거리가 큽니다. 기본으로 합계·그래프에 포함하며, 위 필터의 \'합계에 포함\'을 끄면 수치는 그대로 두고 합계·그래프에서만 뺍니다.',
   '품목별 요약은 수치가 확인된 업체만 합산해, 확인된 업체가 적은 품목은 대표성이 낮습니다. 업체 명단의 순서는 표시 편의를 위한 것이며 순위나 구매액을 나타내지 않습니다.'].map(t=>'<li>'+esc(t)+'</li>').join('')}
 
