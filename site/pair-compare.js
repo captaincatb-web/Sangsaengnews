@@ -135,17 +135,38 @@ function key(vis,dm,gl){const k=$('pc-key'),a=agg(dm),b=agg(gl);
   '<span><b>2025년 영업이익</b> '+sp('dom',money(a.op))+' · '+sp('glo',money(b.op))+'</span>'}
 
 /* 통합 비교표는 아래 detail()에서 국내·글로벌 합계 및 업체별 행을 렌더링한다. */
-/* 업체별 상세(성장 분석 회사별 상세와 같은 열) */
-const COLS=[['n','업체',1],['side','구분',1],['s','재무 기준',1],['r0','2023 매출(억 원)',0],['r1','2024 매출',0],['r2','2025 매출',0],['o2','2025 영업이익(억 원)',0],['m0','2023 영업이익률',0],['m1','2024 영업이익률',0],['m2','2025 영업이익률',0],['g1','매출 성장 2024',0],['g2','매출 성장 2025',0],['kr2','한국 법인 2025 매출(억 원)',0],['krm','한국 법인 2025 영업이익률',0]];
-function val(x,k){const r=x.row;if(k==='kr2')return x.kr?x.kr.r[2]:null;if(k==='krm')return x.kr?margin(x.kr.o[2],x.kr.r[2]):null;if(!r&&k!=='n'&&k!=='side'&&k!=='s')return null;switch(k){case'n':return x.e.n;case'side':return SIDE[x.side];case's':return tagOf(x);case'r0':case'r1':case'r2':return r.r[+k[1]];case'o2':return r.o[2];case'm0':case'm1':case'm2':return margin(r.o[+k[1]],r.r[+k[1]]);case'g1':return grow(r.r,1);case'g2':return grow(r.r,2)}}
-function detail(vis){const rows=vis.filter(x=>x.row||x.kr),miss=vis.length-rows.length;
- let l=rows.slice();
- if(sortKey)l.sort((a,b)=>{const A=val(a,sortKey),B=val(b,sortKey);if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return -1;return(typeof A==='string'?A.localeCompare(B,'ko'):A-B)*sortDir});
- $('pc-empty').hidden=l.length>0;
- const head='<thead><tr>'+COLS.map(([k,t,s])=>'<th scope="col" class="'+(s?'l':'')+'" aria-sort="'+(sortKey===k?(sortDir>0?'ascending':'descending'):'none')+'"><button type="button" data-k="'+k+'">'+esc(t)+(sortKey===k?(sortDir>0?' ▲':' ▼'):'')+'</button></th>').join('')+'</tr></thead>';
- const body='<tbody>'+l.map(x=>{const r=x.row?x.row.r:[null,null,null],o=x.row?x.row.o:[null,null,null],K=x.kr;return '<tr><th scope="row" class="l"><span class="co-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span><small>'+esc(x.g===x.i?x.i:x.g+' › '+x.i)+'</small></th><td class="l pc-s-'+x.side+'">'+SIDE[x.side]+'</td><td class="l">'+esc(tagOf(x))+'</td><td>'+fmt(r[0])+'</td><td>'+fmt(r[1])+'</td><td>'+fmt(r[2])+'</td><td>'+fmt(o[2])+'</td><td>'+pct(margin(o[0],r[0]))+'</td><td>'+pct(margin(o[1],r[1]))+'</td><td>'+pct(margin(o[2],r[2]))+'</td><td>'+sg(grow(r,1))+'</td><td>'+sg(grow(r,2))+'</td><td>'+(K?fmt(K.r[2]):'–')+'</td><td>'+(K?pct(margin(K.o[2],K.r[2])):'–')+'</td></tr>'}).join('')+'</tbody>';
- $('pc-tbl').innerHTML=l.length?head+body:'';
- }
+/* 단일 통합 비교표: 국내·글로벌 합계와 원본 법인별 상세를 하나의 표에 표시. */
+const COLS=[['n','업체 / 구분',1],['r0','2023 매출',0],['r1','2024 매출',0],['r2','2025 매출 · 증감',0],['o0','2023 영업이익',0],['o1','2024 영업이익',0],['o2','2025 영업이익 · 증감',0],['m2','2025 영업이익률',0]];
+function val(x,k){const r=x.row;if(k==='n')return x.e.n;if(!r)return null;
+ if(k[0]==='r'||k[0]==='o')return r[k[0]][Number(k[1])];
+ if(k==='m2')return margin(r.o[2],r.r[2]);return null;
+}
+function detail(vis){
+ const t=$('pc-tbl');$('pc-empty').hidden=vis.length>0;
+ if(!vis.length){t.innerHTML='';return}
+ const head='<thead><tr>'+COLS.map(([k,label,left])=>'<th scope="col" class="'+(left?'l':'')+'" aria-sort="'+(sortKey===k?(sortDir>0?'ascending':'descending'):'none')+'"><button type="button" data-k="'+k+'">'+esc(label)+(sortKey===k?(sortDir>0?' ▲':' ▼'):'')+'</button></th>').join('')+'</tr></thead>';
+ const amount=(v,arr,i,profit)=>'<td class="'+(i===2?'pc-primary':'')+'">'+fmt(v)+(i===2?'<small>'+changeHtml(change(arr,2,profit))+'</small>':'')+'</td>';
+ const subtotal=(side,entries)=>{const counted=uniqSum(entries);
+  const r=YRS.map((_,i)=>counted.reduce((n,x)=>n+(x.row.r[i]||0),0));
+  const o=YRS.map((_,i)=>counted.reduce((n,x)=>n+(x.row.o[i]||0),0));
+  return '<tr class="pc-total pc-total-'+side+'"><th scope="row" class="l">'+SIDE[side]+' 합계<small>실적 확인 '+counted.length+'/'+entries.length+'곳 · 같은 본사 중복 제외</small></th>'+
+  (counted.length?'<td>'+fmt(r[0])+'</td><td>'+fmt(r[1])+'</td>'+amount(r[2],r,2,false)+
+  '<td>'+fmt(o[0])+'</td><td>'+fmt(o[1])+'</td>'+amount(o[2],o,2,true)+'<td>'+pct(margin(o[2],r[2]))+'</td>':'<td colspan="7" class="pc-na">비교 기준의 공시 실적 없음</td>')+'</tr>'};
+ const row=x=>{const r=x.row,tg=tagOf(x),nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+
+  '<small>'+esc(x.g===x.i?x.i:x.g+' › '+x.i)+'</small>'+
+  (tg?'<small>'+esc(tg)+'</small>':'')+(x.kr?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
+  (rawParent(x)?rawDetails(rawParent(x)):'')+
+  (!r?'<small class="pc-why">'+esc(otherBasis(x)+' · '+(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||NO_DATA))+'</small>':'')+
+  (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':'');
+  if(!r)return '<tr class="pc-none"><th scope="row" class="l">'+nm+'</th><td colspan="7" class="pc-na">자료 없음 (고정 재무기준)</td></tr>';
+  return '<tr><th scope="row" class="l">'+nm+'</th><td>'+fmt(r.r[0])+'</td><td>'+fmt(r.r[1])+'</td>'+
+   amount(r.r[2],r.r,2,false)+'<td>'+fmt(r.o[0])+'</td><td>'+fmt(r.o[1])+'</td>'+
+   amount(r.o[2],r.o,2,true)+'<td>'+pct(margin(r.o[2],r.r[2]))+'</td></tr>'};
+ const body=['dom','glo'].map(side=>{const entries=vis.filter(x=>x.side===side);if(!entries.length)return '';
+  const list=entries.slice();if(sortKey)list.sort((a,b)=>{const A=val(a,sortKey),B=val(b,sortKey);if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return -1;return(typeof A==='string'?A.localeCompare(B,'ko'):A-B)*sortDir});
+  return subtotal(side,entries)+list.map(row).join('')}).join('');
+ t.innerHTML=head+'<tbody>'+body+'</tbody>';
+}
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
  const head=['구분','품목','국내/글로벌','업체명','분류','재무 기준',...Y.map(y=>y+' 매출(억 원)'),...Y.map(y=>y+' 영업이익(억 원)'),...Y.map(y=>y+' 영업이익률(%)'),'매출 성장 2024(%)','매출 성장 2025(%)','한국 법인','한국 법인 재무 기준',...Y.map(y=>'한국 법인 '+y+' 매출(억 원)'),...Y.map(y=>'한국 법인 '+y+' 영업이익(억 원)'),'비고'];
