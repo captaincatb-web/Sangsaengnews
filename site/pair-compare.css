@@ -153,7 +153,7 @@
 .pc-ins-row+.pc-ins-row{padding-top:6px;border-top:1px dashed var(--line)}
 
 
-/* 임원 보고형: 결론 → 국내·글로벌 성장률 격차 → 품목별 특징 */
+/* 임원 보고형: 결론 → 국내·글로벌 성장률 격차 → 필터별 성장·감소 요인 */
 .pc-ins-summary{display:grid;gap:5px;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--card);line-height:1.55}
 .pc-ins-summary>strong{font-size:18px;font-weight:800;color:var(--text)}
 .pc-ins-summary>span{font-size:13px;color:var(--text-2)}
@@ -166,6 +166,6 @@
 .pc-ins-metric small{font-size:13px;font-weight:800}
 .pc-ins-vs{font-size:12px;font-weight:500;color:var(--text-3)}
 .pc-ins-footnote{margin:0;padding:0 4px;color:var(--text-2);font-size:12px;line-height:1.7}
-.pc-ins-line{grid-template-columns:76px minmax(0,1fr)}
+.pc-ins-line{grid-template-columns:102px minmax(0,1fr)}
 .pc-ins-k{white-space:nowrap}
 @media(max-width:700px){.pc-ins-summary{padding:13px 14px}.pc-ins-summary>strong{font-size:16px}.pc-ins-metrics{grid-template-columns:1fr}.pc-ins-metric{padding:12px 14px}.pc-ins-metric-values{gap:7px}.pc-ins-metric-values strong{font-size:12.5px}.pc-ins-metric-values small{font-size:12px}.pc-ins-line{grid-template-columns:1fr}}
