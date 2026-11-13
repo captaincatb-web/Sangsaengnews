@@ -129,9 +129,20 @@
 .pc-unified tbody tr:has(.pc-parent-raw[open]){position:relative;z-index:7}
 .pc-unified th:has(.pc-parent-raw){overflow:visible!important}
 
-/* 3개년 트렌드 분석 박스 */
+/* 3개년 트렌드 분석 박스: 국내|글로벌 두 칸에 추세·이유를 짧게 */
 .pc-insight-cond{margin-left:10px;color:var(--text-3);font-size:12.5px;font-weight:600}
-.pc-insight{display:grid;gap:10px;margin-top:6px}
-.pc-insight p{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;margin:0;line-height:1.7;font-size:14px;color:var(--text)}
-.pc-ins-k{align-self:start;display:inline-block;padding:2px 0;text-align:center;border-radius:6px;background:var(--bg);color:var(--text-2);font-size:12.5px;font-weight:800}
-@media(max-width:700px){.pc-insight p{grid-template-columns:1fr;gap:3px;font-size:13.5px}.pc-ins-k{justify-self:start;padding:2px 10px}}
+.pc-ins-grid{display:grid;grid-template-columns:78px minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:8px}
+.pc-ins-h{font-size:13px;font-weight:800;padding:0 2px 6px;border-bottom:2px solid var(--line)}
+.pc-ins-dom{color:var(--gc-ink-1,var(--blue));border-color:var(--gc-ink-1,var(--blue))}
+.pc-ins-glo{color:var(--gc-ink-2,#a85a00);border-color:var(--gc-ink-2,#a85a00)}
+.pc-ins-k{align-self:center;font-size:14px;font-weight:800;color:var(--text)}
+.pc-ins-k small{display:block;font-size:11px;font-weight:600;color:var(--text-3)}
+.pc-ins-c{min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.pc-ins-big{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pc-ins-big span{color:var(--text-2);font-size:13px}
+.pc-ins-big b{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.pc-ins-sub{margin-top:3px;color:var(--text-3);font-size:12.5px}
+.pc-up{color:var(--up,#0f7b4a)}.pc-down{color:var(--down,#c0392b)}.pc-flat{color:var(--text-2)}
+.pc-ins-concl{margin:10px 0 0;font-size:14.5px;font-weight:800;color:var(--text)}
+@media(max-width:700px){.pc-ins-grid{grid-template-columns:44px minmax(0,1fr) minmax(0,1fr);gap:6px}.pc-ins-c{padding:8px 8px;font-size:12.5px}.pc-ins-big b{font-size:15px}.pc-ins-big{flex-direction:column;gap:0}.pc-ins-k{font-size:12.5px}.pc-ins-k small{display:none}}
+.pc-ins-c .pc-up,.pc-ins-c .pc-down{white-space:nowrap}

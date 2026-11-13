@@ -186,18 +186,19 @@ function insight(dm,gl){
    dR:h.map(x=>({n:nm(x),v:x.row.r[2]-x.row.r[0]})),dO:h.map(x=>({n:nm(x),v:x.row.o[2]-x.row.o[0]}))}};
  const D=side(dm),G=side(gl);
  if(!D&&!G){box.innerHTML='<p class="gc-empty">선택한 조건에 수치가 확인된 업체가 없어 분석할 수 없습니다.</p>';return}
- const lvl=g=>g==null?'':g>=10?'고성장':g>=3?'완만한 성장':g>-3?'정체':g>-10?'소폭 감소':'큰 폭 감소';
  const sgn=v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%';
+ const cls=v=>v>0.0001?'pc-up':v<-0.0001?'pc-down':'pc-flat',arw=v=>v>0.0001?'↑':v<-0.0001?'↓':'→';
  const opShort=(a,b)=>a>0&&b>0?sgn((b/a-1)*100):a<=0&&b>0?'흑자전환':a>0&&b<=0?'적자전환':Math.abs(b)<Math.abs(a)?'적자 축소':'적자 확대';
- const one=(lab,x)=>x?lab+' 매출 '+sgn(x.rg)+'('+lvl(x.rg)+')·영업이익 '+opShort(x.O[0],x.O[2])+'·영업이익률 '+pct(x.m0)+'→'+pct(x.m2):lab+' 수치 확인 업체 없음';
- let l1=[one('국내업체',D),one('글로벌업체',G)].join(' / ');
- if(D&&G){const gap=D.rg-G.rg;l1+=' → 매출 성장은 '+(Math.abs(gap)<2?'국내와 글로벌이 비슷합니다.':gap>0?'국내가 '+Math.abs(gap).toFixed(1)+'%p 앞섭니다.':'글로벌이 '+Math.abs(gap).toFixed(1)+'%p 앞섭니다.')}
- const drv=(lab,x)=>{if(!x)return '';const tot=x.dO.reduce((t,e)=>t+e.v,0),up=tot>=0,srt=x.dO.slice().sort((a,b)=>up?b.v-a.v:a.v-b.v);
-  const lead=srt.filter(e=>up?e.v>0:e.v<0).slice(0,2),drag=srt.slice().reverse().find(e=>up?e.v<0:e.v>0);
-  const fm=e=>e.n+'('+(e.v>0?'+':'−')+money(Math.abs(e.v))+')';
-  return lab+' 영업이익 '+(up?'+':'−')+money(Math.abs(tot))+': '+(lead.length?(up?'증가 견인 ':'감소 주도 ')+lead.map(fm).join('·'):'특정 업체 편중 없음')+(drag?', 상쇄 '+fm(drag):'')};
- const l2=[drv('국내업체',D),drv('글로벌업체',G)].filter(Boolean).join(' / ');
- box.innerHTML='<p><b class="pc-ins-k">추세</b><span>'+esc(l1)+'</span></p><p><b class="pc-ins-k">이유</b><span>'+esc(l2)+'</span></p>';
+ const opCls=(a,b)=>b-a;
+ const sm=v=>(v>0?'+':'−')+chartMoney(Math.abs(v));
+ const trendCell=x=>x?'<div class="pc-ins-big"><span>매출</span><b class="'+cls(x.rg)+'">'+sgn(x.rg)+' '+arw(x.rg)+'</b></div><div class="pc-ins-big"><span>영업이익</span><b class="'+cls(opCls(x.O[0],x.O[2]))+'">'+esc(opShort(x.O[0],x.O[2]))+' '+arw(opCls(x.O[0],x.O[2]))+'</b></div><div class="pc-ins-sub">이익률 '+pct(x.m0)+' → '+pct(x.m2)+'</div>':'<div class="pc-ins-sub">수치 확인 업체 없음</div>';
+ const reasonCell=x=>{if(!x)return '<div class="pc-ins-sub">–</div>';const tot=x.dO.reduce((t,e)=>t+e.v,0),up=tot>=0,srt=x.dO.slice().sort((a,b)=>up?b.v-a.v:a.v-b.v);
+  const lead=srt.find(e=>up?e.v>0:e.v<0),drag=srt.slice().reverse().find(e=>up?e.v<0:e.v>0);
+  return (lead?'<div><b>'+esc(lead.n)+'</b> <span class="'+cls(lead.v)+'">'+sm(lead.v)+'</span> '+(up?'견인':'주도')+'</div>':'<div>특정 업체 편중 없음</div>')+(drag?'<div class="pc-ins-sub">'+esc(drag.n)+' <span class="'+cls(drag.v)+'">'+sm(drag.v)+'</span> 상쇄</div>':'')};
+ let concl='';if(D&&G){const gap=D.rg-G.rg;concl='매출 성장은 '+(Math.abs(gap)<2?'국내와 글로벌이 비슷합니다':gap>0?'국내가 글로벌보다 '+Math.abs(gap).toFixed(1)+'%p 앞섭니다':'글로벌이 국내보다 '+Math.abs(gap).toFixed(1)+'%p 앞섭니다')+'.'}
+ box.innerHTML='<div class="pc-ins-grid"><div class="pc-ins-h"></div><div class="pc-ins-h pc-ins-dom">국내업체</div><div class="pc-ins-h pc-ins-glo">글로벌업체</div>'+
+  '<div class="pc-ins-k">추세<small>2023→2025</small></div><div class="pc-ins-c">'+trendCell(D)+'</div><div class="pc-ins-c">'+trendCell(G)+'</div>'+
+  '<div class="pc-ins-k">이유<small>영업이익 기여</small></div><div class="pc-ins-c">'+reasonCell(D)+'</div><div class="pc-ins-c">'+reasonCell(G)+'</div></div>'+(concl?'<p class="pc-ins-concl">'+esc(concl)+'</p>':'');
 }
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
