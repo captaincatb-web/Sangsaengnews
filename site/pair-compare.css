@@ -128,3 +128,10 @@
 /* 펼친 말풍선이 아래 행에 가려지지 않게 해당 행을 위로 올림 */
 .pc-unified tbody tr:has(.pc-parent-raw[open]){position:relative;z-index:7}
 .pc-unified th:has(.pc-parent-raw){overflow:visible!important}
+
+/* 3개년 트렌드 분석 박스 */
+.pc-insight-cond{margin-left:10px;color:var(--text-3);font-size:12.5px;font-weight:600}
+.pc-insight{display:grid;gap:10px;margin-top:6px}
+.pc-insight p{display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;margin:0;line-height:1.7;font-size:14px;color:var(--text)}
+.pc-ins-k{align-self:start;display:inline-block;padding:2px 0;text-align:center;border-radius:6px;background:var(--bg);color:var(--text-2);font-size:12.5px;font-weight:800}
+@media(max-width:700px){.pc-insight p{grid-template-columns:1fr;gap:3px;font-size:13.5px}.pc-ins-k{justify-self:start;padding:2px 10px}}
