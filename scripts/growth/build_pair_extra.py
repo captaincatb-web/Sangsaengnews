@@ -24,8 +24,11 @@ def main():
     par.update({e["n"]: e["ex"] for side, e in ents if side == "glo" and e.get("ex")})  # 본사 자체(ex): 공개 회사별 상세에 없는 기준(예: 도쿄일렉트론 연결)을 따로 수집
     rows, skipped = [], 0
     by = {}
-    for r in csv.DictReader(open(priv / "pair_audit_rows.csv", encoding="utf-8-sig")):
-        if r["상태"] == "OK" and r["year"]: by.setdefault(r["표시명"], {})[int(r["year"])] = r
+    for fn in ("pair_audit_rows.csv", "pair_audit_manual.csv"):  # 두 번째: 사람이 입력한 한국 법인 감사보고서 값(2차 출처 포함, source 칸에 표기). 같은 표시명·연도는 나중 파일이 우선
+        pf = priv / fn
+        if not pf.exists(): continue
+        for r in csv.DictReader(open(pf, encoding="utf-8-sig")):
+            if r["상태"] == "OK" and r["year"]: by.setdefault(r["표시명"], {})[int(r["year"])] = r
     for n in sorted(by):
         d = by[n]
         if n not in dom or not full(d): skipped += 1; continue

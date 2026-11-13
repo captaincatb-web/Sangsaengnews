@@ -106,7 +106,8 @@
        "f": "ADVANTEST CORPORATION",
        "k": "hq",
        "m": "ADVANTEST",
-       "ex": "advantest"
+       "ex": "advantest",
+       "kx": "아드반테스트코리아"
       },
       {
        "n": "NEXTEST SYSTEMS",
@@ -116,27 +117,31 @@
         "n": "Teradyne",
         "x": "teradyne",
         "b": "Nextest는 2008년 Teradyne에 인수된 100% 자회사로 자체 공시가 없어 본사(Teradyne) 연결 실적을 참조"
-       }
+       },
+       "km": "테라다인코리아"
       },
       {
        "n": "DISCO",
        "f": "DISCO CORPORATION",
        "k": "hq",
        "m": "DISCO",
-       "ex": "disco"
+       "ex": "disco",
+       "kx": "디스코하이테크코리아"
       },
       {
        "n": "TOWA",
        "f": "TOWA CORPORATION",
        "k": "hq",
        "m": "TOWA",
-       "ex": "towa"
+       "ex": "towa",
+       "kx": "토와한국"
       },
       {
        "n": "LINTEC",
        "f": "LINTEC CORPORATION",
        "k": "hq",
-       "ex": "lintec"
+       "ex": "lintec",
+       "km": "린텍코리아"
       }
      ]
     }
