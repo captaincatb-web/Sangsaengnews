@@ -141,10 +141,10 @@ for (const w of [390, 1280]) {
     const charts=page.locator('#pc-trend .pc-tp');
     assert.equal(await charts.count(),2,'국내·글로벌 차트');
     assert.equal(await page.locator('#pc-trend svg .bar').count(),12,'2023~2025 매출·영업이익 막대 모두 표시');
-    assert.equal(await page.locator('#pc-trend .pc-growth-grid .pc-year-metrics').count(),6,'금액 및 전년 대비 증감 6개');
+    assert.equal(await page.locator('#pc-trend .pc-year-metrics').count(),0,'연도별 요약 카드 삭제');
+    assert.ok((await page.locator('#pc-trend .pc-dom .val .g').count())>=4,'막대 값 옆 전년 대비 증감률');
     assert.equal(await page.locator('#pc-trend svg polyline').count(),0,'영업이익률 추이선 삭제');
     assert.doesNotMatch(await page.locator('#pc-legend').innerText(), /영업이익률/);
-    assert.match(await page.locator('#pc-trend .pc-dom .pc-growth-grid').innerText(), /매출.*영업/s);
     await page.selectOption('#f-val','idx');
     assert.equal(await page.locator('#pc-trend svg .bar').count(),12,'매출지수 선택시에도 영업이익 막대 유지');
     await page.selectOption('#f-val','avg');
@@ -163,6 +163,10 @@ for (const w of [390, 1280]) {
     assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 제외 필터');
     await page.selectOption('#f-sdi','in');
     assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 다시 포함');
+    await page.selectOption('#f-kr','kr');
+    assert.match(await page.locator('#pc-tbl').innerText(),/한국 법인/,'한국 법인 기준 비교');
+    assert.match(await page.locator('.pc-fixed-basis').innerText(),/한국 법인/,'기준 안내가 한국 법인으로 바뀜');
+    await page.selectOption('#f-kr','hq');
     await page.selectOption('#f-grp','설비');
     assert.equal(await page.locator('#f-item').inputValue(),'','품목 초기화');
     await page.fill('#f-q','ASML');

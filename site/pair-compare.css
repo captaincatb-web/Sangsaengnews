@@ -109,3 +109,14 @@
 .pc-unified th:first-child{position:static;box-shadow:none}
 .pc-unified .pc-item th{padding:7px 10px;font-size:12px;font-weight:700;color:var(--text-2);background:var(--bg)}
 .pc-unified th.pc-none .pc-n{color:var(--text-2)}
+
+/* 막대 위 값 옆 전년 대비 증감률 */
+.pcg .val{font-size:12.5px;font-weight:700;fill:var(--text)}
+.pcg .val .g{font-size:11.5px;font-weight:700;fill:var(--text-3)}
+.pcg .val .g-up{fill:var(--up,#0f7b4a)}
+.pcg .val .g-down{fill:var(--down,#c0392b)}
+
+/* 합계 칸 보조 설명: 기본은 숨기고 마우스를 올리거나 키보드·탭으로 포커스하면 말풍선으로 표시 */
+.pc-unified .pc-total th.pc-tip{position:relative;cursor:help;outline:none}
+.pc-unified .pc-total th.pc-tip small{display:none;position:absolute;left:8px;top:calc(100% - 4px);z-index:5;white-space:nowrap;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);box-shadow:0 6px 18px rgba(0,0,0,.14);font-size:12px;font-weight:600;line-height:1.4}
+.pc-unified .pc-total th.pc-tip:hover small,.pc-unified .pc-total th.pc-tip:focus small,.pc-unified .pc-total th.pc-tip:focus-visible small{display:block}
