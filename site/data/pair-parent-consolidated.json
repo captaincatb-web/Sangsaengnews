@@ -148,9 +148,13 @@
         "2023-04-01~2024-03-31",
         "2024-04-01~2025-03-31"
       ],
-      "status": "IPO 증권신고서 3개년 수치 · 2023·2024년 원문 대조 전",
-      "note": "2025년 상장 이전 FY2023·FY2024 실적은 IPO 증권신고서(EDINET E40985 / S100WN47)에 포함. 2025년 3월기 수치는 후속 유가증권보고서와 대조.",
+      "status": "연결 3개년 공식 원문 대조 (EDINET 감사 손익계산서)",
+      "note": "2025년 상장 이전 FY2023·FY2024 실적은 EDINET 유가증권신고서(E40985 / S100WN47)의 감사완료 연결손익계산서로 대조. FY2024 영업이익은 설비 내용연수 변경으로 7,810백만 엔 감소.",
       "sources": [
+        {
+          "url": "https://disclosure2dl.edinet-fsa.go.jp/searchdocument/pdf/S100WN47.pdf",
+          "label": "EDINET 유가증권신고서 연결손익계산서 (p.154)"
+        },
         {
           "url": "https://f.irbank.net/pdf/E40985/etc/S100WN47.pdf",
           "label": "EDINET IPO 증권신고서 제3자 PDF 사본 (p.154)"
@@ -163,8 +167,8 @@
       "scope": "연결",
       "unit": "백만",
       "verification": [
-        "제출문서 2차 사본 · 원문 대조 전",
-        "제출문서 2차 사본 · 원문 대조 전",
+        "공식 원문 대조",
+        "공식 원문 대조",
         "공식 원문 대조"
       ]
     },
@@ -187,8 +191,8 @@
         "2024-01-01~2024-12-31",
         "2025-01-01~2025-12-31"
       ],
-      "status": "공식 연결보고서 PDF 확보 · 3개년 숫자 최종 대조 전",
-      "note": "그룹 전체 연결 실적(헬스케어·생명과학 포함). EBIT은 회사 정의에 따른 영업성과 지표로 반도체 Electronics 사업부 실적과 구분.",
+      "status": "공식 연결보고서 3개년 원문 대조",
+      "note": "그룹 전체 연결 실적(헬스케어·생명과학 포함). EBIT(Operating result)는 IFRS 연결손익계산서의 영업이익 항목이며 반도체 Electronics 사업부 실적과 구분.",
       "sources": [
         {
           "url": "https://www.reports.emdgroup.com/en/annualreport/2024/_assets/downloads/cfs-consolidated-financial-statements-emd-ar24.pdf",
@@ -202,9 +206,9 @@
       "scope": "연결",
       "unit": "백만",
       "verification": [
-        "공식 PDF 확보 · 수치 재대조 전",
-        "공식 PDF 확보 · 수치 재대조 전",
-        "공식 PDF 확보 · 수치 재대조 전"
+        "공식 원문 대조",
+        "공식 원문 대조",
+        "공식 원문 대조"
       ]
     },
     {
@@ -251,18 +255,18 @@
         866032
       ],
       "operating_profit": [
-        null,
-        null,
-        null
+        210756,
+        209842,
+        255799
       ],
-      "operating_label": "Operating profit (별도 확인 필요)",
+      "operating_label": "通常の営業活動からの利益 (회사 정의 영업이익)",
       "periods": [
         "2022-04-01~2023-03-31",
         "2023-04-01~2024-03-31",
         "2024-04-01~2025-03-31"
       ],
-      "status": "연결 매출 3개년 공식 원문 대조 · 영업이익 미확인",
-      "note": "영업이익은 연결 재무제표에서 동일 정의의 지표를 추가 확인해야 함. 세전이익·영업이익률 환산치를 임의 영업이익으로 대체하지 않음.",
+      "status": "연결 3개년 공식 원문 대조",
+      "note": "영업이익은 HOYA가 공시하는 「通常の営業活動からの利益」(Profit from ordinary operating activities)입니다. 세전이익에서 금융손익·지분법손익·환차손익·비경상손익을 제외한 회사 정의 지표로 IFRS 손익계산서 항목은 아닙니다.",
       "sources": [
         {
           "url": "https://www.hoya.com/wp-content/uploads/2025/07/Annual-Report-Final-3.pdf",
@@ -271,14 +275,18 @@
         {
           "url": "https://www.hoya.com/en/investor/ifrs/",
           "label": "공식 IFRS 공시 목록"
+        },
+        {
+          "url": "https://www.hoya.com/ir/2026/en/common/files/10min_read.pdf",
+          "label": "HOYA Integrated Report 2026 Selected Financial Data"
         }
       ],
       "scope": "연결",
       "unit": "백만",
       "verification": [
-        "매출 공식 원문 대조",
-        "매출 공식 원문 대조",
-        "매출 공식 원문 대조"
+        "공식 원문 대조",
+        "공식 원문 대조",
+        "공식 원문 대조"
       ]
     },
     {
