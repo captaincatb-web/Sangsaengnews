@@ -120,3 +120,11 @@
 .pc-unified .pc-total th.pc-tip{position:relative;cursor:help;outline:none}
 .pc-unified .pc-total th.pc-tip small{display:none;position:absolute;left:8px;top:calc(100% - 4px);z-index:5;white-space:nowrap;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);box-shadow:0 6px 18px rgba(0,0,0,.14);font-size:12px;font-weight:600;line-height:1.4}
 .pc-unified .pc-total th.pc-tip:hover small,.pc-unified .pc-total th.pc-tip:focus small,.pc-unified .pc-total th.pc-tip:focus-visible small{display:block}
+
+/* 본사 공시 참고실적: 펼치면 표를 밀지 않고 말풍선으로 표시 */
+.pc-parent-raw{position:relative}
+.pc-parent-raw .pc-parent-pop{position:absolute;left:0;top:calc(100% + 4px);z-index:8;width:max-content;max-width:min(340px,78vw);padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.pc-parent-raw .pc-parent-rows{margin-top:0}
+/* 펼친 말풍선이 아래 행에 가려지지 않게 해당 행을 위로 올림 */
+.pc-unified tbody tr:has(.pc-parent-raw[open]){position:relative;z-index:7}
+.pc-unified th:has(.pc-parent-raw){overflow:visible!important}
