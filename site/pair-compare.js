@@ -227,40 +227,60 @@ function insight(dm,gl){
   metric('영업이익 증감',opLabel(D),opLabel(G),gapO)+
   '</div>';
  const band=label=>'<b class="pc-ins-k">'+label+'</b>';
- let evidence='';
- if(s.g&&!s.i&&D&&G){
-  const items=[...new Set(dm.concat(gl).map(x=>x.i))];
-  if(items.length>=2){
-   const stats=l=>items.map(name=>{const h=uniqSum(l.filter(x=>x.i===name));if(!h.length)return null;
-    const sum=(k,i)=>h.reduce((t,x)=>t+(x.row[k][i]||0),0),r0=sum('r',0);
-    return{n:name,rg:r0>0?(sum('r',2)/r0-1)*100:null,dO:sum('o',2)-sum('o',0)}}).filter(x=>x&&x.rg!=null);
-   const describe=(label,a)=>{
-    if(!a.length)return esc(label)+'은 확인된 품목별 실적이 없습니다.';
-    const top=a.slice().sort((x,y)=>y.rg-x.rg)[0],low=a.slice().sort((x,y)=>x.rg-y.rg)[0];
-    const up=a.filter(x=>x.dO>0).sort((x,y)=>y.dO-x.dO)[0];
-    const down=a.filter(x=>x.dO<0).sort((x,y)=>x.dO-y.dO)[0];
-    const parts=['매출 성장 상위 <b>'+esc(top.n)+'</b>('+signed(top.rg)+')'];
-    if(a.length>1)parts.push((low.rg<0?'매출 감소':'매출 성장 하위')+' '+esc(low.n)+'('+signed(low.rg)+')');
-    if(up)parts.push('영업이익 증가 최대 '+esc(up.n)+'('+moneyDelta(up.dO)+')');
-    if(down)parts.push('영업이익 감소 최대 '+esc(down.n)+'('+moneyDelta(down.dO)+')');
-    return '<b>'+esc(label)+'</b> — '+parts.join(' / ');
-   };
-   evidence='<span class="pc-ins-row">'+describe('국내',stats(dm))+'</span><span class="pc-ins-row">'+describe('글로벌',stats(gl))+'</span>';
+ /* 선택한 구분·품목을 기준으로 설명의 집계 단위를 바꾼다.
+    전체: 구분(설비/부품/원재료), 구분: 세부 품목, 세부 품목: 업체.
+    성장률 순위가 아니라 실제 매출·영업이익 증감액(억 원)을 사용한다.
+    전체에서 같은 해외 본사가 여러 구분에 걸치면 uniqSum()의 첫 구분에만 배정해 중복 합산을 막는다. */
+ const selectedItems=[...new Set(dm.concat(gl).map(x=>x.i))];
+ const dimension=!s.g?'g':(!s.i&&selectedItems.length>1)?'i':null;
+ const explainRows=l=>{
+  const rows=uniqSum(l),map=new Map();
+  rows.forEach(x=>{
+   const name=dimension?x[dimension]:(x.side==='glo'&&!krMode()&&x.e.p?x.e.p.n:x.e.n);
+   if(!name)return;
+   const item=map.get(name)||{n:name,dR:0,dO:0};
+   item.dR+=x.row.r[2]-x.row.r[0];
+   item.dO+=x.row.o[2]-x.row.o[0];
+   map.set(name,item);
+  });
+  return [...map.values()];
+ };
+ const makeFactor=(items,kind,sum)=>{
+  if(!items.length)return kind+' 분석에 필요한 실적이 없습니다.';
+  const field=kind==='매출'?'dR':'dO',vals=items.filter(x=>Number.isFinite(x[field])&&x[field]!==0);
+  if(!vals.length)return kind+' 증감이 거의 없습니다.';
+  const gains=vals.filter(x=>x[field]>0).sort((a,b)=>b[field]-a[field]);
+  const losses=vals.filter(x=>x[field]<0).sort((a,b)=>a[field]-b[field]);
+  const main=sum>0?gains[0]:sum<0?losses[0]:(gains[0]||losses[0]);
+  const opposite=sum>0?losses[0]:sum<0?gains[0]:null;
+  if(!main)return kind+'의 증가·감소가 서로 상쇄됐습니다.';
+  const mainText='<b>'+esc(main.n)+'</b>('+moneyDelta(main[field])+')';
+  let result=sum>0?kind+' 증가에는 '+mainText+'의 기여가 가장 컸습니다.':
+   sum<0?kind+' 감소에는 '+mainText+'의 영향이 가장 컸습니다.':
+   kind+'는 '+mainText+' 등 증가·감소 요인이 상쇄됐습니다.';
+  if(opposite){
+   const counter='<b>'+esc(opposite.n)+'</b>('+moneyDelta(opposite[field])+')';
+   result+=' '+counter+(sum>0?'는 증가폭을 일부 줄였습니다.':'는 감소폭을 일부 줄였습니다.');
   }
- }
- if(!evidence){
-  const describe=(label,x)=>{if(!x)return'<span class="pc-ins-row">'+label+' 수치 확인 업체 없음</span>';
-   const up=x.dO.filter(e=>e.v>0).sort((a,b)=>b.v-a.v)[0],down=x.dO.filter(e=>e.v<0).sort((a,b)=>a.v-b.v)[0];
-   const parts=[label+' 영업이익률 '+pct(x.m0)+' → '+pct(x.m2)];
-   if(up)parts.push('증가 기여 상위 '+esc(up.n)+'('+moneyDelta(up.v)+')');
-   if(down)parts.push('감소 영향 상위 '+esc(down.n)+'('+moneyDelta(down.v)+')');
-   return'<span class="pc-ins-row">'+parts.join(' / ')+'</span>';
-  };
-  evidence=describe('국내',D)+describe('글로벌',G);
- }
+  return result;
+ };
+ const explain=(label,x,l)=>{
+  if(!x)return'<span class="pc-ins-row"><b>'+label+'</b> — 확인된 실적이 없어 분석할 수 없습니다.</span>';
+  /* 부품으로 분류된 글로벌 납품사의 연결 본사 실적은 장비 등 다른 사업을 포함한다.
+     ASML 등 본사의 전체 실적 증가를 부품 사업의 증가 이유로 잘못 기술하지 않는다. */
+  if(s.g==='부품'&&!krMode()&&label==='글로벌'&&l.some(v=>v.e.p&&v.row)){
+   return'<span class="pc-ins-row"><b>글로벌</b> — 장비 사업까지 포함된 해외 본사 연결 실적이 반영되어 있어, <b>부품 자체의 매출·영업이익 증감 요인을 분리해 판단할 수 없습니다.</b></span>';
+  }
+  const factors=explainRows(l);
+  if(!factors.length)return'<span class="pc-ins-row"><b>'+label+'</b> — 확인된 실적이 없어 분석할 수 없습니다.</span>';
+  const rChange=x.R[2]-x.R[0],oChange=x.O[2]-x.O[0];
+  return'<span class="pc-ins-row"><b>'+label+'</b> — '+
+   makeFactor(factors,'매출',rChange)+' '+makeFactor(factors,'영업이익',oChange)+'</span>';
+ };
+ const evidence=explain('국내',D,dm)+explain('글로벌',G,gl);
  box.innerHTML='<div class="pc-ins-summary"><strong>'+esc(title)+'</strong>'+
   (detail?'<span>'+esc(detail)+'</span>':'')+'</div>'+metrics+
-  '<p class="pc-ins-line">'+band('품목별 특징')+'<span class="pc-ins-rows">'+evidence+'</span></p>';
+  '<p class="pc-ins-line">'+band('성장·감소 요인')+'<span class="pc-ins-rows">'+evidence+'</span></p>';
 }
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
