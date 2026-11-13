@@ -231,7 +231,8 @@ function insight(dm,gl){
     전체: 구분(설비/부품/원재료), 구분: 세부 품목, 세부 품목: 업체.
     성장률 순위가 아니라 실제 매출·영업이익 증감액(억 원)을 사용한다.
     전체에서 같은 해외 본사가 여러 구분에 걸치면 uniqSum()의 첫 구분에만 배정해 중복 합산을 막는다. */
- const dimension=!s.g?'g':!s.i?'i':null;
+ const selectedItems=[...new Set(dm.concat(gl).map(x=>x.i))];
+ const dimension=!s.g?'g':(!s.i&&selectedItems.length>1)?'i':null;
  const explainRows=l=>{
   const rows=uniqSum(l),map=new Map();
   rows.forEach(x=>{
@@ -244,7 +245,6 @@ function insight(dm,gl){
   });
   return [...map.values()];
  };
- const moneyDelta=v=>(v<0?'−':v>0?'+':'')+chartMoney(Math.abs(v))+' 원';
  const makeFactor=(items,kind,sum)=>{
   if(!items.length)return kind+' 분석에 필요한 실적이 없습니다.';
   const field=kind==='매출'?'dR':'dO',vals=items.filter(x=>Number.isFinite(x[field])&&x[field]!==0);
