@@ -205,7 +205,6 @@ function insight(dm,gl){
  const gapClass=v=>v==null||v===0?'pc-flat':v>0?'pc-up':'pc-down';
  const gapR=D&&G&&D.rg!=null&&G.rg!=null?D.rg-G.rg:null;
  const gapO=D&&G&&opGrowth(D)!=null&&opGrowth(G)!=null?opGrowth(D)-opGrowth(G):null;
- const basisNote=krMode()?'국내 업체와 글로벌 한국 법인 모두 별도재무 기준입니다.':'국내 업체는 개별(별도), 글로벌 업체는 해외 본사 연결 기준으로 법인 범위가 다릅니다.';
  let title,detail='';
  if(D&&G){
   if(gapR!=null&&gapO!=null){
@@ -261,13 +260,9 @@ function insight(dm,gl){
  }
  const marginTxt=(D&&G&&D.m0!=null&&D.m2!=null&&G.m0!=null&&G.m2!=null)?
   '영업이익률 변화: 국내 '+pct(D.m0)+' → '+pct(D.m2)+' ('+pp(D.m2-D.m0)+'), 글로벌 '+pct(G.m0)+' → '+pct(G.m2)+' ('+pp(G.m2-G.m0)+').':'';
- const compareNote=(D&&G?'비교 대상: 국내 '+D.n+'곳, 글로벌 '+G.n+'곳. ':'')+
-  '2023~2025년 공시 실적이 확인된 업체의 합계 기준입니다. '+basisNote+
-  ' 품목별 증감은 수치상 특징이며 성장·감소의 원인을 확정하는 분석은 아닙니다.';
  box.innerHTML='<div class="pc-ins-summary"><strong>'+esc(title)+'</strong>'+
   (detail?'<span>'+esc(detail)+'</span>':'')+(marginTxt?'<span>'+esc(marginTxt)+'</span>':'')+'</div>'+metrics+
-  '<p class="pc-ins-line">'+band('품목별 특징')+'<span class="pc-ins-rows">'+evidence+'</span></p>'+
-  '<p class="pc-ins-footnote">'+esc(compareNote)+'</p>';
+  '<p class="pc-ins-line">'+band('품목별 특징')+'<span class="pc-ins-rows">'+evidence+'</span></p>';
 }
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
