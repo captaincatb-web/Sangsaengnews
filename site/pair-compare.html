@@ -61,14 +61,15 @@
     <form class="db-filters gc-filters" id="filters" aria-label="비교 조건" onsubmit="return false">
       <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>구분</span><select id="f-grp"><option value="">전체</option></select></label>
       <label class="db-sel"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>품목</span><select id="f-item"><option value="">전체</option></select></label>
+      <label class="db-sel pc-sdi-sel"><i class="ph ph-battery-charging" aria-hidden="true"></i><span>삼성SDI</span><select id="f-sdi"><option value="in">포함</option><option value="ex">제외</option></select></label>
       <label class="db-sel pc-val-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>차트 값</span><select id="f-val"><option value="sum">매출액 합계</option><option value="idx">매출지수(2023=100)</option><option value="avg">기업당 평균</option></select></label>
     </form>
     <div class="db-view">
       <section class="db-card" id="trend-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">연도별 실적 추이</h2>
         <ul class="db-legend" id="pc-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li></ul></div>
         <div class="pc-trend" id="pc-trend"></div>
-        <p class="gc-note" id="pc-trend-note">매출과 영업이익은 서로 다른 축으로 표시합니다. 금액·전년 대비 증감률은 각 연도 막대 아래에서도 확인할 수 있습니다.</p></section>
-      <section class="db-card" id="detail-card" aria-labelledby="dt"><div class="db-card-head pc-combined-head"><h2 id="dt">국내업체 · 글로벌업체 비교 <small>왼쪽 국내업체, 오른쪽 글로벌업체 · 품목별 · 2023~2025년 · 억 원</small></h2>
+        <p class="gc-note" id="pc-trend-note" hidden></p></section>
+      <section class="db-card" id="detail-card" aria-labelledby="dt"><div class="db-card-head pc-combined-head"><h2 id="dt">국내업체 · 글로벌업체 비교</h2>
         <div class="pc-table-actions"><label class="pc-sq"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr-only">업체 검색(이 화면의 모든 그래프·표에 적용)</span><input id="f-q" type="search" placeholder="업체 검색" autocomplete="off"></label>
         <button type="button" class="db-btn ghost gc-csv" id="pc-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button></div></div>
         <div class="db-tbl-wrap pc-unified-scroll"><table class="db-tbl gc-co-tbl pc-unified" id="pc-tbl"></table></div>

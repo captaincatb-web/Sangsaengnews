@@ -159,6 +159,10 @@ for (const w of [390, 1280]) {
     assert.equal(await page.locator('#pc-tbl .pc-total th').count(),2,'품목 필터 시에도 합계 두 칸');
     assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성에스디아이 항상 표시');
     assert.ok((await page.locator('#pc-tbl .pc-why').count())>=1,'SDI 성격 안내');
+    await page.selectOption('#f-sdi','ex');
+    assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 제외 필터');
+    await page.selectOption('#f-sdi','in');
+    assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 다시 포함');
     await page.selectOption('#f-grp','설비');
     assert.equal(await page.locator('#f-item').inputValue(),'','품목 초기화');
     await page.fill('#f-q','ASML');

@@ -4,14 +4,14 @@
   "당사 거래업체만 대상",
   "1차 : 설비/부품/원자재 구분 → 2차 : 벌크가스/웨이퍼/케미컬/특수가스/PCB,소자 구분",
   "국내업체 /글로벌업체(본사 소재지 기준) 구분",
-  "각 구분별 구매액 상위 5개업체 선정 ('25년 구매액 기준)"
+  "각 구분별 구매액 상위 5개업체 선정 ('25년 구매액 기준, 설비는 전공정·후공정 각각)"
  ],
  "groups": [
   {
    "g": "설비",
    "items": [
     {
-     "i": "설비",
+     "i": "전공정",
      "dom": [
       {
        "n": "세메스",
@@ -73,6 +73,70 @@
        "m": "TOKYO ELECTRON",
        "ex": "tokyoelectron",
        "km": "도쿄일렉트론코리아"
+      }
+     ]
+    },
+    {
+     "i": "후공정",
+     "dom": [
+      {
+       "n": "와이씨",
+       "f": "와이씨"
+      },
+      {
+       "n": "이오테크닉스",
+       "f": "이오테크닉스"
+      },
+      {
+       "n": "엑시콘",
+       "f": "엑시콘"
+      },
+      {
+       "n": "디아이",
+       "f": "디아이"
+      },
+      {
+       "n": "제이티",
+       "f": "제이티"
+      }
+     ],
+     "glo": [
+      {
+       "n": "ADVANTEST",
+       "f": "ADVANTEST CORPORATION",
+       "k": "hq",
+       "m": "ADVANTEST",
+       "ex": "advantest"
+      },
+      {
+       "n": "NEXTEST SYSTEMS",
+       "f": "NEXTEST SYSTEMS CORPORATION",
+       "k": "par",
+       "p": {
+        "n": "Teradyne",
+        "x": "teradyne",
+        "b": "Nextest는 2008년 Teradyne에 인수된 100% 자회사로 자체 공시가 없어 본사(Teradyne) 연결 실적을 참조"
+       }
+      },
+      {
+       "n": "DISCO",
+       "f": "DISCO CORPORATION",
+       "k": "hq",
+       "m": "DISCO",
+       "ex": "disco"
+      },
+      {
+       "n": "TOWA",
+       "f": "TOWA CORPORATION",
+       "k": "hq",
+       "m": "TOWA",
+       "ex": "towa"
+      },
+      {
+       "n": "LINTEC",
+       "f": "LINTEC CORPORATION",
+       "k": "hq",
+       "ex": "lintec"
       }
      ]
     }
