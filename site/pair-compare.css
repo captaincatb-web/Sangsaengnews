@@ -146,3 +146,8 @@
 .pc-unified .pc-sub{display:none}
 .pc-unified th.is-open .pc-sub{display:block}
 .pc-ins-k:empty{background:transparent}
+
+/* 이유: 국내·해외 두 줄을 한 박스 안에 */
+.pc-ins-rows{display:grid;gap:6px;min-width:0}
+.pc-ins-row{display:block}
+.pc-ins-row+.pc-ins-row{padding-top:6px;border-top:1px dashed var(--line)}

@@ -209,13 +209,22 @@ function insight(dm,gl){
  let l1,l2;
  if(D&&G){const vr=verdict(D.rg,G.rg),vo=verdict(gr(D.O[0],D.O[2]),gr(G.O[0],G.O[2]));
   l1='매출은 <b class="'+vr.c+'">'+vr.t+'</b>(국내 '+sgn(D.rg)+' vs 해외 '+sgn(G.rg)+'), 영업이익은 <b class="'+vo.c+'">'+vo.t+'</b>(국내 '+esc(opShort(D.O[0],D.O[2]))+' vs 해외 '+esc(opShort(G.O[0],G.O[2]))+')입니다.';
+  /* 구분만 선택(품목 2개 이상): 이유는 품목별 비교(어느 품목의 매출·영업이익 증가폭이 큰지). 품목까지 선택하면 아래 업체별 기여 설명을 쓴다 */
+  const items=[...new Set(dm.concat(gl).map(x=>x.i))];
+  if(s.g&&!s.i&&items.length>=2){
+   const stat=l=>items.map(it=>{const h=uniqSum(l.filter(x=>x.i===it));if(!h.length)return null;const sum=(k,i)=>h.reduce((t,x)=>t+(x.row[k][i]||0),0);const R0=sum('r',0),R2=sum('r',2);return{n:it,rg:R0?(R2/R0-1)*100:null,dO:sum('o',2)-sum('o',0)}}).filter(x=>x&&x.rg!=null);
+   const line=(lab,st)=>{if(!st.length)return lab+' 수치 확인 업체 없음';if(st.length===1)return lab+' — '+st[0].n+'만 확인: 매출 '+sgn(st[0].rg)+', 영업이익 '+sm(st[0].dO);
+    const byR=st.slice().sort((a,b)=>b.rg-a.rg),top=byR[0],bot=byR[byR.length-1],byO=st.slice().sort((a,b)=>b.dO-a.dO),oTop=byO[0].dO>0?byO[0]:byO[byO.length-1];
+    return lab+' — 매출 '+(top.rg>=0?'증가폭 최대':'감소폭 최소')+': <b>'+esc(top.n)+'</b>('+sgn(top.rg)+'), '+(bot.rg>=0?'증가폭 최소':'감소폭 최대')+': '+esc(bot.n)+'('+sgn(bot.rg)+') / 영업이익 '+(oTop.dO>=0?'증가폭 최대':'감소폭 최대')+': <b>'+esc(oTop.n)+'</b>('+sm(oTop.dO)+')'};
+   l2=line('국내 '+s.g,stat(dm))+'</span><span class="pc-ins-row">'+line('해외 '+s.g,stat(gl))}
+  else{
   const drv=(lab,x)=>{const tot=x.dO.reduce((t,e)=>t+e.v,0),up=tot>=0,srt=x.dO.slice().sort((a,b)=>up?b.v-a.v:a.v-b.v);
    const lead=srt.filter(e=>up?e.v>0:e.v<0).slice(0,2),drag=srt.slice().reverse().find(e=>up?e.v<0:e.v>0);
    const fm=e=>esc(e.n)+'('+sm(e.v)+')';
    return lab+'는 '+(lead.length?lead.map(fm).join('·')+(up?'가 이익 증가를 견인':'가 이익 감소를 주도'):'특정 업체 편중 없이')+(drag?', '+fm(drag)+'가 상쇄':'')+'했고 이익률은 '+pct(x.m0)+'→'+pct(x.m2)+'입니다'};
-  l2=drv('국내',D)+'.</span></p><p class="pc-ins-line pc-ins-cont"><b class="pc-ins-k"></b><span>'+drv('해외',G)+'.'}
+  l2=drv('국내',D)+'.</span><span class="pc-ins-row">'+drv('해외',G)+'.'}}
  else{const x=D||G,lab=D?'국내':'해외';l1=lab+'만 수치가 확인되어 비교할 수 없습니다. 매출 '+sgn(x.rg)+', 영업이익 '+esc(opShort(x.O[0],x.O[2]))+'.';l2='이익률 '+pct(x.m0)+'→'+pct(x.m2)+'.'}
- box.innerHTML='<p class="pc-ins-line"><b class="pc-ins-k">추세</b><span>'+l1+'</span></p><p class="pc-ins-line"><b class="pc-ins-k">이유</b><span>'+l2+'</span></p>';
+ box.innerHTML='<p class="pc-ins-line"><b class="pc-ins-k">추세</b><span>'+l1+'</span></p><p class="pc-ins-line"><b class="pc-ins-k">이유</b><span class="pc-ins-rows"><span class="pc-ins-row">'+l2+'</span></span></p>';
 }
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);
