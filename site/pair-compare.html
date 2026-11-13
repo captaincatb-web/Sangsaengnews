@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="navigation.shared.css?v=202611022100">
   <link rel="stylesheet" href="data-status.css?v=202611081000">
   <link rel="stylesheet" href="growth-comparison.css?v=8">
-  <link rel="stylesheet" href="pair-compare.css?v=10">
+  <link rel="stylesheet" href="pair-compare.css?v=11">
 </head>
 <body class="db">
   <a class="db-skip" href="#main">본문 바로가기</a>
@@ -56,8 +56,7 @@
 
   <main class="db-main" id="main">
     <header class="db-top"><div><h1>소부장 국내업체 vs 글로벌업체 성과 비교 ('23~25년)</h1>
-      <p id="sub">원화 비교는 3개년 실적 검증 기업만 집계합니다. 해외 본사 공시 참고실적은 업체명 아래에서 연결·개별 구분 및 연도별 검증 상태와 함께 볼 수 있습니다.</p>
-      <p class="gc-note pc-fixed-basis">※ 재무 기준: 국내업체 개별(별도) / 글로벌업체 해외 본사 연결. 해당 기준의 3개년 검증 수치만 원화 비교 합계에 반영합니다.</p>
+      <p class="gc-note pc-fixed-basis">※ 재무 기준: 국내업체 개별(별도) / 글로벌업체 해외 본사 연결.</p>
       <p class="gc-key" id="pc-key" hidden></p></div></header>
     <form class="db-filters gc-filters" id="filters" aria-label="비교 조건" onsubmit="return false">
       <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>구분</span><select id="f-grp"><option value="">전체</option></select></label>
@@ -65,11 +64,11 @@
       <label class="db-sel pc-val-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>차트 값</span><select id="f-val"><option value="sum">매출액 합계</option><option value="idx">매출지수(2023=100)</option><option value="avg">기업당 평균</option></select></label>
     </form>
     <div class="db-view">
-      <section class="db-card" id="trend-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">연도별 실적 추이 <small id="pc-trend-sub">2023~2025 · 수치가 확인된 업체의 합계 · 왼쪽 국내업체, 오른쪽 글로벌업체</small></h2>
+      <section class="db-card" id="trend-card" aria-labelledby="tt"><div class="db-card-head"><h2 id="tt">연도별 실적 추이</h2>
         <ul class="db-legend" id="pc-legend"><li><i class="sq" style="background:var(--blue)"></i>매출(왼쪽 축)</li><li><i class="sq" style="background:var(--green)"></i>영업이익(오른쪽 축)</li></ul></div>
         <div class="pc-trend" id="pc-trend"></div>
         <p class="gc-note" id="pc-trend-note">매출과 영업이익은 서로 다른 축으로 표시합니다. 금액·전년 대비 증감률은 각 연도 막대 아래에서도 확인할 수 있습니다.</p></section>
-      <section class="db-card" id="detail-card" aria-labelledby="dt"><div class="db-card-head pc-combined-head"><h2 id="dt">국내업체 · 글로벌업체 통합 비교 <small>합계 및 업체별 상세 · 2023~2025년 · 억 원</small></h2>
+      <section class="db-card" id="detail-card" aria-labelledby="dt"><div class="db-card-head pc-combined-head"><h2 id="dt">국내업체 · 글로벌업체 비교 <small>왼쪽 국내업체, 오른쪽 글로벌업체 · 품목별 · 2023~2025년 · 억 원</small></h2>
         <div class="pc-table-actions"><label class="pc-sq"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr-only">업체 검색(이 화면의 모든 그래프·표에 적용)</span><input id="f-q" type="search" placeholder="업체 검색" autocomplete="off"></label>
         <button type="button" class="db-btn ghost gc-csv" id="pc-csv"><i class="ph ph-download-simple" aria-hidden="true"></i>CSV 내려받기</button></div></div>
         <div class="db-tbl-wrap pc-unified-scroll"><table class="db-tbl gc-co-tbl pc-unified" id="pc-tbl"></table></div>
@@ -86,6 +85,6 @@
   <script>window.SITE_DATA_STATUS_KEYS=["growth"];window.SITE_DATA_STATUS_EXTRA={growth:{label:"업체 비교(성장 비교 자료)",updated:"",note:"자료 불러오는 중"}};</script>
   <script src="data-status.js?v=202611041200"></script>
   <script src="site-menu.js?v=202611022000"></script>
-  <script src="pair-compare.js?v=26"></script>
+  <script src="pair-compare.js?v=27"></script>
 </body>
 </html>
