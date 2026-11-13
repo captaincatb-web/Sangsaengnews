@@ -219,8 +219,8 @@ function insight(dm,gl){
   }else{title='매출 기준연도 수치 부족으로 성장률 비교가 어렵습니다';detail='확인된 영업이익 실적과 품목별 변화를 참고해 주십시오.'}
  }else{title=(D?'국내':'글로벌')+' 업체의 실적만 확인되어 상대적 성장 경쟁력은 판단할 수 없습니다.'}
  const metric=(label,left,right,gap)=>'<div class="pc-ins-metric"><span class="pc-ins-metric-label">'+label+'</span>'+
-  '<strong>국내 '+esc(left)+' <span class="pc-ins-vs">vs</span> 글로벌 '+esc(right)+'</strong>'+
-  '<small class="'+gapClass(gap)+'">'+gapLabel(gap)+'</small></div>';
+  '<div class="pc-ins-metric-values"><strong>국내 '+esc(left)+' <span class="pc-ins-vs">vs</span> 글로벌 '+esc(right)+'</strong>'+
+  '<small class="'+gapClass(gap)+'">'+gapLabel(gap)+'</small></div></div>';
  let metrics='';
  if(D&&G)metrics='<div class="pc-ins-metrics">'+
   metric('매출 증가율',signed(D.rg),signed(G.rg),gapR)+
@@ -258,10 +258,8 @@ function insight(dm,gl){
   };
   evidence=describe('국내',D)+describe('글로벌',G);
  }
- const marginTxt=(D&&G&&D.m0!=null&&D.m2!=null&&G.m0!=null&&G.m2!=null)?
-  '영업이익률 변화: 국내 '+pct(D.m0)+' → '+pct(D.m2)+' ('+pp(D.m2-D.m0)+'), 글로벌 '+pct(G.m0)+' → '+pct(G.m2)+' ('+pp(G.m2-G.m0)+').':'';
  box.innerHTML='<div class="pc-ins-summary"><strong>'+esc(title)+'</strong>'+
-  (detail?'<span>'+esc(detail)+'</span>':'')+(marginTxt?'<span>'+esc(marginTxt)+'</span>':'')+'</div>'+metrics+
+  (detail?'<span>'+esc(detail)+'</span>':'')+'</div>'+metrics+
   '<p class="pc-ins-line">'+band('품목별 특징')+'<span class="pc-ins-rows">'+evidence+'</span></p>';
 }
 
