@@ -212,7 +212,7 @@ function insight(dm,gl){
    const lead=srt.filter(e=>up?e.v>0:e.v<0).slice(0,2),drag=srt.slice().reverse().find(e=>up?e.v<0:e.v>0);
    const fm=e=>esc(e.n)+'('+sm(e.v)+')';
    return lab+'는 '+(lead.length?lead.map(fm).join('·')+(up?'가 이익 증가를 견인':'가 이익 감소를 주도'):'특정 업체 편중 없이')+(drag?', '+fm(drag)+'가 상쇄':'')+'했고 이익률은 '+pct(x.m0)+'→'+pct(x.m2)+'입니다'};
-  l2=drv('국내',D)+'. '+drv('해외',G)+'.'}
+  l2=drv('국내',D)+'.</span></p><p class="pc-ins-line pc-ins-cont"><b class="pc-ins-k"></b><span>'+drv('해외',G)+'.'}
  else{const x=D||G,lab=D?'국내':'해외';l1=lab+'만 수치가 확인되어 비교할 수 없습니다. 매출 '+sgn(x.rg)+', 영업이익 '+esc(opShort(x.O[0],x.O[2]))+'.';l2='이익률 '+pct(x.m0)+'→'+pct(x.m2)+'.'}
  box.innerHTML='<p class="pc-ins-line"><b class="pc-ins-k">추세</b><span>'+l1+'</span></p><p class="pc-ins-line"><b class="pc-ins-k">이유</b><span>'+l2+'</span></p>';
 }
@@ -250,7 +250,7 @@ Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get(
   try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(['idx','avg'].includes(p.get('v')))$('f-val').value=p.get('v');if(p.get('sdi')==='ex')$('f-sdi').value='ex';if(p.get('kr')==='1')$('f-kr').value='kr'}catch(e){}
  $('updated').textContent=GEN.slice(0,10)||'-';
  const ds=document.querySelector('.site-data-status__item');if(ds&&GEN){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');if(n)n.textContent=GEN.slice(0,10)+' 기준 · 업체 '+ALL.length+'곳 중 수치 확인 '+ALL.filter(x=>x.row).length+'곳';if(t){t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
- $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);$('f-sdi').addEventListener('change',render);$('f-kr').addEventListener('change',render);
+ $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',()=>{const v=$('f-item').value;if(v){const gr=ROSTER.groups.find(g=>g.items.some(it=>it.i===v));if(gr&&$('f-grp').value!==gr.g){$('f-grp').value=gr.g;fillItems();$('f-item').value=v}}render()});$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);$('f-sdi').addEventListener('change',render);$('f-kr').addEventListener('change',render);
  $('pc-csv').addEventListener('click',csv);
  render();
 }).catch(()=>{const e=$('pc-empty');if(e){e.hidden=false;e.textContent='업체 비교 자료를 불러오지 못했습니다. 다시 열어 주세요.'}});

@@ -145,3 +145,4 @@
 .pc-unified th.pc-has-sub:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
 .pc-unified .pc-sub{display:none}
 .pc-unified th.is-open .pc-sub{display:block}
+.pc-ins-k:empty{background:transparent}
