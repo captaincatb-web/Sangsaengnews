@@ -81,7 +81,7 @@ function change(arr,i,profit){if(!i||arr[i]==null||arr[i-1]==null)return{label:'
  const rate=(now-prev)/Math.abs(prev)*100;
  return{label:Math.abs(rate).toFixed(1)+'%'+(rate>0?'↑':rate<0?'↓':'→'),tone:rate>0?'up':rate<0?'down':''};
 }
-function changeHtml(c){return '<span class="pc-change'+(c.tone?' is-'+c.tone:'')+'">'+esc(c.label)+'</span>'}
+function changeHtml(c){if(c.label==='—')return '';return '<span class="pc-change'+(c.tone?' is-'+c.tone:'')+'">'+esc(c.label)+'</span>'}
 function trendSvg(side,list){
  const has=uniqSum(list),vm=fval();
  if(!has.length)return '<p class="gc-empty">'+SIDE[side]+' · 수치가 확인된 업체가 없습니다.</p>';
@@ -93,7 +93,7 @@ function trendSvg(side,list){
  const sy=v=>bottom-(v-ax.lo)/(ax.step*k)*(bottom-top),oy=v=>bottom-(v-ao.lo)/(ao.step*k)*(bottom-top);
  const sz=sy(0),oz=oy(0),cx=i=>L+slot*(i+.5);
  const fmtA=v=>vm==='idx'?(v==null?'–':v.toFixed(0)):chartMoney(v);
- const info=YRS.map((y,i)=>y+'년 · 매출 '+chartMoney(S[i])+' '+change(S,i,false).label+' · 영업이익 '+chartMoney(O[i])+' '+change(O,i,true).label);
+ const lb=c=>c.label==='—'?'':' '+c.label+(c.label.slice(-1)==='%'||/[↑↓→]$/.test(c.label)?'(전년 대비)':''),info=YRS.map((y,i)=>y+'년 · 매출 '+chartMoney(S[i])+lb(change(S,i,false))+' · 영업이익 '+chartMoney(O[i])+lb(change(O,i,true)));
  let g='';
  for(let i=0;i<=k;i++){const yy=sy(ax.lo+ax.step*i);
   g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/>'+
@@ -118,7 +118,7 @@ function trendSvg(side,list){
 function trend(dm,gl){const box=$('pc-trend'),vm=fval();box.innerHTML=trendSvg('dom',dm)+trendSvg('glo',gl);
  const sq=c=>'<i class="sq" style="background:var('+c+')"></i>';
  $('pc-legend').innerHTML='<li>'+sq('--blue')+(vm==='idx'?'매출지수(2023=100)':vm==='avg'?'기업당 평균 매출':'매출')+' (왼쪽 축)</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':'영업이익')+' (오른쪽 축)</li>';
- const n=$('pc-trend-note');if(n)n.textContent=vm==='idx'?'매출 막대만 2023년 지수(=100)로 표시하며 영업이익 막대는 실제 원화 합계입니다. 금액·증감률은 아래 연도별 요약을 참조하세요.':'국내와 글로벌 그래프는 각각 독립적인 눈금입니다. 매출은 왼쪽 축, 영업이익은 오른쪽 축을 읽으세요. 금액과 전년 대비 성장률은 각 연도 아래에 함께 표시합니다.';
+ const n=$('pc-trend-note');if(n){n.textContent=vm==='idx'?'매출 막대만 2023년 지수(=100)로 표시하며 영업이익 막대는 실제 원화 합계입니다.':'';n.hidden=vm!=='idx'}
  const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출지수·영업이익 합계':'수치 확인 업체 합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체';
 }
 document.addEventListener('pointerover',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});
@@ -163,11 +163,7 @@ function detail(vis){
  const items=[];vis.forEach(x=>{const k=x.g+'\u0001'+x.i;if(!items.some(o=>o.k===k))items.push({k,g:x.g,i:x.i})});
  items.forEach(it=>{const d=vis.filter(x=>x.side==='dom'&&x.g===it.g&&x.i===it.i),g=vis.filter(x=>x.side==='glo'&&x.g===it.g&&x.i===it.i);
   body+='<tr class="pc-item"><th scope="colgroup" colspan="14" class="l">'+esc(it.g===it.i?it.i:it.g+' › '+it.i)+'</th></tr>';
-  /* 설비처럼 공정(전공정·후공정)이 나뉜 품목은 공정별로 소제목을 달고, 공정 안에서 같은 순번끼리 한 줄 */
-  const phs=[...new Set(d.concat(g).map(x=>x.e.ph||''))];
-  phs.forEach(ph=>{const dd=d.filter(x=>(x.e.ph||'')===ph),gg=g.filter(x=>(x.e.ph||'')===ph);
-   if(ph)body+='<tr class="pc-item pc-sub"><th scope="colgroup" colspan="14" class="l">'+esc(ph)+'</th></tr>';
-   for(let n=0;n<Math.max(dd.length,gg.length);n++)body+='<tr>'+cell(dd[n],'dom')+cell(gg[n],'glo')+'</tr>'})});
+  for(let n=0;n<Math.max(d.length,g.length);n++)body+='<tr>'+cell(d[n],'dom')+cell(g[n],'glo')+'</tr>'});
  t.innerHTML=head+'<tbody>'+body+'</tbody>';
 }
 

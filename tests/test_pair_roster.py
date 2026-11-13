@@ -18,12 +18,10 @@ class PairRoster(unittest.TestCase):
 
     def test_structure_and_five_or_fewer_per_side(self):
         self.assertEqual({gr["g"] for gr in self.R["groups"]}, {"설비", "부품", "원재료"})
-        self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["설비", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
+        self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["전공정", "후공정", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
         for gr in self.R["groups"]:
             for it in gr["items"]:
-                for side in ("dom", "glo"):  # 공정(ph: 전공정·후공정)이 나뉜 품목은 공정별로 5곳 이하, 국내·글로벌 같은 수
-                    for ph in {e.get("ph") for e in it[side]}: self.assertLessEqual(sum(e.get("ph") == ph for e in it[side]), 5, (it["i"], side, ph))
-                self.assertEqual(len(it["dom"]), len(it["glo"]), it["i"]) if any("ph" in e for e in it["dom"]) else None
+                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 5, (it["i"], side))
 
     def test_matches_exist_by_exact_name(self):
         for g, i, side, e in self.entries:
