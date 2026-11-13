@@ -61,19 +61,20 @@
 .pc-val-sel{flex:1 1 0}
 /* 연도별 금액과 전년 대비 증감률을 각 그래프 아래 정렬 */
 .pc-growth-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0 0}
-.pc-year-metrics{min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 6px;background:var(--card);font-size:11.5px}
-.pc-year-metrics .pc-year{display:block;margin-bottom:3px;color:var(--text-2)}
+.pc-year-metrics{min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 10px;background:var(--card);font-size:15px}
+.pc-year-metrics .pc-year{display:block;margin-bottom:5px;color:var(--text-2);font-size:14px}
 .pc-year-metrics div{white-space:normal;overflow-wrap:break-word;line-height:1.65}
-.pc-year-metrics strong{font-variant-numeric:tabular-nums}
-.pc-change{font-size:11px;color:var(--text-3);white-space:nowrap;font-weight:650}
+.pc-year-metrics strong{font-variant-numeric:tabular-nums;font-size:18px;font-weight:800}
+.pc-change{font-size:13px;color:var(--text-3);white-space:nowrap;font-weight:650}
 .pc-change.is-up{color:var(--up,var(--gc-ink-1))}
 .pc-change.is-down{color:var(--down,var(--gc-ink-2))}
 @media(max-width:640px){
  .pc-table-actions{width:100%;margin-left:0}
  .pc-sq{flex:1;min-width:0}
  .pc-unified{min-width:960px}
- .pc-year-metrics{font-size:10.5px;padding:6px 4px}
- .pc-change{font-size:10px}
+ .pc-year-metrics{font-size:12.5px;padding:7px 5px}
+ .pc-year-metrics strong{font-size:15px}
+ .pc-change{font-size:11.5px}
 }
 /* 글로벌 원재료 본사 연결 원문 수치: 기존 원화 집계와 분리 */
 .pc-parent-raw{margin-top:5px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:11.5px;font-weight:400;line-height:1.55}
