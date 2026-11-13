@@ -137,3 +137,11 @@
 .pc-ins-line b.pc-up,.pc-ins-line b.pc-down,.pc-ins-line b.pc-flat{font-weight:800}
 .pc-up{color:var(--up,#0f7b4a)}.pc-down{color:var(--down,#c0392b)}.pc-flat{color:var(--text-2)}
 @media(max-width:700px){.pc-ins-line{grid-template-columns:1fr;gap:4px;font-size:13.5px;padding:10px 12px}.pc-ins-k{justify-self:start;padding:1px 10px}}
+
+/* 회사명 보조 정보: 기본 숨김, 회사명 클릭 시 펼침 */
+.pc-unified th.pc-has-sub{cursor:pointer}
+.pc-unified th.pc-has-sub .pc-n::after{content:' ▾';color:var(--text-3);font-size:11px;font-weight:600}
+.pc-unified th.pc-has-sub.is-open .pc-n::after{content:' ▴'}
+.pc-unified th.pc-has-sub:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+.pc-unified .pc-sub{display:none}
+.pc-unified th.is-open .pc-sub{display:block}

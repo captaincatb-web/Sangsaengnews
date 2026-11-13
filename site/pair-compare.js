@@ -127,6 +127,10 @@ function trend(dm,gl){const box=$('pc-trend'),vm=fval(),O0neg=[dm,gl].some(l=>{c
  const n=$('pc-trend-note');if(n){n.textContent=vm==='idx'?'매출과 영업이익 모두 2023년을 100으로 둔 지수이며, 국내와 글로벌 그래프는 같은 눈금입니다.'+(O0neg?' 2023년 영업이익이 0 이하라 영업이익지수는 계산할 수 없습니다.':''):'';n.hidden=vm!=='idx'}
  const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출지수·영업이익지수(2023=100)':'수치 확인 업체 합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체';
 }
+/* 회사명 칸 클릭·Enter·Space: 보조 정보 펼치기/접기(안의 링크·요약·펼침 영역을 누를 때는 건드리지 않는다) */
+const toggleSub=th=>{const o=th.classList.toggle('is-open');th.setAttribute('aria-expanded',o?'true':'false')};
+document.addEventListener('click',e=>{const th=e.target.closest&&e.target.closest('th.pc-has-sub');if(!th||e.target.closest('a,summary,.pc-parent-pop'))return;toggleSub(th)});
+document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('th.pc-has-sub')){e.preventDefault();toggleSub(e.target)}});
 document.addEventListener('pointerover',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});
 /* 본사 공시 참고실적: 포인터 기기에서는 화살표(요약)에 마우스를 올리면 말풍선으로 펼치고 벗어나면 닫는다. 터치 기기는 탭으로 열고 닫는다 */
 if(matchMedia('(hover:hover)').matches){document.addEventListener('mouseover',e=>{const d=e.target.closest&&e.target.closest('.pc-parent-raw');if(d&&!d.open)d.open=true});document.addEventListener('mouseout',e=>{const d=e.target.closest&&e.target.closest('.pc-parent-raw');if(d&&d.open&&!d.contains(e.relatedTarget))d.open=false})}
@@ -161,12 +165,14 @@ function detail(vis){
    (c.length?nums(sum('r'))+nums(sum('o')):'<td colspan="6" class="pc-na pc-gs">비교 기준의 공시 실적 없음</td>')};
  const cell=(x,side)=>{const dv=side==='glo'?' pc-div':'';
   if(!x)return '<td class="l pc-blank'+dv+'"></td><td colspan="6" class="pc-blank pc-gs"></td>';
-  const r=x.row,tg=tagOf(x),nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+
+  /* 회사명 아래 보조 정보(본사 실적 기준·한국 법인·참고실적·사유)는 기본 숨기고, 회사명을 클릭(또는 Enter)하면 펼친다 */
+  const r=x.row,tg=tagOf(x),sub=
    (tg?'<small>'+esc(tg)+'</small>':'')+(x.kr&&!krMode()?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
    (rawParent(x)?rawDetails(rawParent(x),!!r):'')+
    (!r?'<small class="pc-why">'+esc(otherBasis(x)+' · '+(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||NO_DATA))+'</small>':'')+
-   (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':'');
-  return '<th scope="row" class="l'+dv+(r?'':' pc-none')+'">'+nm+'</th>'+(r?nums(r.r)+nums(r.o):'<td colspan="6" class="pc-na pc-gs">자료 없음 (고정 재무기준)</td>')};
+   (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':''),
+   nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(sub?'<span class="pc-sub">'+sub+'</span>':'');
+  return '<th scope="row" class="l'+dv+(r?'':' pc-none')+(sub?' pc-has-sub':'')+'"'+(sub?' tabindex="0" aria-expanded="false" title="클릭하면 상세 정보가 열립니다"':'')+'>'+nm+'</th>'+(r?nums(r.r)+nums(r.o):'<td colspan="6" class="pc-na pc-gs">자료 없음 (고정 재무기준)</td>')};
  const by=side=>vis.filter(x=>x.side===side);
  let body='<tr class="pc-total">'+total('dom',by('dom'))+total('glo',by('glo'))+'</tr>';
  const items=[];vis.forEach(x=>{const k=x.g+'\u0001'+x.i;if(!items.some(o=>o.k===k))items.push({k,g:x.g,i:x.i})});

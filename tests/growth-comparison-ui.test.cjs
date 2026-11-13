@@ -164,9 +164,15 @@ for (const w of [390, 1280]) {
     await page.selectOption('#f-sdi','in');
     assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 다시 포함');
     await page.selectOption('#f-kr','kr');
-    assert.match(await page.locator('#pc-tbl').innerText(),/한국 법인/,'한국 법인 기준 비교');
+    assert.match(await page.locator('#pc-tbl').textContent(),/한국 법인/,'한국 법인 기준 비교');
     assert.match(await page.locator('.pc-fixed-basis').innerText(),/한국 법인/,'기준 안내가 한국 법인으로 바뀜');
     await page.selectOption('#f-kr','hq');
+    const th=page.locator('#pc-tbl th.pc-has-sub').first();
+    assert.equal(await th.locator('.pc-sub').first().isVisible(),false,'보조 정보는 기본 숨김');
+    await th.locator('.pc-n').click();
+    assert.equal(await th.locator('.pc-sub').first().isVisible(),true,'회사명 클릭 시 보조 정보 표시');
+    await th.locator('.pc-n').click();
+    assert.equal(await th.locator('.pc-sub').first().isVisible(),false,'다시 클릭하면 접힘');
     const ins0=await page.locator('#pc-insight').innerText();
     assert.match(ins0,/추세[\s\S]*국내[\s\S]*해외[\s\S]*이유/,'트렌드 분석 추세·이유 두 줄');
     await page.selectOption('#f-grp','원재료');await page.selectOption('#f-item','웨이퍼');
