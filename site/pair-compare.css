@@ -128,3 +128,12 @@
 /* 펼친 말풍선이 아래 행에 가려지지 않게 해당 행을 위로 올림 */
 .pc-unified tbody tr:has(.pc-parent-raw[open]){position:relative;z-index:7}
 .pc-unified th:has(.pc-parent-raw){overflow:visible!important}
+
+/* 3개년 트렌드 분석 박스: 국내를 기준으로 해외와 비교한 두 줄 */
+.pc-insight-cond{margin-left:10px;color:var(--text-3);font-size:12.5px;font-weight:600}
+.pc-insight{display:grid;gap:10px;margin-top:8px}
+.pc-ins-line{display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:15px;line-height:1.7;color:var(--text)}
+.pc-ins-k{align-self:start;display:inline-block;padding:1px 0;text-align:center;border-radius:6px;background:var(--bg);color:var(--text-2);font-size:12.5px;font-weight:800}
+.pc-ins-line b.pc-up,.pc-ins-line b.pc-down,.pc-ins-line b.pc-flat{font-weight:800}
+.pc-up{color:var(--up,#0f7b4a)}.pc-down{color:var(--down,#c0392b)}.pc-flat{color:var(--text-2)}
+@media(max-width:700px){.pc-ins-line{grid-template-columns:1fr;gap:4px;font-size:13.5px;padding:10px 12px}.pc-ins-k{justify-self:start;padding:1px 10px}}

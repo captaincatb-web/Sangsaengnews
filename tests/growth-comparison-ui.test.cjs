@@ -167,6 +167,12 @@ for (const w of [390, 1280]) {
     assert.match(await page.locator('#pc-tbl').innerText(),/한국 법인/,'한국 법인 기준 비교');
     assert.match(await page.locator('.pc-fixed-basis').innerText(),/한국 법인/,'기준 안내가 한국 법인으로 바뀜');
     await page.selectOption('#f-kr','hq');
+    const ins0=await page.locator('#pc-insight').innerText();
+    assert.match(ins0,/추세[\s\S]*국내[\s\S]*해외[\s\S]*이유/,'트렌드 분석 추세·이유 두 줄');
+    await page.selectOption('#f-grp','원재료');await page.selectOption('#f-item','웨이퍼');
+    const ins1=await page.locator('#pc-insight').innerText();
+    assert.notEqual(ins1,ins0,'필터에 따라 분석 문장이 달라짐');assert.match(await page.locator('#pc-insight-cond').innerText(),/웨이퍼/);
+    await page.selectOption('#f-grp','');
     await page.selectOption('#f-grp','설비');
     assert.equal(await page.locator('#f-item').inputValue(),'','품목 초기화');
     await page.fill('#f-q','ASML');
