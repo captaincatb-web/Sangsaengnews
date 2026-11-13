@@ -136,7 +136,7 @@ for (const w of [390, 1280]) {
     assert.match(await page.locator('.pc-fixed-basis').innerText(), /국내업체 개별.*글로벌업체.*연결/);
     for (const id of ['#f-basis','#f-x','#pc-sum','#pc-pairs','#sum-card','#pair-card']) assert.equal(await page.locator(id).count(),0,id+' 제거');
     assert.equal(await page.locator('#pc-tbl').count(),1,'통합 비교표 한 개');
-    assert.equal(await page.locator('#pc-tbl .pc-total').count(),2,'국내/글로벌 합계행 두 개');
+    assert.equal(await page.locator('#pc-tbl .pc-total th').count(),2,'국내/글로벌 합계 두 칸');
     assert.ok((await page.locator('#pc-tbl .pc-n').count())>5,'업체 상세 표시');
     const charts=page.locator('#pc-trend .pc-tp');
     assert.equal(await charts.count(),2,'국내·글로벌 차트');
@@ -156,7 +156,7 @@ for (const w of [390, 1280]) {
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'페이지 가로 넘침 없음');
     await page.selectOption('#f-grp','원재료');
     await page.selectOption('#f-item','케미컬');
-    assert.equal(await page.locator('#pc-tbl .pc-total').count(),2,'품목 필터 시에도 합계 2개');
+    assert.equal(await page.locator('#pc-tbl .pc-total th').count(),2,'품목 필터 시에도 합계 두 칸');
     assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성에스디아이 항상 표시');
     assert.ok((await page.locator('#pc-tbl .pc-why').count())>=1,'SDI 성격 안내');
     await page.selectOption('#f-grp','설비');
@@ -165,7 +165,7 @@ for (const w of [390, 1280]) {
     assert.ok((await page.locator('#pc-tbl .pc-n').count())>=1,'업체 검색');
     assert.match(await page.locator('#pc-miss-h').innerText(),/고정 재무기준의 원화 3개년 실적이 없는 업체/);
     const basis=await page.locator('#pc-basis').innerText();
-    for(const t of ['당사 거래업체만 대상','설비/부품/원재료 구분','본사 소재지 기준','구매액 상위 5개업체'])assert.ok(basis.includes(t),t);
+    for(const t of ['당사 거래업체만 대상','설비/부품/원자재 구분','본사 소재지 기준','구매액 상위 5개업체'])assert.ok(basis.includes(t),t);
     assert.deepEqual(errs,[]);await ctx.close();
   });
 }

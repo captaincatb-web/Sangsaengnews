@@ -91,3 +91,20 @@
 .pc-parent-year{border-bottom:1px solid var(--line);padding-bottom:4px;margin-bottom:4px}
 .pc-parent-year span{display:block;color:var(--text)}
 .pc-parent-year small{display:block;color:var(--text-3);font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+
+/* 국내·글로벌 나란히 보는 통합표 */
+.pc-unified{min-width:1000px;table-layout:fixed}
+.pc-unified th,.pc-unified td{padding:9px 6px;font-size:12.5px}
+.pc-unified thead th{text-align:center;min-width:0}
+.pc-unified thead th.l{text-align:left}
+.pc-unified thead .pc-side{font-size:13.5px;font-weight:750;color:var(--text)}
+.pc-unified col.pc-cn{width:14%}
+.pc-unified td{padding-left:3px;padding-right:5px}
+.pc-unified .pc-total td{font-size:12px;letter-spacing:-.02em}
+.pc-unified thead .pc-side{text-align:left;padding-left:10px}
+.pc-unified th.l,.pc-unified td.l{min-width:0;max-width:none;padding-left:10px}
+.pc-unified .pc-div{border-left:2px solid var(--line)}
+.pc-unified .pc-gs{border-left:1px solid var(--line)}
+.pc-unified th:first-child{position:static;box-shadow:none}
+.pc-unified .pc-item th{padding:7px 10px;font-size:12px;font-weight:700;color:var(--text-2);background:var(--bg)}
+.pc-unified th.pc-none .pc-n{color:var(--text-2)}
