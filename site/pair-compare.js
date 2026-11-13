@@ -163,7 +163,11 @@ function detail(vis){
  const items=[];vis.forEach(x=>{const k=x.g+'\u0001'+x.i;if(!items.some(o=>o.k===k))items.push({k,g:x.g,i:x.i})});
  items.forEach(it=>{const d=vis.filter(x=>x.side==='dom'&&x.g===it.g&&x.i===it.i),g=vis.filter(x=>x.side==='glo'&&x.g===it.g&&x.i===it.i);
   body+='<tr class="pc-item"><th scope="colgroup" colspan="14" class="l">'+esc(it.g===it.i?it.i:it.g+' › '+it.i)+'</th></tr>';
-  for(let n=0;n<Math.max(d.length,g.length);n++)body+='<tr>'+cell(d[n],'dom')+cell(g[n],'glo')+'</tr>'});
+  /* 설비처럼 공정(전공정·후공정)이 나뉜 품목은 공정별로 소제목을 달고, 공정 안에서 같은 순번끼리 한 줄 */
+  const phs=[...new Set(d.concat(g).map(x=>x.e.ph||''))];
+  phs.forEach(ph=>{const dd=d.filter(x=>(x.e.ph||'')===ph),gg=g.filter(x=>(x.e.ph||'')===ph);
+   if(ph)body+='<tr class="pc-item pc-sub"><th scope="colgroup" colspan="14" class="l">'+esc(ph)+'</th></tr>';
+   for(let n=0;n<Math.max(dd.length,gg.length);n++)body+='<tr>'+cell(dd[n],'dom')+cell(gg[n],'glo')+'</tr>'})});
  t.innerHTML=head+'<tbody>'+body+'</tbody>';
 }
 
