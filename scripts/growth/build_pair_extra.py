@@ -43,8 +43,10 @@ def main():
         for pick in ("개별", "연결"):
             if not full(sc.get(pick, {})): continue
             d = sc[pick]; u = (d[YEARS[0]].get("source_url") or "").lower(); host = "SEC" if "sec.gov" in u else "EDINET" if "edinet" in u else "공식"
-            second = (d[YEARS[0]].get("confidence") or "높음") != "높음"  # 확신도가 높음이 아니면 2차 출처로 표시(원문 대조 전)
-            rows.append({"n": pn, "s": pick, "src": "2차 출처 · 원문 대조 전" if second else host + " 공시", "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
+            conf = d[YEARS[0]].get("confidence") or "높음"
+            second = conf != "높음"  # 확신도가 높음이 아니면 2차 출처로 표시(원문 대조 전). '참고: 문구'는 그 문구를 출처 칸에 그대로 쓴다(예: 기업 재편·산출값)
+            note = conf[3:].strip() if conf.startswith("참고:") else ""
+            rows.append({"n": pn, "s": pick, "src": note or ("2차 출처 · 원문 대조 전" if second else host + " 공시"), "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
         if not any(full(sc.get(k, {})) for k in ("개별", "연결")): skipped += 1
     # (3) 국내 상장 본사의 DART 개별(OFS)·연결(CFS) 3개년(종료연도): 명단의 본사 지정(p.d)에 연결. 접수번호 등 식별 정보는 싣지 않는다
     sf = priv / "dart_scopes.csv"; dn = {e["p"]["n"] for side, e in ents if e.get("p", {}).get("d")}
