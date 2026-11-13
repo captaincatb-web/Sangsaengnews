@@ -174,14 +174,15 @@ for (const w of [390, 1280]) {
     await th.locator('.pc-n').click();
     assert.equal(await th.locator('.pc-sub').first().isVisible(),false,'다시 클릭하면 접힘');
     const ins0=await page.locator('#pc-insight').innerText();
-    assert.match(ins0,/추세[\s\S]*국내[\s\S]*해외[\s\S]*이유/,'트렌드 분석 추세·이유 두 줄');
+    assert.match(ins0,/매출 증가율[\s\S]*영업이익 증감[\s\S]*성장·감소 요인/,'성장 경쟁력 분석: 매출·영업이익 비교와 성장·감소 요인');
+    assert.equal(await page.locator('#pc-key').count(),0,'2025년 실적 요약 줄 삭제');
     await page.selectOption('#f-grp','원재료');await page.selectOption('#f-item','웨이퍼');
     const ins1=await page.locator('#pc-insight').innerText();
     assert.notEqual(ins1,ins0,'필터에 따라 분석 문장이 달라짐');assert.match(await page.locator('#pc-insight-cond').innerText(),/웨이퍼/);
     await page.selectOption('#f-grp','설비');
-    assert.match(await page.locator('#pc-insight').innerText(),/(증가폭|감소폭)[\s\S]*(전공정|후공정)/,'구분 선택 시 품목별 비교');
+    assert.match(await page.locator('#pc-insight').innerText(),/(전공정|후공정)[\s\S]*(매출 증가|매출 감소)/,'구분 선택 시 품목별 기여');
     await page.selectOption('#f-item','후공정');
-    assert.match(await page.locator('#pc-insight').innerText(),/(견인|주도)/,'품목 선택 시 업체별 기여');
+    assert.match(await page.locator('#pc-insight').innerText(),/(세메스|원익|와이씨|이오테크닉스|엑시콘|디아이|제이티|ADVANTEST|DISCO|TOWA|LINTEC|NEXTEST|Teradyne|ASML|Applied)/,'품목 선택 시 업체별 기여');
     await page.selectOption('#f-grp','');
     await page.selectOption('#f-grp','설비');
     assert.equal(await page.locator('#f-item').inputValue(),'','품목 초기화');

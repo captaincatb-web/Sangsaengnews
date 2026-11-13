@@ -66,7 +66,7 @@ function fillItems(){const it=$('f-item'),cur=it.value,g=$('f-grp').value;it.len
 function render(){
  applyBasis();const fb=document.querySelector('.pc-fixed-basis');if(fb)fb.textContent=krMode()?'※ 재무 기준: 국내업체 개별(별도) / 글로벌업체 한국 법인 별도(한국 법인이 없거나 공시가 없는 업체는 자료 없음).':'※ 재무 기준: 국내업체 개별(별도) / 글로벌업체 해외 본사 연결.';
  const vis=visible(),dm=vis.filter(x=>x.side==='dom'),gl=vis.filter(x=>x.side==='glo');
- key(vis,dm,gl);trend(dm,gl);insight(dm,gl);detail(vis);
+ trend(dm,gl);insight(dm,gl);detail(vis);
  try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));if(fval()!=='sum')h.push('v='+fval());if(sdiOff())h.push('sdi=ex');if(krMode())h.push('kr=1');history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}
 }
 
@@ -137,15 +137,6 @@ if(matchMedia('(hover:hover)').matches){document.addEventListener('mouseover',e=
 document.addEventListener('focusin',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});
 function strip(t){const p=t.closest('.pc-tp').querySelector('.pc-strip');try{p.textContent=JSON.parse(p.dataset.info)[+t.dataset.i]}catch(e){}}
 
-/* 제목 아래 한 줄 요약: 이익률 대신 매출·영업이익을 표시 */
-function key(vis,dm,gl){const k=$('pc-key'),a=agg(dm),b=agg(gl);
- if(!a.k&&!b.k){k.hidden=true;k.innerHTML='';return}
- const s=state(),cond=[s.g,s.i&&s.i!==s.g?s.i:''].filter(Boolean).join(' › ');
- const sp=(side,t)=>'<span style="color:'+INK[side]+'">'+SIDE[side]+' '+t+'</span>';
- k.hidden=false;k.innerHTML=(cond?'<span class="gc-key-c">'+esc(cond)+'</span>':'')+
-  '<span><b>2025년 매출</b> '+sp('dom',money(a.rev))+' · '+sp('glo',money(b.rev))+'</span>'+
-  '<span><b>2025년 영업이익</b> '+sp('dom',money(a.op))+' · '+sp('glo',money(b.op))+'</span>'}
-
 /* 통합 비교표는 아래 detail()에서 국내·글로벌 합계 및 업체별 행을 렌더링한다. */
 /* 단일 통합 비교표: 국내·글로벌 합계와 원본 법인별 상세를 하나의 표에 표시. */
 function detail(vis){
@@ -206,17 +197,35 @@ function insight(dm,gl){
  const gapR=D&&G&&D.rg!=null&&G.rg!=null?D.rg-G.rg:null;
  const gapO=D&&G&&opGrowth(D)!=null&&opGrowth(G)!=null?opGrowth(D)-opGrowth(G):null;
  let title,detail='';
+ /* 영업이익 상태: 증가·감소 외에 흑자/적자 전환, 적자 폭 변화를 구분한다(영업이익이 줄었는데 '증가율이 높다'고 쓰지 않기 위해) */
+ const opState=x=>{const a=x.O[0],b=x.O[2];
+  if(a>0&&b>0)return b>a*1.005?'up':b<a*0.995?'down':'flat';
+  if(a<=0&&b>0)return 'toProfit';if(a>0&&b<=0)return 'toLoss';
+  return b>a?'lossNarrow':b<a?'lossWiden':'flat'};
+ const opGood=st=>st==='up'||st==='toProfit'||st==='lossNarrow',opBad=st=>st==='down'||st==='toLoss'||st==='lossWiden';
+ const opRate=x=>x.O[0]?(x.O[2]-x.O[0])/Math.abs(x.O[0])*100:null;
+ const STW={up:['증가한','증가했습니다'],down:['감소한','감소했습니다'],toProfit:['흑자전환한','흑자전환했습니다'],toLoss:['적자전환한','적자전환했습니다'],lossNarrow:['적자가 줄어든','적자가 줄었습니다'],lossWiden:['적자가 커진','적자가 커졌습니다'],flat:['변동이 없는','변동이 없습니다']};
  if(D&&G){
-  if(gapR!=null&&gapO!=null){
-   title=gapR>0&&gapO>0?'국내 업체, 매출 성장과 영업이익 개선 모두 글로벌 대비 우위':
-    gapR<0&&gapO<0?'글로벌 업체, 매출 성장과 영업이익 개선 모두 국내 대비 우위':
-    gapR>0?'국내 업체는 매출 성장이 앞서지만 영업이익 개선은 글로벌이 우위':
-    gapR<0?'글로벌 업체는 매출 성장이 앞서지만 영업이익 개선은 국내가 우위':
-    gapO>0?'매출 성장률은 비슷하나 국내 영업이익 개선이 우위':'매출 성장률은 비슷하나 글로벌 영업이익 개선이 우위';
-  }else if(gapR!=null){
-   title=gapR>0?'국내 업체의 매출 성장률이 글로벌보다 높습니다':gapR<0?'글로벌 업체의 매출 성장률이 국내보다 높습니다':'국내·글로벌 매출 성장률이 비슷합니다';
-   detail='영업이익은 흑자·적자 전환 또는 기준연도 적자로 증감률 격차를 비교하지 않습니다.';
-  }else{title='매출 기준연도 수치 부족으로 성장률 비교가 어렵습니다';detail='확인된 영업이익 실적과 품목별 변화를 참고해 주십시오.'}
+  if(D.rg!=null&&G.rg!=null){
+   const gap=D.rg-G.rg,dUp=D.rg>0,gUp=G.rg>0,lead=gap>1?'dom':gap<-1?'glo':'';
+   const rev=dUp&&gUp?(gap>1?'국내 업체는 글로벌보다 매출이 더 많이 늘었고':gap<-1?'글로벌이 국내보다 매출이 더 많이 늘었고':'국내와 글로벌의 매출 증가율이 비슷하고'):
+    dUp&&!gUp?'국내 업체는 매출이 늘었지만 글로벌은 줄었고':
+    !dUp&&gUp?'국내 업체는 매출이 줄었지만 글로벌은 늘었고':
+    gap>1?'국내와 글로벌 모두 매출이 줄었지만 국내의 감소폭이 더 작고':gap<-1?'국내와 글로벌 모두 매출이 줄었고 국내의 감소폭이 더 크고':'국내와 글로벌 모두 매출이 줄었고';
+   const sd=opState(D),sg=opState(G),rd=opRate(D),rgl=opRate(G);let op;
+   if(opGood(sd)&&opGood(sg)){
+    const same=sd==='up'&&sg==='up'?'증가':'개선',d=rd!=null&&rgl!=null?rd-rgl:0;
+    op=d>2?(lead==='dom'?'영업이익도':'영업이익은')+' 국내가 더 크게 '+same+'했습니다':d<-2?(lead==='glo'?'영업이익도':'영업이익은')+' 글로벌이 더 크게 '+same+'했습니다':'영업이익은 두 쪽 모두 '+same+'했고 폭은 비슷합니다'}
+   else if(opBad(sd)&&opBad(sg)){
+    const d=rd!=null&&rgl!=null?rd-rgl:0;
+    op=d>2?'영업이익은 양쪽 모두 나빠졌지만 국내의 하락폭이 더 작습니다':d<-2?'영업이익은 양쪽 모두 나빠졌고 국내의 하락폭이 더 큽니다':'영업이익은 양쪽 모두 나빠졌고 하락폭은 비슷합니다'}
+   else if((opGood(sd)||opBad(sd))&&(opGood(sg)||opBad(sg))){op='영업이익은 국내가 '+STW[sd][0]+' 반면 글로벌은 '+STW[sg][1]}
+   else op='영업이익은 '+(sd==='flat'?'국내':'글로벌')+'에서 변동이 거의 없습니다';
+   title=rev+', '+op+'.';
+  }else{
+   title='매출 기준연도 수치가 부족해 매출 증가율은 비교할 수 없습니다.';
+   detail='영업이익과 아래 성장·감소 요인을 참고해 주십시오.';
+  }
  }else{title=(D?'국내':'글로벌')+' 업체의 실적만 확인되어 상대적 성장 경쟁력은 판단할 수 없습니다.'}
  const metric=(label,left,right,gap)=>'<div class="pc-ins-metric"><span class="pc-ins-metric-label">'+label+'</span>'+
   '<div class="pc-ins-metric-values"><strong>국내 '+esc(left)+' <span class="pc-ins-vs">vs</span> 글로벌 '+esc(right)+'</strong>'+
@@ -245,25 +254,22 @@ function insight(dm,gl){
   });
   return [...map.values()];
  };
- const makeFactor=(items,kind,sum)=>{
-  if(!items.length)return kind+' 분석에 필요한 실적이 없습니다.';
-  const field=kind==='매출'?'dR':'dO',vals=items.filter(x=>Number.isFinite(x[field])&&x[field]!==0);
-  if(!vals.length)return kind+' 증감이 거의 없습니다.';
-  const gains=vals.filter(x=>x[field]>0).sort((a,b)=>b[field]-a[field]);
-  const losses=vals.filter(x=>x[field]<0).sort((a,b)=>a[field]-b[field]);
-  const main=sum>0?gains[0]:sum<0?losses[0]:(gains[0]||losses[0]);
-  const opposite=sum>0?losses[0]:sum<0?gains[0]:null;
-  if(!main)return kind+'의 증가·감소가 서로 상쇄됐습니다.';
-  const mainText='<b>'+esc(main.n)+'</b>('+moneyDelta(main[field])+')';
-  let result=sum>0?kind+' 증가에는 '+mainText+'의 기여가 가장 컸습니다.':
-   sum<0?kind+' 감소에는 '+mainText+'의 영향이 가장 컸습니다.':
-   kind+'는 '+mainText+' 등 증가·감소 요인이 상쇄됐습니다.';
-  if(opposite){
-   const counter='<b>'+esc(opposite.n)+'</b>('+moneyDelta(opposite[field])+')';
-   result+=' '+counter+(sum>0?'는 증가폭을 일부 줄였습니다.':'는 감소폭을 일부 줄였습니다.');
-  }
-  return result;
- };
+ /* 한 쪽(국내 또는 글로벌)의 성장·감소 요인 문장: 짧게, 핵심 기여 → 상쇄 → 영업이익 순서 */
+ const pickFactor=(items,field,sum)=>{
+  const vals=items.filter(x=>Number.isFinite(x[field])&&x[field]!==0);
+  const gains=vals.filter(x=>x[field]>0).sort((a,b)=>b[field]-a[field]),losses=vals.filter(x=>x[field]<0).sort((a,b)=>a[field]-b[field]);
+  return{main:sum>0?gains[0]:sum<0?losses[0]:(gains[0]||losses[0]),opp:sum>0?losses[0]:sum<0?gains[0]:null}};
+ const tag=(x,f)=>'<b>'+esc(x.n)+'</b>('+moneyDelta(x[f])+')';
+ const factorText=(items,rSum,oSum)=>{
+  const R=pickFactor(items,'dR',rSum),O=pickFactor(items,'dO',oSum);let out=[];
+  if(!R.main)out.push('매출 증감은 거의 없습니다.');
+  else if(rSum>0)out.push(tag(R.main,'dR')+'의 매출 증가가 전체 성장을 이끌었'+(R.opp?'으며, '+tag(R.opp,'dR')+'의 매출 감소가 일부 상쇄했습니다.':'습니다.'));
+  else if(rSum<0)out.push(tag(R.main,'dR')+'의 매출 감소가 전체 하락을 이끌었'+(R.opp?'으며, '+tag(R.opp,'dR')+'의 매출 증가가 일부 상쇄했습니다.':'습니다.'));
+  else out.push('매출은 증가·감소 요인이 서로 상쇄됐습니다.');
+  if(!O.main)out.push('영업이익 증감은 거의 없습니다.');
+  else{const verb=oSum>=0?'증가':'감소',same=R.main&&R.main.n===O.main.n&&((rSum>0)===(oSum>=0));
+   out.push((same?'영업이익도 ':'영업이익은 ')+tag(O.main,'dO')+'에서 가장 크게 '+verb+'했습니다.')}
+  return out.join(' ')};
  const explain=(label,x,l)=>{
   if(!x)return'<span class="pc-ins-row"><b>'+label+'</b> — 확인된 실적이 없어 분석할 수 없습니다.</span>';
   /* 부품으로 분류된 글로벌 납품사의 연결 본사 실적은 장비 등 다른 사업을 포함한다.
@@ -274,8 +280,7 @@ function insight(dm,gl){
   const factors=explainRows(l);
   if(!factors.length)return'<span class="pc-ins-row"><b>'+label+'</b> — 확인된 실적이 없어 분석할 수 없습니다.</span>';
   const rChange=x.R[2]-x.R[0],oChange=x.O[2]-x.O[0];
-  return'<span class="pc-ins-row"><b>'+label+'</b> — '+
-   makeFactor(factors,'매출',rChange)+' '+makeFactor(factors,'영업이익',oChange)+'</span>';
+  return'<span class="pc-ins-row"><b>'+label+'</b> — '+factorText(factors,rChange,oChange)+'</span>';
  };
  const evidence=explain('국내',D,dm)+explain('글로벌',G,gl);
  box.innerHTML='<div class="pc-ins-summary"><strong>'+esc(title)+'</strong>'+
