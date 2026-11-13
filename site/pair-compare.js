@@ -31,8 +31,9 @@ const fbasis=()=> 'auto'; // 비교 화면 고정: 국내 개별 / 글로벌 본
 const fval=()=>{const v=$('f-val');return v?v.value:'sum'};
 function applyBasis(){ALL.forEach(x=>{x.key=x.bkey;x.row=x.side==='glo'?x.cands.c:x.cands.s})}
 
+const sdiOff=()=>{const e=$('f-sdi');return !!e&&e.value==='ex'};
 const state=()=>({g:$('f-grp').value,i:$('f-item').value,q:($('f-q').value||'').trim().toLowerCase()});
-function visible(){const s=state();return ALL.filter(x=>(!s.g||x.g===s.g)&&(!s.i||x.i===s.i)&&(!s.q||x.e.n.toLowerCase().includes(s.q)||x.e.f.toLowerCase().includes(s.q)))}
+function visible(){const s=state();return ALL.filter(x=>!(sdiOff()&&x.e.x)&&(!s.g||x.g===s.g)&&(!s.i||x.i===s.i)&&(!s.q||x.e.n.toLowerCase().includes(s.q)||x.e.f.toLowerCase().includes(s.q)))}
 /* 고정 기준 이외 자료가 있어도 비교 합계에는 포함하지 않는다. */
 const otherBasis=x=>{const wanted=x.side==='glo'?'해외 본사 연결':'국내업체 개별(별도)';
  const other=x.side==='glo'?x.cands.s:x.cands.c;
@@ -63,7 +64,7 @@ function fillItems(){const it=$('f-item'),cur=it.value,g=$('f-grp').value;it.len
 function render(){
  applyBasis();const vis=visible(),dm=vis.filter(x=>x.side==='dom'),gl=vis.filter(x=>x.side==='glo');
  key(vis,dm,gl);trend(dm,gl);detail(vis);
- try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));if(fval()!=='sum')h.push('v='+fval());history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}
+ try{const s=state(),h=[];if(s.g)h.push('g='+encodeURIComponent(s.g));if(s.i)h.push('i='+encodeURIComponent(s.i));if(s.q)h.push('q='+encodeURIComponent(s.q));if(fval()!=='sum')h.push('v='+fval());if(sdiOff())h.push('sdi=ex');history.replaceState(null,'',h.length?'#'+h.join('&'):location.pathname+location.search)}catch(e){}
 }
 
 /* 연도별 실적 추이: 왼쪽 국내업체, 오른쪽 글로벌업체. 매출(왼쪽 축)·영업이익(오른쪽 축) 막대 + 영업이익률 선(소부장 경영 정보의 연도별 실적 추이와 같은 구성) */
@@ -181,7 +182,7 @@ function basis(){const M=['①','②','③','④'];
   '매출액과 영업이익은 기업 전체 실적이며 반도체 관련 사업만의 실적이 아닐 수 있습니다. 차트 값(합계/평균/매출지수)은 그래프에만 적용하며 통합표에는 실제 억 원 단위 금액을 표시합니다.',
   '글로벌업체는 본사 소재지 기준으로 구분합니다. 현지 법인·지점이 아니라 해외 본사 연결 실적을 비교합니다. 한국 법인 실적은 회사명 아래 참고용으로만 표시합니다.',
   '같은 본사가 여러 업체나 품목에 나오면 표에는 각각 표시하되 합계·그래프에서는 한 번만 집계합니다.',
-  '삼성에스디아이는 합계와 그래프에 항상 포함합니다. 전지 중심 사업 실적도 포함되므로 소부장 사업만의 성장성으로 해석하지 마세요.',
+  '삼성에스디아이는 기본으로 합계와 그래프에 포함하며, 삼성SDI 필터에서 제외할 수 있습니다. 전지 중심 사업 실적도 포함되므로 소부장 사업만의 성장성으로 해석하지 마세요.',
   '글로벌 원재료·부품 기업의 현지 통화 참고실적은 연도별 검증 상태를 구분하며, 원화 비교 집계·성장률에 포함하지 않습니다.',
   '회계기간·환율·사업범위 차이로 직접 비교에는 한계가 있습니다. 미확인 실적은 0으로 대체하지 않으며 영업이익 증감은 흑자·적자 전환을 구분합니다.'
  ].map(t=>'<li>'+esc(t)+'</li>').join('')}
@@ -197,10 +198,10 @@ Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get(
  RAW_PARENT=Object.fromEntries(((P&&P.companies)||[]).map(c=>[c.name,c]));
  ROSTER=R;GEN=G.generatedAt||'';const bl=(G.modes||[]).find(m=>m.id==='blend')||(G.modes||[])[0];ALL=build(R,G.modes||[],X&&X.rows);applyBasis();
  basis();missing();fillGroups();
-  try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(['idx','avg'].includes(p.get('v')))$('f-val').value=p.get('v')}catch(e){}
+  try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(['idx','avg'].includes(p.get('v')))$('f-val').value=p.get('v');if(p.get('sdi')==='ex')$('f-sdi').value='ex'}catch(e){}
  $('updated').textContent=GEN.slice(0,10)||'-';
  const ds=document.querySelector('.site-data-status__item');if(ds&&GEN){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');if(n)n.textContent=GEN.slice(0,10)+' 기준 · 업체 '+ALL.length+'곳 중 수치 확인 '+ALL.filter(x=>x.row).length+'곳';if(t){t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
- $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);
+ $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);$('f-sdi').addEventListener('change',render);
  $('pc-csv').addEventListener('click',csv);
  render();
 }).catch(()=>{const e=$('pc-empty');if(e){e.hidden=false;e.textContent='업체 비교 자료를 불러오지 못했습니다. 다시 열어 주세요.'}});
