@@ -223,8 +223,8 @@ function insight(dm,gl){
   '<small class="'+gapClass(gap)+'">'+gapLabel(gap)+'</small></div>';
  let metrics='';
  if(D&&G)metrics='<div class="pc-ins-metrics">'+
-  metric('매출 증가율 · 2023→2025',signed(D.rg),signed(G.rg),gapR)+
-  metric('영업이익 증감 · 2023→2025',opLabel(D),opLabel(G),gapO)+
+  metric('매출 증가율',signed(D.rg),signed(G.rg),gapR)+
+  metric('영업이익 증감',opLabel(D),opLabel(G),gapO)+
   '</div>';
  const band=label=>'<b class="pc-ins-k">'+label+'</b>';
  let evidence='';
