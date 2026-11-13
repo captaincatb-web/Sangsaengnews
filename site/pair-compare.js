@@ -90,7 +90,7 @@ function trendSvg(side,list){
  const A=vm==='avg'?S.map(v=>v/N):vm==='idx'?S.map(v=>S[0]?v/S[0]*100:null):S;
  const B=vm==='avg'?O.map(v=>v/N):O;
  const W=560,H=264,L=66,R=61,top=34,bottom=219,k=4,pw=W-L-R,slot=pw/3,bw=28;
- const ax=axis(A.filter(Number.isFinite),k),ao=axis(B.filter(Number.isFinite),k);
+ const shared=vm!=='idx',ax=axis((shared?A.concat(B):A).filter(Number.isFinite),k),ao=shared?ax:axis(B.filter(Number.isFinite),k);  /* 합계·평균은 매출·영업이익을 같은 눈금에 그려 영업이익 막대가 매출보다 작게 보이게 한다 */
  const sy=v=>bottom-(v-ax.lo)/(ax.step*k)*(bottom-top),oy=v=>bottom-(v-ao.lo)/(ao.step*k)*(bottom-top);
  const sz=sy(0),oz=oy(0),cx=i=>L+slot*(i+.5);
  const fmtA=v=>vm==='idx'?(v==null?'–':v.toFixed(0)):chartMoney(v);
@@ -99,7 +99,7 @@ function trendSvg(side,list){
  for(let i=0;i<=k;i++){const yy=sy(ax.lo+ax.step*i);
   g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'"/>'+
   '<text class="ax axl" x="'+(L-7)+'" y="'+(yy+4)+'" text-anchor="end">'+(vm==='idx'?(ax.lo+ax.step*i).toFixed(0):chartMoney(ax.lo+ax.step*i))+'</text>'+
-  '<text class="ax axr" x="'+(W-R+6)+'" y="'+(yy+4)+'">'+chartMoney(ao.lo+ao.step*i)+'</text>'}
+  (shared?'':'<text class="ax axr" x="'+(W-R+6)+'" y="'+(yy+4)+'">'+chartMoney(ao.lo+ao.step*i)+'</text>')}
  if(ao.lo<0)g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+oz+'" y2="'+oz+'" stroke="var(--text-3)" stroke-width="1"/>';
  YRS.forEach((yr,i)=>{const x=cx(i),a=A[i]||0,o=B[i]||0,xs=x-35,xo=x+7,ys=Math.min(sy(a),sz),hs=Math.max(1,Math.abs(sy(a)-sz)),yo=Math.min(oy(o),oz),ho=Math.max(1,Math.abs(oy(o)-oz));
   const labelY=(v,y,h,z)=>v<0?z+h+12:y-6;
@@ -118,7 +118,7 @@ function trendSvg(side,list){
 }
 function trend(dm,gl){const box=$('pc-trend'),vm=fval();box.innerHTML=trendSvg('dom',dm)+trendSvg('glo',gl);
  const sq=c=>'<i class="sq" style="background:var('+c+')"></i>';
- $('pc-legend').innerHTML='<li>'+sq('--blue')+(vm==='idx'?'매출지수(2023=100)':vm==='avg'?'기업당 평균 매출':'매출')+' (왼쪽 축)</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':'영업이익')+' (오른쪽 축)</li>';
+ $('pc-legend').innerHTML='<li>'+sq('--blue')+(vm==='idx'?'매출지수(2023=100)':vm==='avg'?'기업당 평균 매출':'매출')+(vm==='idx'?' (왼쪽 축)':'')+'</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':'영업이익')+(vm==='idx'?' (오른쪽 축)':'')+'</li>';
  const n=$('pc-trend-note');if(n){n.textContent=vm==='idx'?'매출 막대만 2023년 지수(=100)로 표시하며 영업이익 막대는 실제 원화 합계입니다.':'';n.hidden=vm!=='idx'}
  const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출지수·영업이익 합계':'수치 확인 업체 합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체';
 }
