@@ -160,10 +160,12 @@
 .pc-ins-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pc-ins-metric{display:grid;gap:5px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
 .pc-ins-metric-label{font-size:12px;font-weight:700;color:var(--text-2)}
+.pc-ins-metric-values{display:flex;align-items:baseline;gap:10px;min-width:0;max-width:100%;overflow-x:auto;white-space:nowrap}
+.pc-ins-metric-values strong,.pc-ins-metric-values small{flex:none}
 .pc-ins-metric strong{font-size:15px;line-height:1.5;color:var(--text);font-variant-numeric:tabular-nums}
 .pc-ins-metric small{font-size:13px;font-weight:800}
 .pc-ins-vs{font-size:12px;font-weight:500;color:var(--text-3)}
 .pc-ins-footnote{margin:0;padding:0 4px;color:var(--text-2);font-size:12px;line-height:1.7}
 .pc-ins-line{grid-template-columns:76px minmax(0,1fr)}
 .pc-ins-k{white-space:nowrap}
-@media(max-width:700px){.pc-ins-summary{padding:13px 14px}.pc-ins-summary>strong{font-size:16px}.pc-ins-metrics{grid-template-columns:1fr}.pc-ins-metric{padding:12px 14px}.pc-ins-line{grid-template-columns:1fr}}
+@media(max-width:700px){.pc-ins-summary{padding:13px 14px}.pc-ins-summary>strong{font-size:16px}.pc-ins-metrics{grid-template-columns:1fr}.pc-ins-metric{padding:12px 14px}.pc-ins-metric-values{gap:7px}.pc-ins-metric-values strong{font-size:12.5px}.pc-ins-metric-values small{font-size:12px}.pc-ins-line{grid-template-columns:1fr}}
