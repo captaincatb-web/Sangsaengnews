@@ -88,9 +88,9 @@ function trendSvg(side,list){
  if(!has.length)return '<p class="gc-empty">'+SIDE[side]+' · 수치가 확인된 업체가 없습니다.</p>';
  const N=has.length,S=YRS.map((_,i)=>has.reduce((t,x)=>t+(x.row.r[i]||0),0)),O=YRS.map((_,i)=>has.reduce((t,x)=>t+(x.row.o[i]||0),0));
  const A=vm==='avg'?S.map(v=>v/N):vm==='idx'?S.map(v=>S[0]?v/S[0]*100:null):S;
- const B=vm==='avg'?O.map(v=>v/N):O;
+ const B=vm==='avg'?O.map(v=>v/N):vm==='idx'?O.map(v=>O[0]>0?v/O[0]*100:null):O;
  const W=560,H=264,L=66,R=61,top=34,bottom=219,k=4,pw=W-L-R,slot=pw/3,bw=28;
- const shared=vm!=='idx',ax=axis((shared?A.concat(B):A).filter(Number.isFinite),k),ao=shared?ax:axis(B.filter(Number.isFinite),k);  /* 합계·평균은 매출·영업이익을 같은 눈금에 그려 영업이익 막대가 매출보다 작게 보이게 한다 */
+ const shared=true,ax=axis((shared?A.concat(B):A).filter(Number.isFinite),k),ao=shared?ax:axis(B.filter(Number.isFinite),k);  /* 합계·평균은 매출·영업이익을 같은 눈금에 그려 영업이익 막대가 매출보다 작게 보이게 한다 */
  const sy=v=>bottom-(v-ax.lo)/(ax.step*k)*(bottom-top),oy=v=>bottom-(v-ao.lo)/(ao.step*k)*(bottom-top);
  const sz=sy(0),oz=oy(0),cx=i=>L+slot*(i+.5);
  const fmtA=v=>vm==='idx'?(v==null?'–':v.toFixed(0)):chartMoney(v);
@@ -107,7 +107,7 @@ function trendSvg(side,list){
    '<rect class="bar" x="'+xs+'" y="'+ys+'" width="'+bw+'" height="'+hs+'" rx="3" fill="var(--blue)"/>'+
    '<rect class="bar" x="'+xo+'" y="'+yo+'" width="'+bw+'" height="'+ho+'" rx="3" fill="'+(o<0?'var(--down)':'var(--green)')+'"/>'+
    '<text class="val" x="'+(xs+bw/2)+'" y="'+labelY(a,ys,hs,sz)+'" text-anchor="middle">'+fmtA(A[i])+'</text>'+
-   '<text class="val" x="'+(xo+bw/2)+'" y="'+(labelY(o,yo,ho,oz)+(o>=0?-13:0))+'" text-anchor="middle">'+chartMoney(B[i])+'</text>'+
+   '<text class="val" x="'+(xo+bw/2)+'" y="'+(labelY(o,yo,ho,oz)+(o>=0?-13:0))+'" text-anchor="middle">'+(vm==='idx'?fmtA(B[i]):chartMoney(B[i]))+'</text>'+
    '<text class="ax" x="'+x+'" y="'+(H-8)+'" text-anchor="middle">'+yr+'</text>'+
    '<rect class="hit" x="'+(x-slot/2)+'" y="'+top+'" width="'+slot+'" height="'+(bottom-top)+'"/></g>'});
  const cards=YRS.map((y,i)=>'<div class="pc-year-metrics"><b class="pc-year">'+y+'</b><div>매출 <strong>'+chartMoney(S[i])+'</strong> '+changeHtml(change(S,i,false))+'</div><div>영업 <strong>'+chartMoney(O[i])+'</strong> '+changeHtml(change(O,i,true))+'</div></div>').join('');
@@ -116,11 +116,11 @@ function trendSvg(side,list){
   '<div class="pc-growth-grid" aria-label="'+SIDE[side]+' 연도별 금액과 전년 대비 변화">'+cards+'</div>'+
   '<p class="pc-strip" aria-live="polite" data-info="'+esc(JSON.stringify(info))+'">'+esc(info[2])+'</p></div>';
 }
-function trend(dm,gl){const box=$('pc-trend'),vm=fval();box.innerHTML=trendSvg('dom',dm)+trendSvg('glo',gl);
+function trend(dm,gl){const box=$('pc-trend'),vm=fval(),O0neg=[dm,gl].some(l=>{const h=uniqSum(l);return h.length&&h.reduce((t,x)=>t+(x.row.o[0]||0),0)<=0});box.innerHTML=trendSvg('dom',dm)+trendSvg('glo',gl);
  const sq=c=>'<i class="sq" style="background:var('+c+')"></i>';
- $('pc-legend').innerHTML='<li>'+sq('--blue')+(vm==='idx'?'매출지수(2023=100)':vm==='avg'?'기업당 평균 매출':'매출')+(vm==='idx'?' (왼쪽 축)':'')+'</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':'영업이익')+(vm==='idx'?' (오른쪽 축)':'')+'</li>';
- const n=$('pc-trend-note');if(n){n.textContent=vm==='idx'?'매출 막대만 2023년 지수(=100)로 표시하며 영업이익 막대는 실제 원화 합계입니다.':'';n.hidden=vm!=='idx'}
- const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출지수·영업이익 합계':'수치 확인 업체 합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체';
+ $('pc-legend').innerHTML='<li>'+sq('--blue')+(vm==='idx'?'매출지수(2023=100)':vm==='avg'?'기업당 평균 매출':'매출')+'</li><li>'+sq('--green')+(vm==='avg'?'기업당 평균 영업이익':vm==='idx'?'영업이익지수(2023=100)':'영업이익')+'</li>';
+ const n=$('pc-trend-note');if(n){n.textContent=vm==='idx'?'매출과 영업이익 모두 2023년을 100으로 둔 지수입니다.'+(O0neg?' 2023년 영업이익이 0 이하라 영업이익지수는 계산할 수 없습니다.':''):'';n.hidden=vm!=='idx'}
+ const sb=$('pc-trend-sub');if(sb)sb.textContent='2023~2025 · '+(vm==='avg'?'기업당 평균':vm==='idx'?'매출지수·영업이익지수(2023=100)':'수치 확인 업체 합계')+' · 왼쪽 국내업체, 오른쪽 글로벌업체';
 }
 document.addEventListener('pointerover',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});
 document.addEventListener('focusin',e=>{const t=e.target.closest&&e.target.closest('.pcg .slot');if(t)strip(t)});

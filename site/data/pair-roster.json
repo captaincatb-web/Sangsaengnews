@@ -366,19 +366,22 @@
        "n": "SHIN-ETSU CHEMICAL",
        "f": "SHIN-ETSU CHEMICAL CO.,LTD",
        "k": "hq",
-       "m": "SHIN-ETSU CHEMICAL"
+       "m": "SHIN-ETSU CHEMICAL",
+       "ex": "shinetsuchemical"
       },
       {
        "n": "Siltronic AG",
        "f": "Siltronic AG",
        "k": "hq",
-       "m": "Siltronic AG"
+       "m": "Siltronic AG",
+       "ex": "siltronic"
       },
       {
        "n": "SUMCO",
        "f": "SUMCO CORPORATION",
        "k": "hq",
-       "m": "SUMCO"
+       "m": "SUMCO",
+       "ex": "sumco"
       }
      ]
     },
