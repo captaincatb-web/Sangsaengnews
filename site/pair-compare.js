@@ -166,12 +166,13 @@ function detail(vis){
  const cell=(x,side)=>{const dv=side==='glo'?' pc-div':'';
   if(!x)return '<td class="l pc-blank'+dv+'"></td><td colspan="6" class="pc-blank pc-gs"></td>';
   /* 회사명 아래 보조 정보(본사 실적 기준·한국 법인·참고실적·사유)는 기본 숨기고, 회사명을 클릭(또는 Enter)하면 펼친다 */
-  const r=x.row,tg=tagOf(x),sub=
-   (tg?'<small>'+esc(tg)+'</small>':'')+(x.kr&&!krMode()?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
+  /* 항상 보이는 기본 기준 줄(국내 '별도…', 해외 본사 '해외 본사 · 연결…')과, 클릭하면 열리는 보조 정보를 나눈다 */
+  const r=x.row,tg=tagOf(x),pri=tg&&(!x.e.p||krMode()),sub=
+   (tg&&!pri?'<small>'+esc(tg)+'</small>':'')+(x.kr&&!krMode()?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
    (rawParent(x)?rawDetails(rawParent(x),!!r):'')+
    (!r?'<small class="pc-why">'+esc(otherBasis(x)+' · '+(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||NO_DATA))+'</small>':'')+
    (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':''),
-   nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(sub?'<span class="pc-sub">'+sub+'</span>':'');
+   nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(pri?'<small>'+esc(tg)+'</small>':'')+(sub?'<span class="pc-sub">'+sub+'</span>':'');
   return '<th scope="row" class="l'+dv+(r?'':' pc-none')+(sub?' pc-has-sub':'')+'"'+(sub?' tabindex="0" aria-expanded="false" title="클릭하면 상세 정보가 열립니다"':'')+'>'+nm+'</th>'+(r?nums(r.r)+nums(r.o):'<td colspan="6" class="pc-na pc-gs">자료 없음 (고정 재무기준)</td>')};
  const by=side=>vis.filter(x=>x.side===side);
  let body='<tr class="pc-total">'+total('dom',by('dom'))+total('glo',by('glo'))+'</tr>';
@@ -212,7 +213,7 @@ function insight(dm,gl){
    const lead=srt.filter(e=>up?e.v>0:e.v<0).slice(0,2),drag=srt.slice().reverse().find(e=>up?e.v<0:e.v>0);
    const fm=e=>esc(e.n)+'('+sm(e.v)+')';
    return lab+'는 '+(lead.length?lead.map(fm).join('·')+(up?'가 이익 증가를 견인':'가 이익 감소를 주도'):'특정 업체 편중 없이')+(drag?', '+fm(drag)+'가 상쇄':'')+'했고 이익률은 '+pct(x.m0)+'→'+pct(x.m2)+'입니다'};
-  l2=drv('국내',D)+'. '+drv('해외',G)+'.'}
+  l2=drv('국내',D)+'.</span></p><p class="pc-ins-line pc-ins-cont"><b class="pc-ins-k"></b><span>'+drv('해외',G)+'.'}
  else{const x=D||G,lab=D?'국내':'해외';l1=lab+'만 수치가 확인되어 비교할 수 없습니다. 매출 '+sgn(x.rg)+', 영업이익 '+esc(opShort(x.O[0],x.O[2]))+'.';l2='이익률 '+pct(x.m0)+'→'+pct(x.m2)+'.'}
  box.innerHTML='<p class="pc-ins-line"><b class="pc-ins-k">추세</b><span>'+l1+'</span></p><p class="pc-ins-line"><b class="pc-ins-k">이유</b><span>'+l2+'</span></p>';
 }
@@ -250,7 +251,7 @@ Promise.all([get('data/pair-roster.json'),get('data/growth-companies.json'),get(
   try{const p=new URLSearchParams(location.hash.slice(1));if(p.get('g')&&[...$('f-grp').options].some(o=>o.value===p.get('g'))){$('f-grp').value=p.get('g');fillItems()}if(p.get('i')&&[...$('f-item').options].some(o=>o.value===p.get('i')))$('f-item').value=p.get('i');if(p.get('q'))$('f-q').value=p.get('q');if(['idx','avg'].includes(p.get('v')))$('f-val').value=p.get('v');if(p.get('sdi')==='ex')$('f-sdi').value='ex';if(p.get('kr')==='1')$('f-kr').value='kr'}catch(e){}
  $('updated').textContent=GEN.slice(0,10)||'-';
  const ds=document.querySelector('.site-data-status__item');if(ds&&GEN){const n=ds.querySelector('.site-data-status__date'),t=ds.querySelector('.site-data-status__state');if(n)n.textContent=GEN.slice(0,10)+' 기준 · 업체 '+ALL.length+'곳 중 수치 확인 '+ALL.filter(x=>x.row).length+'곳';if(t){t.textContent='최근 집계 완료';t.className='site-data-status__state is-fresh'}}
- $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',render);$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);$('f-sdi').addEventListener('change',render);$('f-kr').addEventListener('change',render);
+ $('f-grp').addEventListener('change',()=>{fillItems();$('f-item').value='';render()});$('f-item').addEventListener('change',()=>{const v=$('f-item').value;if(v){const gr=ROSTER.groups.find(g=>g.items.some(it=>it.i===v));if(gr&&$('f-grp').value!==gr.g){$('f-grp').value=gr.g;fillItems();$('f-item').value=v}}render()});$('f-q').addEventListener('input',render);$('f-val').addEventListener('change',render);$('f-sdi').addEventListener('change',render);$('f-kr').addEventListener('change',render);
  $('pc-csv').addEventListener('click',csv);
  render();
 }).catch(()=>{const e=$('pc-empty');if(e){e.hidden=false;e.textContent='업체 비교 자료를 불러오지 못했습니다. 다시 열어 주세요.'}});
