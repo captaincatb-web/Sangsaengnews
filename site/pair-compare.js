@@ -166,12 +166,13 @@ function detail(vis){
  const cell=(x,side)=>{const dv=side==='glo'?' pc-div':'';
   if(!x)return '<td class="l pc-blank'+dv+'"></td><td colspan="6" class="pc-blank pc-gs"></td>';
   /* 회사명 아래 보조 정보(본사 실적 기준·한국 법인·참고실적·사유)는 기본 숨기고, 회사명을 클릭(또는 Enter)하면 펼친다 */
-  const r=x.row,tg=tagOf(x),sub=
-   (tg?'<small>'+esc(tg)+'</small>':'')+(x.kr&&!krMode()?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
+  /* 항상 보이는 기본 기준 줄(국내 '별도…', 해외 본사 '해외 본사 · 연결…')과, 클릭하면 열리는 보조 정보를 나눈다 */
+  const r=x.row,tg=tagOf(x),pri=tg&&(!x.e.p||krMode()),sub=
+   (tg&&!pri?'<small>'+esc(tg)+'</small>':'')+(x.kr&&!krMode()?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
    (rawParent(x)?rawDetails(rawParent(x),!!r):'')+
    (!r?'<small class="pc-why">'+esc(otherBasis(x)+' · '+(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||NO_DATA))+'</small>':'')+
    (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':''),
-   nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(sub?'<span class="pc-sub">'+sub+'</span>':'');
+   nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(pri?'<small>'+esc(tg)+'</small>':'')+(sub?'<span class="pc-sub">'+sub+'</span>':'');
   return '<th scope="row" class="l'+dv+(r?'':' pc-none')+(sub?' pc-has-sub':'')+'"'+(sub?' tabindex="0" aria-expanded="false" title="클릭하면 상세 정보가 열립니다"':'')+'>'+nm+'</th>'+(r?nums(r.r)+nums(r.o):'<td colspan="6" class="pc-na pc-gs">자료 없음 (고정 재무기준)</td>')};
  const by=side=>vis.filter(x=>x.side===side);
  let body='<tr class="pc-total">'+total('dom',by('dom'))+total('glo',by('glo'))+'</tr>';
