@@ -1,0 +1,44 @@
+name: Build Newsletter HTML (for Gmail send)
+
+# newsletter_request.txt 를 수정해 push하면, 네트워크 제한 없는 Actions에서 뉴스레터 HTML을 만들어
+# newsletter-out/ 에 커밋한다. (Claude 세션이 이 HTML을 받아 Gmail로 발송)
+on:
+  push:
+    paths:
+      - newsletter_request.txt
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Build newsletter HTML (no email)
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          OPENDART_KEY: ${{ secrets.OPENDART_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python -m src.newsletter --dry-run
+
+      - name: Commit HTML
+        run: |
+          mkdir -p newsletter-out && rm -f newsletter-out/*.html newsletter-out/*.txt
+          cp output/newsletter.html output/subject.txt output/collect_report.txt newsletter-out/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A newsletter-out data/newsletter_cache.json data/newsletter_history.json
+          git commit -m "chore: build newsletter HTML [$(cat newsletter_request.txt | head -1)]" || exit 0
+          git pull --rebase
+          git push
