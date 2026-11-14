@@ -68,6 +68,7 @@ function fillItems(){const it=$('f-item'),cur=it.value,g=$('f-grp').value;it.len
 /* 업체 제외 선택창: 체크한 업체를 화면에서 뺀다. 삼성SDI·MKS 는 한 번에 고르는 단축 버튼 */
 function excUi(){
  const btn=$('f-exc-btn'),panel=$('f-exc-panel'),list=$('f-exc-list'),q=$('f-exc-q');if(!btn||!panel)return;
+ document.body.appendChild(panel);  /* 카드의 transform·backdrop-filter 안에서는 fixed 가 카드 기준이 되므로 body 로 옮겨 화면 기준으로 띄운다 */
  const names=[];ALL.forEach(x=>{if(!names.some(o=>o.n===x.e.n))names.push({n:x.e.n,side:x.side,g:x.g,i:x.i})});
  const label=()=>{$('f-exc-label').textContent=EXC.size?(EXC.size===1?excNames()[0]:excNames()[0]+' 외 '+(EXC.size-1)+'곳'):'없음';btn.classList.toggle('on',EXC.size>0);panel.querySelectorAll('[data-exc]').forEach(b=>b.classList.toggle('on',EXC.has(b.dataset.exc)))};
  const draw=()=>{const k=(q.value||'').trim().toLowerCase();list.innerHTML=names.filter(o=>!k||o.n.toLowerCase().includes(k)).map(o=>'<li><label><input type="checkbox" value="'+esc(o.n)+'"'+(EXC.has(o.n)?' checked':'')+'><span>'+esc(o.n)+'</span><small>'+(o.side==='dom'?'국내':'글로벌')+' · '+esc(o.i)+'</small></label></li>').join('')||'<li class="pc-exc-none">검색 결과가 없습니다</li>'};
