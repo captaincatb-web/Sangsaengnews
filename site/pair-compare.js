@@ -75,7 +75,7 @@ function excUi(){
  const close=()=>{panel.hidden=true;btn.setAttribute('aria-expanded','false')};
  const place=()=>{const r=btn.closest('.pc-exc-sel').getBoundingClientRect(),w=Math.min(300,innerWidth-32);panel.style.width=w+'px';panel.style.left=Math.max(16,Math.min(r.left,innerWidth-w-16))+'px';panel.style.top=(r.bottom+6)+'px'};  /* 필터 줄이 가로 스크롤(overflow)이라 창을 화면 기준(fixed)으로 띄운다 */
  btn.addEventListener('click',e=>{e.stopPropagation();const open=panel.hidden;panel.hidden=!open;btn.setAttribute('aria-expanded',String(open));if(open){place();draw();q.focus()}});
- addEventListener('resize',()=>{if(!panel.hidden)place()});addEventListener('scroll',()=>{if(!panel.hidden)close()},{passive:true});
+ addEventListener('resize',()=>{if(!panel.hidden)place()});addEventListener('scroll',()=>{if(!panel.hidden)place()},{passive:true});
  panel.addEventListener('click',e=>e.stopPropagation());
  list.addEventListener('change',e=>{const c=e.target;if(c&&c.type==='checkbox'){c.checked?EXC.add(c.value):EXC.delete(c.value);label();render()}});
  panel.querySelectorAll('[data-exc]').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.exc)));

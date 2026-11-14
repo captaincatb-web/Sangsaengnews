@@ -187,3 +187,4 @@
 .pc-exc-list label{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;font-size:13px}
 .pc-exc-list label:hover{background:var(--bg)}.pc-exc-list small{color:var(--text-3);font-size:11px}
 .pc-exc-none{padding:8px;color:var(--text-3);font-size:12px}
+.pc-insight-filters{margin:2px 0 12px}.pc-insight-filters .db-sel{background:var(--bg)}
