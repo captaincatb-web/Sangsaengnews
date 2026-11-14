@@ -43,7 +43,7 @@ test("전체 선택: 설비·부품·원재료 중 절대 실적 기여도가 �
   company("glo","원재료","웨이퍼","GlobalWafers",[100,125],[10,11])
  ];
  const html=render(rows);
- assert.match(html,/<b>원재료<\/b>\([^)]*\)의 매출 증가가 전체 성장을 이끌었/,"국내 전체의 매출 증가 원인=원재료");
+ assert.match(html,/<b>원재료<\/b>\([^)]*\) 매출 증가 주도/,"국내 전체의 매출 증가 원인=원재료");
  assert.match(html,/성장·감소 요인/);
  assert.doesNotMatch(html,/품목별 특징/);
  assert.match(html,/<b>설비<\/b>/,"글로벌 중복 본사 실적은 먼저 선택된 구분에 배정");
@@ -70,9 +70,9 @@ test("원재료 선택: PCB/소자 성장과 특수가스 감소를 기여 문�
   company("glo","원재료","웨이퍼","SUMCO",[100,75],[10,2])
  ];
  const html=render(r,{g:"원재료"});
- assert.match(html,/<b>PCB\/소자<\/b>\([^)]*\)의 매출 증가가 전체 성장을 이끌었으며/);
- assert.match(html,/<b>특수가스<\/b>\([^)]*\)의 매출 감소가 일부 상쇄했습니다/);
- assert.match(html,/영업이익도 <b>PCB\/소자<\/b>\([^)]*\)에서 가장 크게 증가했습니다/);
+ assert.match(html,/<b>PCB\/소자<\/b>\([^)]*\) 매출 증가 주도/);
+ assert.match(html,/<b>특수가스<\/b>\([^)]*\) 일부 상쇄/);
+ assert.match(html,/영업이익도 <b>PCB\/소자<\/b>\([^)]*\) 최대 증가/);
 });
 
 test("품목까지 선택: 해당 품목의 업체 증감액 기준으로 설명",()=>{
@@ -82,7 +82,7 @@ test("품목까지 선택: 해당 품목의 업체 증감액 기준으로 설명
   company("glo","원재료","PCB/소자","Murata",[100,120],[10,18])
  ];
  const html=render(r,{g:"원재료",i:"PCB/소자"});
- assert.match(html,/<b>삼성전기<\/b>\([^)]*\)의 매출 증가가 전체 성장을 이끌었/);
+ assert.match(html,/<b>삼성전기<\/b>\([^)]*\) 매출 증가 주도/);
  assert.doesNotMatch(html,/<b>PCB\/소자<\/b>\([^)]*\)의 매출 증가/);
 });
 
@@ -94,12 +94,12 @@ test("부품 선택: ASML 본사 연결 매출을 부품 자체의 성장 원인
   company("glo","부품","부품","MKS Instruments",[100,120],[10,19])
  ];
  const html=render(r,{g:"부품"});
- assert.match(html,/<b>코미코<\/b>\([^)]*\)의 매출 증가가 전체 성장을 이끌었/);
- assert.match(html,/장비 사업까지 포함된 해외 본사 연결 실적/);
+ assert.match(html,/<b>코미코<\/b>\([^)]*\) 매출 증가 주도/);
+ assert.match(html,/장비 등 본사 전체 실적이 포함돼/);
  assert.doesNotMatch(html,/<b>ASML<\/b>/);
  assert.doesNotMatch(html,/<b>KLA<\/b>/);
  const krHtml=render(r,{g:"부품"},true);
- assert.doesNotMatch(krHtml,/장비 사업까지 포함된 해외 본사/);
+ assert.doesNotMatch(krHtml,/장비 등 본사 전체 실적이 포함돼/);
  assert.match(krHtml,/<b>싸이머코리아<\/b>/,"한국 법인 모드에서는 현지 법인 이름으로 설명");
 });
 

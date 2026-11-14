@@ -285,20 +285,20 @@ function insight(dm,gl){
  const tag=(x,f)=>'<b>'+esc(x.n)+'</b>('+moneyDelta(x[f])+')';
  const factorText=(items,rSum,oSum)=>{
   const R=pickFactor(items,'dR',rSum),O=pickFactor(items,'dO',oSum);let out=[];
-  if(!R.main)out.push('매출 증감은 거의 없습니다.');
-  else if(rSum>0)out.push(tag(R.main,'dR')+'의 매출 증가가 전체 성장을 이끌었'+(R.opp?'으며, '+tag(R.opp,'dR')+'의 매출 감소가 일부 상쇄했습니다.':'습니다.'));
-  else if(rSum<0)out.push(tag(R.main,'dR')+'의 매출 감소가 전체 하락을 이끌었'+(R.opp?'으며, '+tag(R.opp,'dR')+'의 매출 증가가 일부 상쇄했습니다.':'습니다.'));
-  else out.push('매출은 증가·감소 요인이 서로 상쇄됐습니다.');
-  if(!O.main)out.push('영업이익 증감은 거의 없습니다.');
+  if(!R.main)out.push('매출 증감 거의 없음');
+  else if(rSum>0)out.push(tag(R.main,'dR')+' 매출 증가 주도'+(R.opp?', '+tag(R.opp,'dR')+' 일부 상쇄':''));
+  else if(rSum<0)out.push(tag(R.main,'dR')+' 매출 감소 주도'+(R.opp?', '+tag(R.opp,'dR')+' 일부 상쇄':''));
+  else out.push('매출은 증가·감소 요인이 상쇄');
+  if(!O.main)out.push('영업이익 증감 거의 없음');
   else{const verb=oSum>=0?'증가':'감소',same=R.main&&R.main.n===O.main.n&&((rSum>0)===(oSum>=0));
-   out.push((same?'영업이익도 ':'영업이익은 ')+tag(O.main,'dO')+'에서 가장 크게 '+verb+'했습니다.')}
-  return out.join(' ')};
+   out.push((same?'영업이익도 ':'영업이익은 ')+tag(O.main,'dO')+' 최대 '+verb)}
+  return out.join(' · ')};
  const explain=(label,x,l)=>{
   if(!x)return'<span class="pc-ins-row"><b>'+label+'</b> — 확인된 실적이 없어 분석할 수 없습니다.</span>';
   /* 부품으로 분류된 글로벌 납품사의 연결 본사 실적은 장비 등 다른 사업을 포함한다.
      ASML 등 본사의 전체 실적 증가를 부품 사업의 증가 이유로 잘못 기술하지 않는다. */
   if(s.g==='부품'&&!krMode()&&label==='글로벌'&&l.some(v=>v.e.p&&v.row)){
-   return'<span class="pc-ins-row"><b>글로벌</b> — 장비 사업까지 포함된 해외 본사 연결 실적이 반영되어 있어, <b>부품 자체의 매출·영업이익 증감 요인을 분리해 판단할 수 없습니다.</b></span>';
+   return'<span class="pc-ins-row"><b>글로벌</b> — 장비 등 본사 전체 실적이 포함돼 <b>부품만의 증감 요인은 분리할 수 없습니다.</b></span>';
   }
   const factors=explainRows(l);
   if(!factors.length)return'<span class="pc-ins-row"><b>'+label+'</b> — 확인된 실적이 없어 분석할 수 없습니다.</span>';
