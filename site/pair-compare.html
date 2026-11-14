@@ -62,7 +62,11 @@
       <label class="db-sel"><i class="ph ph-stack" aria-hidden="true"></i><span>구분</span><select id="f-grp"><option value="">전체</option></select></label>
       <label class="db-sel"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>품목</span><select id="f-item"><option value="">전체</option></select></label>
       <label class="db-sel pc-kr-sel"><i class="ph ph-buildings" aria-hidden="true"></i><span>글로벌 비교 기준</span><select id="f-kr"><option value="hq">해외 본사</option><option value="kr">한국 법인</option></select></label>
-      <label class="db-sel pc-sdi-sel"><i class="ph ph-battery-charging" aria-hidden="true"></i><span>삼성SDI</span><select id="f-sdi"><option value="in">포함</option><option value="ex">제외</option></select></label>
+      <div class="db-sel pc-exc-sel"><i class="ph ph-funnel-x" aria-hidden="true"></i><span>업체 제외</span><button type="button" id="f-exc-btn" class="pc-exc-btn" aria-expanded="false" aria-controls="f-exc-panel"><em id="f-exc-label">없음</em></button>
+        <div class="pc-exc-panel" id="f-exc-panel" role="dialog" aria-label="제외할 업체 선택" hidden>
+          <div class="pc-exc-quick"><button type="button" data-exc="삼성에스디아이">삼성SDI</button><button type="button" data-exc="MKS Instruments" title="2023년 영업손실이 커서 영업이익 합계·증감률을 왜곡할 수 있습니다">MKS Instruments</button><button type="button" id="f-exc-clear" class="pc-exc-clear">모두 해제</button></div>
+          <input id="f-exc-q" type="search" placeholder="제외할 업체 검색" autocomplete="off" aria-label="제외할 업체 검색">
+          <ul class="pc-exc-list" id="f-exc-list"></ul></div></div>
       <label class="db-sel pc-val-sel"><i class="ph ph-chart-bar" aria-hidden="true"></i><span>차트 값</span><select id="f-val"><option value="sum">매출액 합계</option><option value="idx">매출지수(2023=100)</option><option value="avg">기업당 평균</option></select></label>
     </form>
     <div class="db-view">

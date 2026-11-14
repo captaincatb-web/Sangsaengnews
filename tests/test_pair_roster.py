@@ -13,8 +13,8 @@ class PairRoster(unittest.TestCase):
         cls.rows = {r["n"]: r for r in next(m for m in g["modes"] if m["id"] == "blend")["rows"]}
         cls.entries = [(gr["g"], it["i"], side, e) for gr in cls.R["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side]]
 
-    def test_basis_has_four_criteria(self):
-        self.assertEqual(len(self.R["basis"]), 4); self.assertIn("구매액 상위 5개업체", self.R["basis"][3])
+    def test_basis_has_three_criteria(self):
+        self.assertEqual(len(self.R["basis"]), 3); self.assertFalse(any("구매액 상위" in t for t in self.R["basis"]))
 
     def test_structure_and_five_or_fewer_per_side(self):
         self.assertEqual({gr["g"] for gr in self.R["groups"]}, {"설비", "부품", "원재료"})
