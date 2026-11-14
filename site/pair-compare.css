@@ -187,4 +187,16 @@
 .pc-exc-list label{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:5px 4px;border-radius:6px;cursor:pointer;font-size:13px}
 .pc-exc-list label:hover{background:var(--bg)}.pc-exc-list small{color:var(--text-3);font-size:11px}
 .pc-exc-none{padding:8px;color:var(--text-3);font-size:12px}
-.pc-insight-filters{margin:2px 0 12px}.pc-insight-filters .db-sel{background:var(--bg)}
+
+
+/* 필터: 분석 카드 제목 오른쪽에 작게 */
+#insight-card>.db-card-head{flex-wrap:nowrap;align-items:flex-start;gap:12px}
+#insight-card>.db-card-head h2{white-space:nowrap}
+.pc-insight-filters{margin:0 0 0 auto;flex:0 1 auto;flex-wrap:wrap;gap:6px;justify-content:flex-end;overflow:visible}
+.pc-insight-filters .db-sel{flex:0 0 auto;min-width:0;padding:3px 8px;column-gap:6px;border-radius:7px;background:var(--bg)}
+.pc-insight-filters .db-sel i{font-size:15px}
+.pc-insight-filters .db-sel span{font-size:10px;line-height:1.2}
+.pc-insight-filters .db-sel select,.pc-insight-filters .pc-exc-btn{font-size:12.5px;padding-right:14px}
+.pc-insight-filters .pc-exc-btn{max-width:130px}
+.pc-insight-filters .db-sel::after,.pc-insight-filters .pc-exc-btn::after{right:6px;width:5px;height:5px}
+@media(max-width:900px){#insight-card>.db-card-head{flex-wrap:wrap}.pc-insight-filters{margin-left:0;justify-content:flex-start;width:100%}}
