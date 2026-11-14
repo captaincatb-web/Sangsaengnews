@@ -73,6 +73,17 @@
        "m": "TOKYO ELECTRON",
        "ex": "tokyoelectron",
        "km": "도쿄일렉트론코리아"
+      },
+      {
+       "n": "히타치하이테크코리아",
+       "f": "히타치하이테크코리아 주식회사",
+       "k": "par",
+       "p": {
+        "n": "Hitachi High-Tech",
+        "x": "hitachihightech",
+        "f": 1
+       },
+       "km": "히타치하이테크코리아"
       }
      ]
     },
@@ -213,17 +224,6 @@
         "f": 1
        },
        "km": "한국기가포톤"
-      },
-      {
-       "n": "히타치하이테크코리아",
-       "f": "히타치하이테크코리아 주식회사",
-       "k": "par",
-       "p": {
-        "n": "Hitachi High-Tech",
-        "x": "hitachihightech",
-        "f": 1
-       },
-       "km": "히타치하이테크코리아"
       }
      ]
     }
