@@ -212,7 +212,8 @@
        "n": "MKS Instruments",
        "f": "MKS Instruments, Inc.",
        "k": "hq",
-       "km": "MKS Instruments"
+       "m": "MKS Instruments",
+       "kx": "엠케이에스코리아"
       },
       {
        "n": "한국기가포톤",
@@ -224,6 +225,13 @@
         "f": 1
        },
        "km": "한국기가포톤"
+      },
+      {
+       "n": "INFICON",
+       "f": "INFICON Holding AG",
+       "k": "hq",
+       "ex": "inficon",
+       "kx": "인피콘"
       }
      ]
     }
