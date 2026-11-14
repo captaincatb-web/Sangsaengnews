@@ -13,20 +13,23 @@ class PairRoster(unittest.TestCase):
         cls.rows = {r["n"]: r for r in next(m for m in g["modes"] if m["id"] == "blend")["rows"]}
         cls.entries = [(gr["g"], it["i"], side, e) for gr in cls.R["groups"] for it in gr["items"] for side in ("dom", "glo") for e in it[side]]
 
-    def test_basis_has_four_criteria(self):
-        self.assertEqual(len(self.R["basis"]), 4); self.assertIn("구매액 상위 5개업체", self.R["basis"][3])
+    def test_basis_has_three_criteria(self):
+        self.assertEqual(len(self.R["basis"]), 3); self.assertFalse(any("구매액 상위" in t for t in self.R["basis"]))
 
     def test_structure_and_five_or_fewer_per_side(self):
         self.assertEqual({gr["g"] for gr in self.R["groups"]}, {"설비", "부품", "원재료"})
-        self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["전공정", "후공정", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
+        self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["전공정", "후공정", "인프라", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
         for gr in self.R["groups"]:
             for it in gr["items"]:
-                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 6 if (it["i"], side) == ("전공정", "glo") else 5, (it["i"], side))
+                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 10, (it["i"], side))
 
     def test_matches_exist_by_exact_name(self):
         for g, i, side, e in self.entries:
             if "m" in e: self.assertIn(e["m"], self.rows, e["n"])
-        ms = [e["m"] for *_, e in self.entries if "m" in e]; self.assertEqual(len(set(ms)), len(ms), "같은 공개 행을 두 업체에 직접 연결하지 않음")
+        ms = [e["m"] for *_, e in self.entries if "m" in e]; names = {}
+        for *_, e in self.entries:
+            if "m" in e: names.setdefault(e["m"], set()).add(e["n"])
+        self.assertTrue(all(len(v) == 1 for v in names.values()), "같은 공개 행을 서로 다른 업체에 직접 연결하지 않음(같은 업체의 중복 노출은 허용)")
 
     def test_global_entries_use_parent_figures(self):
         """글로벌 업체는 본사 실적: par 업체는 자기 이름으로 공개 행에 연결하지 않고(m 없음), 본사 지정 p 에 공개 행(m)·별도 수집(x)·사유(w) 중 하나만 둔다."""

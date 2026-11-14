@@ -159,10 +159,18 @@ for (const w of [390, 1280]) {
     assert.equal(await page.locator('#pc-tbl .pc-total th').count(),2,'품목 필터 시에도 합계 두 칸');
     assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성에스디아이 항상 표시');
     assert.ok((await page.locator('#pc-tbl .pc-why').count())>=1,'SDI 성격 안내');
-    await page.selectOption('#f-sdi','ex');
+    await page.click('#f-exc-btn');await page.click('[data-exc="삼성에스디아이"]');
     assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 제외 필터');
-    await page.selectOption('#f-sdi','in');
+    await page.click('[data-exc="삼성에스디아이"]');
     assert.match(await page.locator('#pc-tbl').innerText(),/삼성에스디아이/,'삼성SDI 다시 포함');
+    await page.selectOption('#f-grp','부품');
+    assert.match(await page.locator('#pc-tbl').innerText(),/MKS Instruments/,'MKS 기본 표시');
+    await page.click('[data-exc="MKS Instruments"]');
+    assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/MKS Instruments/,'MKS 제외');
+    await page.fill('#f-exc-q','INFICON');await page.check('#f-exc-list input[value="INFICON"]');
+    assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/INFICON/,'검색해서 고른 업체 제외');
+    await page.click('#f-exc-clear');
+    assert.match(await page.locator('#pc-tbl').innerText(),/INFICON/,'모두 해제');
     await page.selectOption('#f-kr','kr');
     assert.match(await page.locator('#pc-tbl').textContent(),/한국 법인/,'한국 법인 기준 비교');
     assert.match(await page.locator('.pc-fixed-basis').innerText(),/한국 법인/,'기준 안내가 한국 법인으로 바뀜');
@@ -190,7 +198,7 @@ for (const w of [390, 1280]) {
     assert.ok((await page.locator('#pc-tbl .pc-n').count())>=1,'업체 검색');
     assert.match(await page.locator('#pc-miss-h').innerText(),/고정 재무기준의 원화 3개년 실적이 없는 업체/);
     const basis=await page.locator('#pc-basis').innerText();
-    for(const t of ['당사 거래업체만 대상','설비/부품/원자재 구분','본사 소재지 기준','구매액 상위 5개업체'])assert.ok(basis.includes(t),t);
+    for(const t of ['당사 거래업체만 대상','설비/부품/원자재 구분','본사 소재지 기준'])assert.ok(basis.includes(t),t);assert.ok(!basis.includes('구매액 상위'),'선정 기준 문구 삭제');
     assert.deepEqual(errs,[]);await ctx.close();
   });
 }
