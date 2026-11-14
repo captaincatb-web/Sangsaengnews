@@ -30,7 +30,7 @@ const fbasis=()=> 'auto'; // 비교 화면 고정: 국내 개별 / 글로벌 본
 /* 비교 화면 고정 기준. 국내 개별/별도, 글로벌 해외 본사 연결 외 값은 대체하지 않는다. */
 const fval=()=>{const v=$('f-val');return v?v.value:'sum'};
 /* 글로벌 비교 기준: 해외 본사 연결(기본) 또는 한국 법인 별도. 한국 법인 모드에서 한국 법인이 없는 업체는 자료 없음으로 둔다 */
-function applyBasis(){const kr=krMode();ALL.forEach(x=>{if(x.side==='glo'&&kr){x.row=x.kr||null;x.key=x.kr?'kr:'+x.kn:x.bkey}else{x.key=x.bkey;x.row=x.side==='glo'?(x.cands.c||(x.e.p&&x.e.p.f?x.cands.s:null)):x.cands.s}})}  /* p.f: 본사 연결 실적이 없는 비상장 본사는 개별(참고) 실적으로 대신 표시 */
+function applyBasis(){const kr=krMode();ALL.forEach(x=>{if(x.side==='glo'&&kr){x.row=x.kr||null;x.key=x.kr?'kr:'+x.kn:x.bkey}else{x.key=x.bkey;x.row=x.side==='glo'?(x.cands.c||((x.e.sf||(x.e.p&&x.e.p.f))?x.cands.s:null)):x.cands.s}})}  /* p.f: 본사 연결 실적이 없는 비상장 본사는 개별(참고) 실적으로 대신 표시 */
 
 const krMode=()=>{const e=$('f-kr');return !!e&&e.value==='kr'};
 const sdiOff=()=>{const e=$('f-sdi');return !!e&&e.value==='ex'};
