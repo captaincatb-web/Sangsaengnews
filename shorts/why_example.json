@@ -1,0 +1,194 @@
+{
+ "topic": "엘리베이터는 왜 추락하지 않을까",
+ "handle": "@my.channel",
+ "accent": "red",
+ "style": "inside a modern skyscraper elevator shaft, steel guide rails, steel cables",
+ "lines": [
+  {
+   "cuts": [
+    {
+     "text": "엘리베이터 줄이 끊어지면",
+     "neon": "red",
+     "icon": "elevator",
+     "prompt": "low angle view up a dark elevator shaft, an elevator car hanging on steel cables, one cable snapping"
+    },
+    {
+     "text": "그대로 떨어질까요?",
+     "neon": "red",
+     "prompt": "an elevator car seen from above hanging over a deep dark shaft, dramatic tension"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "우리는 줄 하나에",
+     "neon": "blue",
+     "prompt": "camera slowly rising alongside an elevator car in a dark shaft, cool blue rim light"
+    },
+    {
+     "text": "목숨을 맡기는 게 아닙니다",
+     "neon": "blue",
+     "prompt": "close-up of the roof of an elevator car where several parallel steel cables attach"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "엘리베이터는 여러 가닥의",
+     "neon": "yellow",
+     "prompt": "macro shot of six parallel steel wire ropes running over a large traction sheave"
+    },
+    {
+     "text": "강철 로프에 매달려 있고",
+     "neon": "yellow",
+     "prompt": "the steel ropes stretching down into the dark shaft, all glowing evenly"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "로프들이 무게를 나눠 들어서",
+     "neon": "yellow",
+     "prompt": "the ropes sharing the load of the elevator car below, tension visualized as light"
+    },
+    {
+     "text": "한두 가닥이 끊어져도",
+     "neon": "red",
+     "prompt": "one steel rope frayed and broken while the other ropes stay tight"
+    },
+    {
+     "text": "버틸 수 있습니다",
+     "neon": "green",
+     "prompt": "the elevator car holding perfectly still in the shaft, calm and stable"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "모든 줄이 한꺼번에",
+     "neon": "red",
+     "prompt": "several steel ropes vibrating violently in slow motion"
+    },
+    {
+     "text": "끊어지는 일은 거의 없지만",
+     "neon": "blue",
+     "prompt": "wide shot of a calm elevator machine room with motors and sheaves"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "속도가 기준보다 빨라지면",
+     "neon": "orange",
+     "icon": "high-voltage",
+     "prompt": "motion blurred elevator car speeding down the shaft, streaks of light"
+    },
+    {
+     "text": "조속기가 이를 감지합니다",
+     "neon": "orange",
+     "icon": "gear",
+     "prompt": "a mechanical overspeed governor wheel spinning fast in the machine room, close-up"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "차체 아래 비상 정지 장치가",
+     "neon": "red",
+     "prompt": "close-up of steel safety brake jaws mounted under an elevator car next to a guide rail"
+    },
+    {
+     "text": "레일을 꽉 붙잡아 멈춥니다",
+     "neon": "red",
+     "prompt": "the safety brake jaws clamping hard onto the steel guide rail with sparks, car stopping"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "사람이 손대지 않아도",
+     "neon": "blue",
+     "prompt": "empty elevator car interior, passengers calm, soft light"
+    },
+    {
+     "text": "모두 자동으로 작동합니다",
+     "neon": "green",
+     "prompt": "mechanical linkages moving automatically under the elevator car, close-up"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "끝까지 내려가더라도",
+     "neon": "green",
+     "prompt": "camera descending to the bottom of a dark elevator pit"
+    },
+    {
+     "text": "바닥의 완충기가",
+     "neon": "green",
+     "prompt": "large hydraulic buffers at the bottom of the elevator pit, camera pushing in"
+    },
+    {
+     "text": "마지막 충격을 흡수합니다",
+     "neon": "green",
+     "prompt": "close-up of a hydraulic spring buffer compressing slowly"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "이 장치는 170여 년 전",
+     "neon": "yellow",
+     "prompt": "1850s exhibition hall, a man standing on an open wooden elevator platform high above a crowd, vintage warm light"
+    },
+    {
+     "text": "오티스가 처음 선보였습니다",
+     "neon": "yellow",
+     "prompt": "the rope above the vintage platform being cut while the platform stays in place, crowd amazed"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "건물마다 방식은 다르지만",
+     "neon": "blue",
+     "prompt": "aerial view of a city of skyscrapers at night, glass towers with glowing elevator shafts"
+    },
+    {
+     "text": "원리는 같습니다",
+     "neon": "blue",
+     "prompt": "a cross-section of a skyscraper showing multiple elevator shafts lit in parallel"
+    }
+   ]
+  },
+  {
+   "cuts": [
+    {
+     "text": "결국 엘리베이터는",
+     "neon": "green",
+     "prompt": "inside a quiet modern elevator car, doors closing, soft light"
+    },
+    {
+     "text": "줄을 믿는 게 아니라",
+     "neon": "red",
+     "prompt": "steel cables moving upward in the dark shaft, slightly ominous"
+    },
+    {
+     "text": "멈출 장치를 믿고 움직입니다",
+     "neon": "green",
+     "prompt": "the safety brake on the guide rail glowing as the elevator car rests securely"
+    }
+   ]
+  }
+ ]
+}
