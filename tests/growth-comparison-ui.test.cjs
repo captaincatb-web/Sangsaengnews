@@ -186,7 +186,7 @@ for (const w of [390, 1280]) {
     assert.equal(await page.locator('#pc-key').count(),0,'2025년 실적 요약 줄 삭제');
     await page.selectOption('#f-grp','원재료');await page.selectOption('#f-item','웨이퍼');
     const ins1=await page.locator('#pc-insight').innerText();
-    assert.notEqual(ins1,ins0,'필터에 따라 분석 문장이 달라짐');assert.match(await page.locator('#pc-insight-cond').innerText(),/웨이퍼/);
+    assert.notEqual(ins1,ins0,'필터에 따라 분석 문장이 달라짐');assert.match(await page.locator('#pc-insight-cond').textContent(),/웨이퍼/);
     await page.selectOption('#f-grp','설비');
     assert.match(await page.locator('#pc-insight').innerText(),/(전공정|후공정)[\s\S]*(매출 증가|매출 감소)/,'구분 선택 시 품목별 기여');
     await page.selectOption('#f-item','후공정');
