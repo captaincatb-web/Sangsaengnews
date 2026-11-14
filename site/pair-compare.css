@@ -200,3 +200,4 @@
 .pc-insight-filters .pc-exc-btn{max-width:130px}
 .pc-insight-filters .db-sel::after,.pc-insight-filters .pc-exc-btn::after{right:6px;width:5px;height:5px}
 @media(max-width:900px){#insight-card>.db-card-head{flex-wrap:wrap}.pc-insight-filters{margin-left:0;justify-content:flex-start;width:100%}}
+.pc-insight-cond{display:none}
