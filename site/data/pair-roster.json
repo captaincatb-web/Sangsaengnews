@@ -224,6 +224,12 @@
         "f": 1
        },
        "km": "한국기가포톤"
+      },
+      {
+       "n": "INFICON",
+       "f": "INFICON Holding AG",
+       "k": "hq",
+       "ex": "inficon"
       }
      ]
     }
