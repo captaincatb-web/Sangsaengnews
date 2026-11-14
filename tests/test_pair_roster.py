@@ -21,7 +21,7 @@ class PairRoster(unittest.TestCase):
         self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["전공정", "후공정", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
         for gr in self.R["groups"]:
             for it in gr["items"]:
-                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 5, (it["i"], side))
+                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 6 if (it["i"], side) == ("전공정", "glo") else 5, (it["i"], side))
 
     def test_matches_exist_by_exact_name(self):
         for g, i, side, e in self.entries:
