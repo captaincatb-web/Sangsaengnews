@@ -43,7 +43,7 @@ const otherBasis=x=>{const wanted=x.side==='glo'?(krMode()?'한국 법인 별도
  const other=x.side==='glo'?x.cands.s:x.cands.c;
  return wanted+' 3개년 공시 실적 미확인'+(other?' (다른 재무 기준 참고값 존재)':'')};
 const incX=()=>true; // 삼성에스디아이 항상 포함
-const inSumRaw=x=>!!x.row;
+const inSumRaw=x=>!!x.row&&x.row.o.every(Number.isFinite);  /* 영업이익이 공시되지 않은 업체(o=null)는 표에는 보여 주되 매출·영업이익 합계, 그래프, 분석에서는 제외한다 */
 const uniqSum=list=>{const seen=new Set();return list.filter(x=>{if(!inSumRaw(x)||seen.has(x.key))return false;seen.add(x.key);return true})};
 
 /* 영업이익이 공시되지 않은 업체(o=null)는 매출 합계에는 넣고, 영업이익 합계·영업이익률 계산에서는 뺀다 */
@@ -187,7 +187,8 @@ function detail(vis){
    (tg&&!pri?'<small>'+esc(tg)+'</small>':'')+(x.kr&&!krMode()?'<small class="pc-kr">'+esc(krTxt(x))+'</small>':'')+
    (rawParent(x)?rawDetails(rawParent(x),!!r):'')+
    (!r?'<small class="pc-why">'+esc(otherBasis(x)+' · '+(x.e.p&&x.e.p.w?x.e.p.w:x.e.w||NO_DATA))+'</small>':'')+
-   (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':''),
+   (x.e.x?'<small class="pc-why">'+esc(x.e.x)+' · 합계에 포함</small>':'')+
+   (r&&!r.o.every(Number.isFinite)?'<small class="pc-why">영업이익 미공시 · 합계에서 제외</small>':''),
    nm='<span class="pc-n" title="'+esc(x.e.f)+'">'+esc(x.e.n)+'</span>'+(pri?'<small>'+esc(tg)+'</small>':'')+(sub?'<span class="pc-sub">'+sub+'</span>':'');
   return '<th scope="row" class="l'+dv+(r?'':' pc-none')+(sub?' pc-has-sub':'')+'"'+(sub?' tabindex="0" aria-expanded="false" title="클릭하면 상세 정보가 열립니다"':'')+'>'+nm+'</th>'+(r?nums(r.r)+nums(r.o):'<td colspan="6" class="pc-na pc-gs">자료 없음 (고정 재무기준)</td>')};
  const by=side=>vis.filter(x=>x.side===side);

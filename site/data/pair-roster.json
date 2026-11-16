@@ -395,22 +395,6 @@
        "sf": 1
       },
       {
-       "n": "Edwards Vacuum",
-       "f": "Edwards Vacuum",
-       "k": "par",
-       "p": {
-        "n": "Atlas Copco Group",
-        "x": "atlascopco",
-        "b": "Edwards는 Atlas Copco 그룹의 비상장 자회사로 단독 실적이 공시되지 않아 Atlas Copco 그룹 연결 실적을 참조"
-       }
-      },
-      {
-       "n": "Atlas Copco Group",
-       "f": "Atlas Copco AB",
-       "k": "hq",
-       "ex": "atlascopco"
-      },
-      {
        "n": "에드워드 코리아",
        "f": "에드워드 코리아 주식회사",
        "k": "par",

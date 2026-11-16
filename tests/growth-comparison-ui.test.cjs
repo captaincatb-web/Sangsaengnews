@@ -176,6 +176,11 @@ for (const w of [390, 1280]) {
     await page.click('[data-exc="삼성전기"]');
     assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/삼성전기/,'삼성전기 제외');
     await page.click('[data-exc="삼성전기"]');
+    await page.selectOption('#f-grp','설비');await page.selectOption('#f-item','전공정');
+    assert.match(await page.locator('#pc-tbl').textContent(),/Eugenus[\s\S]*합계에서 제외/,'영업이익 미공시 업체는 표에 보이되 합계에서 제외 안내');
+    const tot0=await page.locator('#pc-tbl .pc-total').innerText();
+    await page.click('[data-exc="삼성에스디아이"]');await page.click('[data-exc="삼성에스디아이"]');
+    assert.equal(await page.locator('#pc-tbl .pc-total').innerText(),tot0);
     await page.selectOption('#f-kr','kr');
     assert.match(await page.locator('#pc-tbl').textContent(),/한국 법인/,'한국 법인 기준 비교');
     assert.match(await page.locator('.pc-fixed-basis').innerText(),/한국 법인/,'기준 안내가 한국 법인으로 바뀜');
