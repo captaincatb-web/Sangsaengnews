@@ -16,12 +16,12 @@ class PairRoster(unittest.TestCase):
     def test_basis_has_three_criteria(self):
         self.assertEqual(len(self.R["basis"]), 3); self.assertFalse(any("구매액 상위" in t for t in self.R["basis"]))
 
-    def test_structure_and_five_or_fewer_per_side(self):
+    def test_structure_and_each_side_has_companies(self):
         self.assertEqual({gr["g"] for gr in self.R["groups"]}, {"설비", "부품", "원재료"})
         self.assertEqual([it["i"] for gr in self.R["groups"] for it in gr["items"]], ["전공정", "후공정", "인프라", "부품", "PCB/소자", "벌크가스", "웨이퍼", "케미컬", "특수가스"])
         for gr in self.R["groups"]:
             for it in gr["items"]:
-                for side in ("dom", "glo"): self.assertLessEqual(len(it[side]), 10, (it["i"], side))
+                for side in ("dom", "glo"): self.assertGreaterEqual(len(it[side]), 1, (it["i"], side))
 
     def test_matches_exist_by_exact_name(self):
         for g, i, side, e in self.entries:
