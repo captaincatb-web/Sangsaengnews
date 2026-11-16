@@ -243,8 +243,9 @@
        "f": "엠이케이 주식회사",
        "k": "par",
        "p": {
-        "n": "본사 미확인",
-        "w": "엠이케이(주)의 해외 본사를 확인하지 못해 본사 실적을 표시하지 않습니다."
+        "n": "Micronics Japan (MJC)",
+        "x": "micronicsjapan",
+        "b": "엠이케이(주)는 일본 마이크로닉스(MJC)의 한국 법인으로 자체 본사 실적이 없어 MJC 연결 실적을 참조"
        },
        "km": "엠이케이"
       },
@@ -402,8 +403,12 @@
       {
        "n": "Edwards Vacuum",
        "f": "Edwards Vacuum",
-       "k": "hq",
-       "w": "Edwards는 Atlas Copco 그룹의 비상장 자회사로 단독 실적이 공시되지 않아 본사 수치는 확인되지 않았습니다."
+       "k": "par",
+       "p": {
+        "n": "Atlas Copco Group",
+        "x": "atlascopco",
+        "b": "Edwards는 Atlas Copco 그룹의 비상장 자회사로 단독 실적이 공시되지 않아 Atlas Copco 그룹 연결 실적을 참조"
+       }
       },
       {
        "n": "Atlas Copco Group",
@@ -444,13 +449,10 @@
        "km": "쿠리타한수"
       },
       {
-       "n": "파이퍼베큠코리아",
-       "f": "파이퍼베큠코리아 유한회사",
-       "k": "par",
-       "p": {
-        "n": "Pfeiffer Vacuum Technology",
-        "w": "Pfeiffer Vacuum은 2023년 Busch 그룹에 편입되어 상장폐지되었고, 본사 연간 연결 실적을 확인하지 못했습니다."
-       },
+       "n": "Pfeiffer Vacuum Technology AG",
+       "f": "Pfeiffer Vacuum Technology AG",
+       "k": "hq",
+       "ex": "pfeiffervacuum",
        "km": "파이퍼베큠코리아"
       },
       {
@@ -470,13 +472,10 @@
        "ex": "fujielectric"
       },
       {
-       "n": "한국하니웰",
-       "f": "한국하니웰 주식회사",
-       "k": "par",
-       "p": {
-        "n": "Honeywell International",
-        "w": "Honeywell 본사 실적은 수집하지 않았습니다(분사·재편으로 연속 비교가 어려움)."
-       },
+       "n": "Honeywell International",
+       "f": "Honeywell International Inc.",
+       "k": "hq",
+       "ex": "honeywell",
        "km": "한국하니웰"
       },
       {

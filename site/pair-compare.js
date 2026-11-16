@@ -8,7 +8,7 @@ const fmt=v=>v==null?'–':Math.round(v).toLocaleString('ko-KR');
 const pct=v=>v==null?'–':v.toFixed(1)+'%';
 const sg=v=>v==null?'–':(v>0?'+':'')+v.toFixed(1)+'%';
 const pp=v=>v==null?'–':(v>0?'+':'')+v.toFixed(1)+'%p';
-const margin=(o,r)=>r?o/r*100:null,grow=(r,i)=>r[i-1]?(r[i]/r[i-1]-1)*100:null,cum=r=>r[0]?(r[2]/r[0]-1)*100:null;
+const margin=(o,r)=>(r&&o!=null)?o/r*100:null,grow=(r,i)=>r[i-1]?(r[i]/r[i-1]-1)*100:null,cum=r=>r[0]?(r[2]/r[0]-1)*100:null;
 const KIND={hq:'해외 본사',par:'본사 실적'},SIDE={dom:'국내업체',glo:'글로벌업체'},INK={dom:'var(--gc-ink-1)',glo:'var(--gc-ink-2)'};
 const NO_DATA='3개년(2023~2025) 공시 실적이 확인된 업체만 수치를 보여 주며, 이 업체는 아직 확인되지 않았습니다.',NO_PAR='본사 실적이 3개년(2023~2025) 확인되지 않았습니다.';
 let ROSTER=null,ALL=[],GEN='',RAW_PARENT={};
@@ -46,8 +46,10 @@ const incX=()=>true; // 삼성에스디아이 항상 포함
 const inSumRaw=x=>!!x.row;
 const uniqSum=list=>{const seen=new Set();return list.filter(x=>{if(!inSumRaw(x)||seen.has(x.key))return false;seen.add(x.key);return true})};
 
-function agg(list){const has=uniqSum(list),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+x.row.o[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
- return{n:list.length,k:has.length,rev:r2,op:o2,r0,m:has.length?margin(o2,r2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
+/* 영업이익이 공시되지 않은 업체(o=null)는 매출 합계에는 넣고, 영업이익 합계·영업이익률 계산에서는 뺀다 */
+const hasOp=x=>x.row.o.every(Number.isFinite);
+function agg(list){const has=uniqSum(list),r2=has.reduce((t,x)=>t+x.row.r[2],0),o2=has.reduce((t,x)=>t+(x.row.o[2]||0),0),ro2=has.filter(hasOp).reduce((t,x)=>t+x.row.r[2],0),r0=has.reduce((t,x)=>t+x.row.r[0],0);
+ return{n:list.length,k:has.length,rev:r2,op:o2,r0,m:has.length?margin(o2,ro2):null,c:has.length&&r0?(r2/r0-1)*100:null}}
 const krTxt=x=>x.kr?'한국 법인'+(x.kn&&x.kn!==x.e.n?'('+x.kn+')':'')+': 2025 매출 '+fmt(x.kr.r[2])+'억 · 영업이익률 '+pct(margin(x.kr.o[2],x.kr.r[2]))+' ('+x.kr.s+(x.kr.src?' · '+x.kr.src:'')+')':'';
 /* 글로벌 원재료·부품 본사 공시 원문(개별/연결 구분). KRW 합계·성장률에는 미산입. */
 const rawParent=x=>x.side==='glo'&&['원재료','부품'].includes(x.g)&&x.e.p?RAW_PARENT[x.e.p.n]:null;
@@ -205,10 +207,10 @@ function insight(dm,gl){
  {const ex=typeof excNames==='function'?excNames():[];if(ex.length)parts.push('제외 '+ex.join(', '))}if(krMode())parts.push('글로벌 한국 법인 기준');if(s.q)parts.push('검색 “'+s.q+'”');
  cond.textContent=parts.length?parts.join(' › '):'전체';
  const side=l=>{const h=uniqSum(l);if(!h.length)return null;
-  const R=[0,1,2].map(i=>h.reduce((t,x)=>t+(x.row.r[i]||0),0)),O=[0,1,2].map(i=>h.reduce((t,x)=>t+(x.row.o[i]||0),0));
+  const R=[0,1,2].map(i=>h.reduce((t,x)=>t+(x.row.r[i]||0),0)),O=[0,1,2].map(i=>h.reduce((t,x)=>t+(x.row.o[i]||0),0)),RO=[0,1,2].map(i=>h.filter(x=>x.row.o.every(Number.isFinite)).reduce((t,y)=>t+(y.row.r[i]||0),0));
   const nm=x=>x.side==='glo'&&x.e.p?x.e.p.n:x.e.n;
-  return{n:h.length,R,O,m0:margin(O[0],R[0]),m2:margin(O[2],R[2]),rg:R[0]>0?(R[2]/R[0]-1)*100:null,
-   dO:h.map(x=>({n:nm(x),v:x.row.o[2]-x.row.o[0]}))}};
+  return{n:h.length,R,O,m0:margin(O[0],RO[0]),m2:margin(O[2],RO[2]),rg:R[0]>0?(R[2]/R[0]-1)*100:null,
+   dO:h.filter(x=>x.row.o.every(Number.isFinite)).map(x=>({n:nm(x),v:x.row.o[2]-x.row.o[0]}))}};
  const D=side(dm),G=side(gl);
  if(!D&&!G){box.innerHTML='<p class="gc-empty">선택한 조건에 3개년 실적이 확인된 업체가 없어 분석할 수 없습니다.</p>';return}
  const signed=v=>v==null?'산출 불가':(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+'%';
@@ -271,7 +273,7 @@ function insight(dm,gl){
    if(!name)return;
    const item=map.get(name)||{n:name,dR:0,dO:0};
    item.dR+=x.row.r[2]-x.row.r[0];
-   item.dO+=x.row.o[2]-x.row.o[0];
+   if(x.row.o.every(Number.isFinite))item.dO+=x.row.o[2]-x.row.o[0];
    map.set(name,item);
   });
   return [...map.values()];
