@@ -1,0 +1,30 @@
+name: Probe News Sources
+
+# probe_request.txt 를 수정해 push하면 뉴스 소스 후보를 실제로 호출해 결과를 newsletter-out/probe/ 에 커밋한다.
+on:
+  push:
+    paths:
+      - probe_request.txt
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python scripts/probe_sources.py
+      - name: Commit probe results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A newsletter-out/probe
+          git commit -m "chore: probe news sources [$(cat probe_request.txt | head -1)]" || exit 0
+          git pull --rebase
+          git push
