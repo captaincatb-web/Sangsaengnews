@@ -44,7 +44,7 @@ test("전체 선택: 설비·부품·원재료 중 절대 실적 기여도가 �
  ];
  const html=render(rows);
  assert.match(html,/<b>원재료<\/b>\([^)]*\) 매출 증가 주도/,"국내 전체의 매출 증가 원인=원재료");
- assert.match(html,/성장·감소 요인/);
+ assert.doesNotMatch(html,/성장·감소 요인/,'라벨 삭제'); assert.match(html,/pc-ins-rows/,'설명 문장은 유지');
  assert.doesNotMatch(html,/품목별 특징/);
  assert.match(html,/<b>설비<\/b>/,"글로벌 중복 본사 실적은 먼저 선택된 구분에 배정");
 });
