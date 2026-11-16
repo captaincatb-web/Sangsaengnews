@@ -14,6 +14,11 @@ def full(d):
     return all(y in d and d[y].get("revenue_krw") not in ("", None) and d[y].get("op_income_krw") not in ("", None) for y in YEARS)
 
 
+def rev_only(d):
+    """매출 3개년은 있고 영업이익은 공시되지 않은 경우(예: 비상장 해외 종속기업): 영업이익은 null 로 싣는다(당기순이익 등으로 대체하지 않음)"""
+    return all(y in d and d[y].get("revenue_krw") not in ("", None) and d[y].get("op_income_krw") in ("", None) for y in YEARS)
+
+
 def main():
     priv = os.environ.get("GROWTH_PRIVATE_DIR")
     if not priv: sys.exit("GROWTH_PRIVATE_DIR 가 필요합니다")
@@ -31,10 +36,10 @@ def main():
             if r["상태"] == "OK" and r["year"]: by.setdefault(r["표시명"], {})[int(r["year"])] = r
     for n in sorted(by):
         d = by[n]
-        if n not in dom or not full(d): skipped += 1; continue
+        if n not in dom or not (full(d) or rev_only(d)): skipped += 1; continue
         src = {d[y]["source"] for y in YEARS}
         rows.append({"n": n, "s": "별도", "src": "·".join(sorted(src)) if len(src) > 1 else next(iter(src)),
-                     "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) for y in YEARS]})
+                     "r": [round(float(d[y]["revenue_krw"]) / EOK, 1) for y in YEARS], "o": [round(float(d[y]["op_income_krw"]) / EOK, 1) if full(d) else None for y in YEARS]})
     pby = {}
     for fn in ("overseas_financials_ext.csv", "jp_manual_financials.csv"):  # 두 번째는 사람이 입력한 본사 실적(2차 출처 포함, 확신도로 구분)
         pf = priv / "parents" / fn
