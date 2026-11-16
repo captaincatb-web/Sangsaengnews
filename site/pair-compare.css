@@ -202,3 +202,4 @@
 @media(max-width:900px){#insight-card>.db-card-head{flex-wrap:wrap}.pc-insight-filters{margin-left:0;justify-content:flex-start;width:100%}}
 .pc-insight-cond{display:none}
 .pc-ins-row{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.pc-ins-line{grid-template-columns:minmax(0,1fr)}

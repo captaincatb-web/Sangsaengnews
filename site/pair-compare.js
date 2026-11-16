@@ -247,7 +247,7 @@ function insight(dm,gl){
    title=rev+', '+op+'.';
   }else{
    title='매출 기준연도 수치가 부족해 매출 증가율은 비교할 수 없습니다.';
-   detail='영업이익과 아래 성장·감소 요인을 참고해 주십시오.';
+   detail='영업이익과 아래 설명을 참고해 주십시오.';
   }
  }else{title=(D?'국내':'글로벌')+' 업체의 실적만 확인되어 상대적 성장 경쟁력은 판단할 수 없습니다.'}
  const metric=(label,left,right,gap)=>'<div class="pc-ins-metric"><span class="pc-ins-metric-label">'+label+'</span>'+
@@ -258,7 +258,6 @@ function insight(dm,gl){
   metric('매출 증가율',signed(D.rg),signed(G.rg),gapR)+
   metric('영업이익 증감',opLabel(D),opLabel(G),gapO)+
   '</div>';
- const band=label=>'<b class="pc-ins-k">'+label+'</b>';
  /* 선택한 구분·품목을 기준으로 설명의 집계 단위를 바꾼다.
     전체: 구분(설비/부품/원재료), 구분: 세부 품목, 세부 품목: 업체.
     성장률 순위가 아니라 실제 매출·영업이익 증감액(억 원)을 사용한다.
@@ -308,7 +307,7 @@ function insight(dm,gl){
  const evidence=explain('국내',D,dm)+explain('글로벌',G,gl);
  box.innerHTML='<div class="pc-ins-summary"><strong>'+esc(title)+'</strong>'+
   (detail?'<span>'+esc(detail)+'</span>':'')+'</div>'+metrics+
-  '<p class="pc-ins-line">'+band('성장·감소 요인')+'<span class="pc-ins-rows">'+evidence+'</span></p>';
+  '<p class="pc-ins-line"><span class="pc-ins-rows">'+evidence+'</span></p>';
 }
 
 function csv(){const vis=visible(),Y=[2023,2024,2025],n1=v=>v==null?'':(+v).toFixed(1);

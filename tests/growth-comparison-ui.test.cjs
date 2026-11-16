@@ -171,6 +171,11 @@ for (const w of [390, 1280]) {
     assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/INFICON/,'검색해서 고른 업체 제외');
     await page.click('#f-exc-clear');
     assert.match(await page.locator('#pc-tbl').innerText(),/INFICON/,'모두 해제');
+    await page.selectOption('#f-grp','원재료');
+    assert.match(await page.locator('#pc-tbl').innerText(),/삼성전기/,'삼성전기 기본 표시');
+    await page.click('[data-exc="삼성전기"]');
+    assert.doesNotMatch(await page.locator('#pc-tbl').innerText(),/삼성전기/,'삼성전기 제외');
+    await page.click('[data-exc="삼성전기"]');
     await page.selectOption('#f-kr','kr');
     assert.match(await page.locator('#pc-tbl').textContent(),/한국 법인/,'한국 법인 기준 비교');
     assert.match(await page.locator('.pc-fixed-basis').innerText(),/한국 법인/,'기준 안내가 한국 법인으로 바뀜');
@@ -182,7 +187,7 @@ for (const w of [390, 1280]) {
     await th.locator('.pc-n').click();
     assert.equal(await th.locator('.pc-sub').first().isVisible(),false,'다시 클릭하면 접힘');
     const ins0=await page.locator('#pc-insight').innerText();
-    assert.match(ins0,/매출 증가율[\s\S]*영업이익 증감[\s\S]*성장·감소 요인/,'성장 경쟁력 분석: 매출·영업이익 비교와 성장·감소 요인');
+    assert.match(ins0,/매출 증가율[\s\S]*영업이익 증감[\s\S]*국내 —/,'성장 경쟁력 분석: 매출·영업이익 비교와 요인 설명');
     assert.equal(await page.locator('#pc-key').count(),0,'2025년 실적 요약 줄 삭제');
     await page.selectOption('#f-grp','원재료');await page.selectOption('#f-item','웨이퍼');
     const ins1=await page.locator('#pc-insight').innerText();
