@@ -157,6 +157,11 @@ def quarter_series(api_key: str, corp_code: str, this_year: int, count: int | No
             if year == this_year and q == 4:
                 continue
             rows = bcp.statement_rows(api_key, corp_code, year, code)
+            for wait in (1.5, 3.0):  # 호출 한도 등 일시 오류로 빈 응답이 오면 두 번 더 확인한다(그대로 두면 그 분기가 통째로 빠져 합산에서 회사가 제외됨)
+                if rows:
+                    break
+                time.sleep(wait)
+                rows = bcp.statement_rows(api_key, corp_code, year, code)
             if rows:
                 cum[(year, q)] = bcp.quarter_values(rows)
     return quarters_from_cumulative(cum, count, QUARTER_START_YEAR if count is None else None)

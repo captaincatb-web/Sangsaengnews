@@ -305,6 +305,7 @@
     const e = PE.length ? Object.fromEntries(eL.map((l) => [l, sum(PE.map((r) => r.qe[l]))])) : null;
     return comboChart(short, s, o, { bw: nQ > 8 ? 9 : 12, label: "분기 매출·영업이익·영업이익률" })
       + quarterTable(labels, s, o, e, e ? `임직원은 반기보고서(6월 말)·사업보고서(12월 말)에만 공시돼 반기 단위로 표시합니다(모두 공시한 ${PE.length}곳 합계).` : "임직원은 반기말(2Q)·연말(4Q)만 공시합니다. 다음 자동 갱신 후 표시됩니다.")
+      + (Q.X && Q.X.length ? `<p class="db-mini">같은 분기가 모두 있는 ${Q.P.length}곳만 합산했습니다. 제외 ${Q.X.length}곳: ${Q.X.map((x) => `${esc(x.n)}(${x.why})`).join(", ")}</p>` : "")
       + note(`최근 분기(${labels[nQ - 1]}) 매출 전년 동기 대비 <b class="${tone(yoy)}">${sg(yoy)}</b> · 최근 4분기 합계 ${won(sum(s.slice(-4)))}원, 직전 4분기 대비 <b class="${tone(ltm)}">${sg(ltm)}</b>.`);
   }
   function kindScatter(rows) {
