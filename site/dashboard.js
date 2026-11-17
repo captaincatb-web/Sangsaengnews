@@ -296,16 +296,16 @@
   const qShort = (labels) => (W < 450 ? labels.map((l, i) => l.replace(/^'(\d\d)\.(\d)Q$/, (m, y, q) => (i === 0 || q === "1" ? m : `${q}Q`))) : labels);
   function trendChart(list) {
     const Q = SB.quarters(list);
-    $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · 최근 8개 분기` : "";
+    $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · ${Q.labels[0]}부터 ${Q.labels.length}개 분기` : "";
     if (!Q.P.length) return `<p class="db-empty">이 조건에는 분기 실적이 있는 상장사가 없습니다. 비상장사는 분기 실적을 공시하지 않습니다.</p>`;
-    const { labels, s, o } = Q, ltm = growth(sum(s.slice(4)), sum(s.slice(0, 4))), yoy = growth(s[7], s[3]);
+    const { labels, s, o } = Q, nQ = s.length, ltm = growth(sum(s.slice(-4)), sum(s.slice(-8, -4))), yoy = growth(s[nQ - 1], s[nQ - 5]);
     const short = qShort(labels);
     // 임직원: 반기말·연말 인원이 모두 있는 기업만 더해 시점끼리 비교되게 한다
     const eL = labels.filter((l) => /\.(2|4)Q$/.test(l)), PE = Q.P.filter((r) => r.qe && eL.every((l) => r.qe[l] != null));
     const e = PE.length ? Object.fromEntries(eL.map((l) => [l, sum(PE.map((r) => r.qe[l]))])) : null;
-    return comboChart(short, s, o, { bw: 12, label: "분기 매출·영업이익·영업이익률" })
+    return comboChart(short, s, o, { bw: nQ > 8 ? 9 : 12, label: "분기 매출·영업이익·영업이익률" })
       + quarterTable(labels, s, o, e, e ? `임직원은 반기보고서(6월 말)·사업보고서(12월 말)에만 공시돼 반기 단위로 표시합니다(모두 공시한 ${PE.length}곳 합계).` : "임직원은 반기말(2Q)·연말(4Q)만 공시합니다. 다음 자동 갱신 후 표시됩니다.")
-      + note(`최근 분기(${labels[7]}) 매출 전년 동기 대비 <b class="${tone(yoy)}">${sg(yoy)}</b> · 최근 4분기 합계 ${won(sum(s.slice(4)))}원, 직전 4분기 대비 <b class="${tone(ltm)}">${sg(ltm)}</b>.`);
+      + note(`최근 분기(${labels[nQ - 1]}) 매출 전년 동기 대비 <b class="${tone(yoy)}">${sg(yoy)}</b> · 최근 4분기 합계 ${won(sum(s.slice(-4)))}원, 직전 4분기 대비 <b class="${tone(ltm)}">${sg(ltm)}</b>.`);
   }
   function kindScatter(rows) {
     const pts = [];
