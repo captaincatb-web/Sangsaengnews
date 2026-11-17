@@ -119,10 +119,10 @@
     return { n1: cur.length, n0: prev.length, s1: a, s0: b, g: growth(a, b) };
   }
   const concentration = (rows, n) => { const t = rows.slice().sort((a, b) => b.s1 - a.s1); return share(sum(t.slice(0, n).map((r) => r.s1)), sum(t.map((r) => r.s1))); };
-  // 분기: 상장사 중 같은 8개 분기가 모두 있는 곳
+  // 분기: 상장사 중 같은 분기(8개 이상)가 모두 있는 곳 — 2024년 1분기부터 최근 분기까지
   function quarters(list) {
     const c = {};
-    list.forEach((r) => { if (r.q && r.q.labels.length === 8 && r.q.sales.every((v) => v != null)) { const k = r.q.labels.join(); c[k] = (c[k] || 0) + 1; } });
+    list.forEach((r) => { if (r.q && r.q.labels.length >= 8 && r.q.sales.every((v) => v != null)) { const k = r.q.labels.join(); c[k] = (c[k] || 0) + 1; } });
     const key = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
     if (!key) return { labels: [], P: [], s: [], o: [] };
     const P = list.filter((r) => r.q && r.q.labels.join() === key && r.q.sales.every((v) => v != null) && r.q.op.every((v) => v != null));

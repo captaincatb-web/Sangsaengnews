@@ -5,7 +5,7 @@
     같은 이름이 여럿이면 상장사 하나일 때만 고르고, 못 찾거나 모호하면 건너뛰고 로그에 남긴다.
   - 연간: 사업보고서 재무제표(개별) → 없으면 감사보고서 원문(외부감사 대상 비상장사).
   - 분기: 상장사만. 1분기·반기·3분기 보고서의 누적 금액을 빼서 3개월 값으로 바꾸고, 4분기는 연간 − 3분기 누적.
-    최근 8개 분기를 담는다. 비상장사는 분기보고서가 없어 연간만 있다.
+    2024년 1분기부터 최근 분기까지(QUARTER_START_YEAR) 담는다. 비상장사는 분기보고서가 없어 연간만 있다.
 
 사용법: DART_API_KEY 환경변수를 설정한 뒤 `python scripts/build_financials.py`
 """
@@ -33,6 +33,7 @@ CORP_CODE_URL = "https://opendart.fss.or.kr/api/corpCode.xml"
 BASE_GROUPS = ("g1", "g2", "g3")
 TIME_BUDGET_SECONDS = 40 * 60
 QUARTER_CODES = [("11013", 1), ("11012", 2), ("11014", 3), ("11011", 4)]
+QUARTER_START_YEAR = 2024  # 분기 실적은 이 해 1분기부터 보여 준다(고정 시작점)
 ITEMS = ("매출액", "영업이익", "당기순이익")
 BS_ITEMS = ("총자산", "부채총계", "자본총계")  # 재무 안정성(부채비율)용, 같은 공시에서 함께 읽는다
 PLANT_SUFFIX = re.compile(r"(천안\d?공장|\S*공장|\S*사업장|\S*지점|한국영업소|전자재료사업부지점)$")
@@ -148,20 +149,20 @@ def resolve(entries: list, corps: list, api_key: str | None = None) -> tuple:
 
 # ---------- 분기 ----------
 
-def quarter_series(api_key: str, corp_code: str, this_year: int, count: int = 8) -> dict | None:
-    """누적 금액에서 3개월 값을 만든다. 최근 count 개 분기를 {labels, sales, op, net}(억원) 으로 돌려준다."""
+def quarter_series(api_key: str, corp_code: str, this_year: int, count: int | None = None) -> dict | None:
+    """누적 금액에서 3개월 값을 만든다. QUARTER_START_YEAR 1분기부터 최근 분기까지(count 를 주면 최근 count 개만)를 {labels, sales, op, net}(억원) 으로 돌려준다."""
     cum = {}
-    for year in (this_year - 2, this_year - 1, this_year):
+    for year in range(QUARTER_START_YEAR, this_year + 1):
         for code, q in QUARTER_CODES:
             if year == this_year and q == 4:
                 continue
             rows = bcp.statement_rows(api_key, corp_code, year, code)
             if rows:
                 cum[(year, q)] = bcp.quarter_values(rows)
-    return quarters_from_cumulative(cum, count)
+    return quarters_from_cumulative(cum, count, QUARTER_START_YEAR if count is None else None)
 
 
-def quarters_from_cumulative(cum: dict, count: int = 8) -> dict | None:
+def quarters_from_cumulative(cum: dict, count: int | None = 8, start_year: int | None = None) -> dict | None:
     out = []
     for (year, q) in sorted(cum):
         cur = cum[(year, q)]
@@ -171,7 +172,10 @@ def quarters_from_cumulative(cum: dict, count: int = 8) -> dict | None:
         vals = {k: (cur[k] - (prev.get(k) or 0) if cur.get(k) is not None and (q == 1 or prev.get(k) is not None) else None)
                 for k in ITEMS}
         out.append((f"'{year % 100}.{q}Q", vals))
-    out = out[-count:]
+    if start_year is not None:
+        out = [o for o in out if 2000 + int(o[0][1:3]) >= start_year]
+    if count is not None:
+        out = out[-count:]
     if not out:
         return None
     return {"labels": [o[0] for o in out],
