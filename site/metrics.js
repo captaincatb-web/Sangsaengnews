@@ -124,10 +124,15 @@
     const c = {};
     list.forEach((r) => { if (r.q && r.q.labels.length >= 8 && r.q.sales.every((v) => v != null)) { const k = r.q.labels.join(); c[k] = (c[k] || 0) + 1; } });
     const key = Object.keys(c).sort((a, b) => c[b] - c[a])[0];
-    if (!key) return { labels: [], P: [], s: [], o: [] };
+    if (!key) return { labels: [], P: [], s: [], o: [], X: [] };
     const P = list.filter((r) => r.q && r.q.labels.join() === key && r.q.sales.every((v) => v != null) && r.q.op.every((v) => v != null));
     const labels = key.split(",");
-    return { labels, P, s: labels.map((_, i) => sum(P.map((r) => r.q.sales[i]))), o: labels.map((_, i) => sum(P.map((r) => r.q.op[i]))) };
+    // 같은 분기가 모두 없어 합산에서 빠진 상장사와 사유(상장 시점이 늦거나 일부 분기 공시가 없는 경우)
+    const X = list.filter((r) => r.l && !P.includes(r)).map((r) => {
+      const have = r.q ? r.q.labels : [], miss = labels.filter((l) => !have.includes(l));
+      return { n: r.n, why: !r.q ? "분기 실적 없음" : miss.length ? `${miss[0]}${miss.length > 1 ? `~${miss[miss.length - 1]}` : ""} 분기 없음` : "일부 분기 값 없음" };
+    });
+    return { labels, P, X, s: labels.map((_, i) => sum(P.map((r) => r.q.sales[i]))), o: labels.map((_, i) => sum(P.map((r) => r.q.op[i]))) };
   }
 
   // ---------- 위험 신호(확정 기준) ----------
