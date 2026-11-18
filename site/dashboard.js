@@ -296,9 +296,9 @@
   const qShort = (labels) => (W < 450 ? labels.map((l, i) => l.replace(/^'(\d\d)\.(\d)Q$/, (m, y, q) => (i === 0 || q === "1" ? m : `${q}Q`))) : labels);
   function trendChart(list) {
     const Q = SB.quarters(list);
-    $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · ${Q.labels[0]}부터 ${Q.labels.length}개 분기` : "";
+    $("trend-sub").textContent = Q.P.length ? `상장 ${Q.P.length}곳 · ${Q.labels[0]}~${Q.labels[Q.labels.length - 1]}` : "";
     if (!Q.P.length) return `<p class="db-empty">이 조건에는 분기 실적이 있는 상장사가 없습니다. 비상장사는 분기 실적을 공시하지 않습니다.</p>`;
-    const { labels, s, o } = Q, nQ = s.length, ltm = growth(sum(s.slice(-4)), sum(s.slice(-8, -4))), yoy = growth(s[nQ - 1], s[nQ - 5]);
+    const { labels, s, o } = Q, nQ = s.length, ltm = nQ >= 8 ? growth(sum(s.slice(-4)), sum(s.slice(-8, -4))) : null, yoy = nQ >= 5 ? growth(s[nQ - 1], s[nQ - 5]) : null;
     const short = qShort(labels);
     // 임직원: 반기말·연말 인원이 모두 있는 기업만 더해 시점끼리 비교되게 한다
     const eL = labels.filter((l) => /\.(2|4)Q$/.test(l)), PE = Q.P.filter((r) => r.qe && eL.every((l) => r.qe[l] != null));
